@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { PRODUCTS } from '../pages/Shop';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Header({ page, setPage, cartCount, onCartOpen, onProductView }) {
+export default function Header({ page, setPage, cartCount, onCartOpen, onProductView, user, onAuthOpen }) {
     const { lang, toggleLanguage, t } = useLanguage();
     const [scrolled, setScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -91,7 +91,7 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
                 <div className="container header-top-container">
                     
                     {/* Left: Search Bar with Autocomplete Dropdown */}
-                    <div ref={searchContainerRef} style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
+                    <div ref={searchContainerRef} className="header-search-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
                         <form onSubmit={handleSearchSubmit} className="header-search-container">
                             <input 
                                 type="text"
@@ -159,11 +159,22 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
                             <span className="lang-text">{lang === 'en' ? 'ENG' : 'தமிழ்'}</span>
                         </button>
 
-                        <button className="header-icon-btn" aria-label="User Account">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
+                        <button 
+                            className={`header-icon-btn ${user ? 'user-logged-in' : ''}`} 
+                            onClick={onAuthOpen}
+                            aria-label="User Account"
+                            title={user ? `Signed in as ${user.name}` : 'Login / Register'}
+                        >
+                            {user ? (
+                                <span className="header-user-avatar-initials">
+                                    {user.name.slice(0, 2).toUpperCase()}
+                                </span>
+                            ) : (
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            )}
                         </button>
 
                         <button 

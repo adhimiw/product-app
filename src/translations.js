@@ -92,7 +92,25 @@ export const translations = {
         footerLegal: "Compliance & Safety",
         footerNewsletterTitle: "Stay Healthy & Connected",
         footerNewsletterDesc: "Subscribe to receive traditional health recipes and exclusive offers.",
-        copyrightText: "© 2026 Mangalam Healthy Foods Company. All rights reserved. Registered under GSTN: 33FDAPM8867B1ZI."
+        copyrightText: "© 2026 Mangalam Healthy Foods Company. All rights reserved. Registered under GSTN: 33FDAPM8867B1ZI.",
+
+        // Auth & Profile Modal
+        loginTitle: "Welcome Back",
+        loginSubtitle: "Sign in to your Mangalam account to manage your orders & rituals.",
+        registerTitle: "Join Mangalam Family",
+        registerSubtitle: "Create an account for fast checkout and exclusive wellness offers.",
+        emailHolder: "Email Address",
+        passwordHolder: "Password",
+        fullNameHolder: "Full Name",
+        phoneHolder: "Mobile Number",
+        signInBtn: "Sign In",
+        createAccountBtn: "Create Account",
+        dontHaveAccount: "Don't have an account?",
+        alreadyHaveAccount: "Already have an account?",
+        createOneLink: "Create One",
+        signInLink: "Sign In",
+        myProfileTitle: "My Wellness Profile",
+        signOutBtn: "Sign Out"
     },
     ta: {
         // Header & Announcement Marquee
@@ -187,6 +205,24 @@ export const translations = {
         footerLegal: "பாதுகாப்பு & விதிமுறைகள்",
         footerNewsletterTitle: "ஆரோக்கியமான செய்திகளைப் பெற",
         footerNewsletterDesc: "பாரம்பரிய ஆரோக்கிய குறிப்புகள் மற்றும் சலுகைகளைப் பெற பதிவு செய்யுங்கள்.",
-        copyrightText: "© 2026 மங்களம் ஹெல்தி ஃபுட்ஸ் கம்பனி. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. GSTN: 33FDAPM8867B1ZI."
+        copyrightText: "© 2026 மங்களம் ஹெல்தி ஃபுட்ஸ் கம்பனி. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை. GSTN: 33FDAPM8867B1ZI.",
+
+        // Auth & Profile Modal
+        loginTitle: "சுவாக்கம்",
+        loginSubtitle: "உங்கள் மங்களம் கணக்கில் உள்நுழையவும்.",
+        registerTitle: "மங்களம் குடும்பத்தில் இணையுங்கள்",
+        registerSubtitle: "விரைவான ஆர்டர் செய்ய புதிய கணக்கை உருவாக்குங்கள்.",
+        emailHolder: "மின்னஞ்சல் முகவரி",
+        passwordHolder: "கடவுச்சொல்",
+        fullNameHolder: "முழு பெயர்",
+        phoneHolder: "கைபேசி எண்",
+        signInBtn: "உள்நுழைக",
+        createAccountBtn: "கணக்கை உருவாக்குங்கள்",
+        dontHaveAccount: "கணக்கு இல்லையா?",
+        alreadyHaveAccount: "ஏற்கனவே கணக்கு உள்ளதா?",
+        createOneLink: "உருவாக்கவும்",
+        signInLink: "உள்நுழைக",
+        myProfileTitle: "என் கணக்கு",
+        signOutBtn: "வெளியேறவும்"
     }
 };

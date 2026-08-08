@@ -5,10 +5,10 @@ import { useLanguage } from '../context/LanguageContext';
 export default function ProductDetail({ productId, onAddToCart, onBack }) {
     const { t } = useLanguage();
     const product = PRODUCTS.find(p => p.id === productId) || PRODUCTS[0];
-    
+
     // Multiple images list setup
-    const imgList = (product.images && product.images.length > 0) 
-        ? product.images 
+    const imgList = (product.images && product.images.length > 0)
+        ? product.images
         : [product.image];
 
     // Gram package options (300g and 500g default)
@@ -49,10 +49,10 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
     const handleAddToCartClick = () => {
         onAddToCart(
-            product.id, 
-            `${product.name} (${activeGramOption.size})`, 
-            currentPrice, 
-            'one-time', 
+            product.id,
+            `${product.name} (${activeGramOption.size})`,
+            currentPrice,
+            'one-time',
             quantity
         );
     };
@@ -71,7 +71,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
     return (
         <main className="pdp-page">
             <div className="container">
-                
+
                 {/* Back button */}
                 <button onClick={onBack} className="pdp-back">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -83,16 +83,16 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                 {/* Main PDP 2-Column Grid (Reference Screenshot Structure) */}
                 <div className="pdp-grid-novelty">
-                    
+
                     {/* Left Column: Vertical Thumbnails on Left Side (Centered) + Main Hero Image */}
                     <div className="pdp-left-gallery-wrap">
                         <div className="pdp-gallery-flex-left">
-                            
+
                             {/* Vertical Thumbnails List on Left Side */}
                             {imgList.length > 1 && (
                                 <div className="pdp-thumbnails-col-vertical">
                                     {imgList.map((imgSrc, idx) => (
-                                        <div 
+                                        <div
                                             key={idx}
                                             className={`pdp-thumb-box ${idx === selectedImgIndex ? 'active' : ''}`}
                                             onClick={() => setSelectedImgIndex(idx)}
@@ -106,9 +106,9 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                             {/* Main Featured Card with Product Image */}
                             <div className="pdp-main-image-card">
                                 <div className="pdp-main-img-holder">
-                                    <img 
-                                        src={imgList[selectedImgIndex] || product.image} 
-                                        alt={product.name} 
+                                    <img
+                                        src={imgList[selectedImgIndex] || product.image}
+                                        alt={product.name}
                                         className="pdp-hero-display-img"
                                     />
                                 </div>
@@ -119,7 +119,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                     {/* Right Column: Title, Gram Package Options, Price, Big CTA, & Accordions */}
                     <div className="pdp-right-info-panel">
-                        
+
                         {/* Rating Row */}
                         <div className="pdp-stars-row">
                             <span className="stars-gold">★★★★★</span>
@@ -151,7 +151,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                             <div className="gram-options-grid">
                                 {gramOptions.map((opt, idx) => (
-                                    <div 
+                                    <div
                                         key={idx}
                                         className={`gram-card-box ${idx === selectedGramIndex ? 'active' : ''}`}
                                         onClick={() => setSelectedGramIndex(idx)}
@@ -160,9 +160,9 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                                             <span className="gram-deal-badge">{opt.badge}</span>
                                         )}
                                         <div className="gram-card-inner">
-                                            <img 
-                                                src={imgList[idx] || product.image} 
-                                                alt={opt.size} 
+                                            <img
+                                                src={imgList[idx] || product.image}
+                                                alt={opt.size}
                                                 className="gram-thumb-img"
                                             />
                                             <div className="gram-card-info">
@@ -196,7 +196,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                                 <button onClick={() => handleQtyChange('inc')}>+</button>
                             </div>
 
-                            <button 
+                            <button
                                 className="btn btn-primary pdp-big-add-btn"
                                 onClick={handleAddToCartClick}
                             >
@@ -212,10 +212,10 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                         {/* Expandable Accordions: How to use, Benefits, Ingredients */}
                         <div className="pdp-accordions-group">
-                            
+
                             {/* Accordion 1: How to use & taste */}
                             <div className={`pdp-accordion-item ${openAccordion.howToUse ? 'open' : ''}`}>
-                                <button 
+                                <button
                                     className="pdp-accordion-head"
                                     onClick={() => toggleAccordion('howToUse')}
                                 >
@@ -228,7 +228,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                                         <div className="how-to-use-box">
                                             <h5>In English:</h5>
                                             <p>{product.howToUse?.english || "Dissolve 2 tablespoons in 200ml clean water without lumps. Boil on medium flame for 5-6 minutes. Add jaggery or salt to taste. Serve warm with milk."}</p>
-                                            
+
                                             <h5 style={{ marginTop: '12px' }}>தமிழ் பதிப்பு:</h5>
                                             <p style={{ fontFamily: 'var(--font-sans)' }}>{product.howToUse?.tamil || "200ml தண்ணீரில் 2 ஸ்பூன் மாவை கட்டியில்லாமல் கரைத்து 5-6 நிமிடம் கொதிக்க வைக்கவும். நாட்டுச்சர்க்கரை அல்லது பாலுடன் பருகவும்."}</p>
                                         </div>
@@ -238,7 +238,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                             {/* Accordion 2: Benefits */}
                             <div className={`pdp-accordion-item ${openAccordion.benefits ? 'open' : ''}`}>
-                                <button 
+                                <button
                                     className="pdp-accordion-head"
                                     onClick={() => toggleAccordion('benefits')}
                                 >
@@ -263,7 +263,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                             {/* Accordion 3: Ingredients */}
                             <div className={`pdp-accordion-item ${openAccordion.ingredients ? 'open' : ''}`}>
-                                <button 
+                                <button
                                     className="pdp-accordion-head"
                                     onClick={() => toggleAccordion('ingredients')}
                                 >

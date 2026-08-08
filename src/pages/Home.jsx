@@ -43,7 +43,7 @@ export default function Home({ setPage, onProductView, onAddToCart }) {
 
             {/* Trust Badges Bar */}
             <section style={{ background: 'var(--color-primary-light)', padding: '24px 0', borderBottom: '1px solid rgba(7, 56, 32, 0.05)' }}>
-                <div className="container" style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
+                <div className="container trust-badges-container" style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '1.5rem' }}>🌱</span>
                         <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('badgeSprouted')}</span>
@@ -115,7 +115,7 @@ export default function Home({ setPage, onProductView, onAddToCart }) {
                         <div className="about-minimal-right">
                             <div className="about-minimal-img-frame">
                                 <img
-                                    src="/assets/images/mangalam_about_heritage_hero.png"
+                                    src="/assets/images/istockphoto-611609186-612x612.jpg"
                                     alt="Mangalam Sprouted Health Mix Heritage"
                                 />
                             </div>
@@ -153,7 +153,7 @@ export default function Home({ setPage, onProductView, onAddToCart }) {
 
             {/* Section 5: Get In Touch (Contact form & address details) */}
             <section className="newsletter-section" id="get-in-touch" style={{ padding: '80px 0' }}>
-                <div className="container" style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '60px', alignItems: 'flex-start' }}>
+                <div className="container contact-grid-container" style={{ display: 'grid', gridTemplateColumns: '0.9fr 1.1fr', gap: '60px', alignItems: 'flex-start' }}>
 
                     {/* Left: Contact Info details */}
                     <div style={{ textAlign: 'left' }}>
