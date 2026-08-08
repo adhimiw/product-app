@@ -24,7 +24,7 @@ export default function Science({ setPage }) {
     return (
         <main className="science-page" style={{ paddingTop: 'calc(var(--header-height) + 40px)', paddingBottom: '80px' }}>
             <div className="container">
-                
+
                 {/* Science Hero Wrapper */}
                 <div className="science-section" style={{ padding: '0 0 60px 0' }}>
                     <div className="science-wrapper">
@@ -32,23 +32,23 @@ export default function Science({ setPage }) {
                             <span className="section-subtitle">THE SCIENCE</span>
                             <h1 style={{ fontSize: '3.5rem', marginBottom: '24px' }}>The Bioavailability Breakthrough</h1>
                             <p className="science-lead">Standard health mixes contain unsprouted grains that carry phytic acid—an anti-nutrient that binds to minerals and prevents absorption. Mangalam bypasses this limitation entirely.</p>
-                            
+
                             {/* React Accordion */}
                             <div className="accordion">
                                 {accordionData.map((item, idx) => (
-                                    <div 
+                                    <div
                                         className={`accordion-item ${activeAcc === idx ? 'active' : ''}`}
                                         key={idx}
                                     >
-                                        <button 
-                                            className="accordion-trigger" 
+                                        <button
+                                            className="accordion-trigger"
                                             onClick={() => setActiveAcc(activeAcc === idx ? -1 : idx)}
                                             aria-expanded={activeAcc === idx}
                                         >
                                             <span>{item.num}. {item.title}</span>
                                             <span className="accordion-icon">+</span>
                                         </button>
-                                        <div 
+                                        <div
                                             className="accordion-content"
                                             style={{ maxHeight: activeAcc === idx ? '200px' : '0' }}
                                         >
@@ -58,7 +58,7 @@ export default function Science({ setPage }) {
                                 ))}
                             </div>
                         </div>
-                        
+
                         <div className="science-visual">
                             <img src="science_sprouts.png" alt="Mangalam Sprouted Ingredients" className="science-image" />
                             <div className="science-overlay-card">

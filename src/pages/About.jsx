@@ -4,7 +4,7 @@ export default function About({ setPage }) {
     return (
         <main className="about-page">
             <div className="container">
-                
+
                 {/* Brand Story narrative */}
                 <div className="about-narrative">
                     <div className="narrative-content">
@@ -21,9 +21,9 @@ export default function About({ setPage }) {
                         </button>
                     </div>
                     <div>
-                        <img 
-                            src="about_sprouts.png" 
-                            alt="Mangalam Sourcing and Quality Standards" 
+                        <img
+                            src="about_sprouts.png"
+                            alt="Mangalam Sourcing and Quality Standards"
                             style={{ borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-premium)', width: '100%' }}
                         />
                     </div>
@@ -35,7 +35,7 @@ export default function About({ setPage }) {
                         <span className="section-subtitle">THE STANDARD</span>
                         <h2>Our Sourcing & Purity Commitments</h2>
                     </div>
-                    
+
                     <div className="purity-grid" style={{ marginTop: '0' }}>
                         <div className="purity-card">
                             <h3>Sprout-Activated Grains</h3>

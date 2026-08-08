@@ -15,22 +15,26 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
     const categoryItems = [
         {
             id: 'health-mixes',
-            name: 'Health Mixes',
+            name: 'Ancestral Health Mixes',
+            desc: 'Handcrafted sprouted ancient grain porridge formulas for daily family vitality and stamina.',
             image: '/assets/images/categories/whey-protein.png'
         },
         {
             id: 'traditional-rice',
-            name: 'Traditional Rice',
+            name: 'Heritage Mappillai Rice',
+            desc: 'Time-honored native rice varieties cultivated for bio-calcium, iron, and bone density.',
             image: '/assets/images/categories/rice-svgrepo-com.svg'
         },
         {
             id: 'millets-grains',
-            name: 'Millets & Grains',
+            name: 'Soak-Sprouted Millets',
+            desc: 'Germinated millets optimized for 3x higher mineral absorption and easy digestion.',
             image: '/assets/images/categories/rice.png'
         },
         {
             id: 'natural-foods',
-            name: 'Traditional & Natural Foods',
+            name: 'Sethiyathope Artisanal Blends',
+            desc: 'Naturally anti-inflammatory sprouted legume mixes enriched with organic cardamom.',
             image: '/assets/images/categories/organic-food-ingredients.png'
         }
     ];
@@ -95,19 +99,19 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
             </section>
 
             {/* Shop by Category Section (Exact Reference Image Structure) */}
-            <section className="shop-by-category-section" id="shop-by-category">
+            <section className="shop-by-category-section reveal-on-scroll" id="shop-by-category">
                 <div className="container">
-                    
+
                     {/* Header Row matching Reference Image layout */}
                     <div className="category-ref-header">
                         <div className="category-ref-title-group">
-                            <h2 className="category-ref-heading">Browse by Category</h2>
+                            <h2 className="category-ref-heading">Browse by Heritage Category</h2>
                             <button
                                 className="category-all-link-btn"
                                 onClick={() => handleCategoryClick('All Products')}
                             >
                                 <span>All Categories</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
@@ -116,19 +120,19 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
                         {/* Navigation Arrows matching Reference Image */}
                         <div className="category-ref-nav-arrows">
                             <button className="category-arrow-btn" aria-label="Previous categories">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <polyline points="15 18 9 12 15 6"></polyline>
                                 </svg>
                             </button>
                             <button className="category-arrow-btn" aria-label="Next categories">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                     <polyline points="9 18 15 12 9 6"></polyline>
                                 </svg>
                             </button>
                         </div>
                     </div>
 
-                    {/* 4 Category Cards Grid matching Reference Portrait Card Structure */}
+                    {/* 4 Category Cards Grid matching Reference Image Structure */}
                     <div className="category-ref-cards-row">
                         {categoryItems.map((cat) => (
                             <div
@@ -140,6 +144,7 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
                                     <img src={cat.image} alt={cat.name} className="category-ref-icon-img" />
                                 </div>
                                 <h3 className="category-ref-card-title">{cat.name}</h3>
+                                <p className="category-ref-card-desc">{cat.desc}</p>
                             </div>
                         ))}
                     </div>
