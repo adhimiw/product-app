@@ -60,25 +60,6 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
         setSearchQuery('');
     };
 
-    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-
-    const handleNavClick = (section, defaultPage) => {
-        if (page === 'home') {
-            const elem = document.getElementById(section);
-            if (elem) {
-                const headerOffset = 110;
-                const elementPosition = elem.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-                return;
-            }
-        }
-        setPage(defaultPage);
-    };
-
     return (
         <header className={`main-header ${scrolled ? 'scrolled' : ''}`}>
             {/* Infinite Marquee Running Announcement Bar */}
@@ -109,8 +90,8 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
             <div className="header-top-row">
                 <div className="container header-top-container">
                     
-                    {/* Left: Desktop Search Bar & Mobile Collapsible Search Container */}
-                    <div ref={searchContainerRef} className={`header-search-wrapper ${mobileSearchOpen ? 'mobile-expanded' : ''}`}>
+                    {/* Left: Search Bar with Autocomplete Dropdown */}
+                    <div ref={searchContainerRef} className="header-search-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '280px' }}>
                         <form onSubmit={handleSearchSubmit} className="header-search-container">
                             <input 
                                 type="text"
@@ -152,7 +133,7 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
                         )}
                     </div>
 
-                    {/* Left/Center: Main Logo Image */}
+                    {/* Center: Main Logo Image */}
                     <button 
                         onClick={() => setPage('home')} 
                         className="header-logo-centered"
@@ -163,18 +144,6 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
 
                     {/* Right: Language Switcher, User Account & Cart Icons */}
                     <div className="header-right-actions">
-                        {/* Mobile Quick Search Toggle Icon Button */}
-                        <button
-                            className="header-icon-btn mobile-search-toggle-btn"
-                            onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
-                            aria-label="Toggle Search Bar"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                        </button>
-
                         {/* Minimal Compact Language Switcher Pill */}
                         <button 
                             className="header-lang-btn"
@@ -229,30 +198,31 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
             <nav className="header-bottom-nav">
                 <div className="container bottom-nav-container">
                     <button 
-                        onClick={() => handleNavClick('our-products', 'shop')} 
+                        onClick={() => setPage('shop')} 
                         className={`target-nav-link ${page === 'shop' ? 'active' : ''}`}
                     >
                         {t('navProducts')}
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
                     </button>
 
                     <button 
-                        onClick={() => handleNavClick('why-sprouted', 'science')} 
+                        onClick={() => setPage('science')} 
                         className={`target-nav-link ${page === 'science' ? 'active' : ''}`}
                     >
                         {t('navWhySprouted')}
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
                     </button>
 
                     <button 
-                        onClick={() => handleNavClick('about-mangalam', 'about')} 
+                        onClick={() => setPage('about')} 
                         className={`target-nav-link ${page === 'about' ? 'active' : ''}`}
                     >
                         {t('navOurStory')}
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
                     </button>
                 </div>
             </nav>
         </header>
     );
 }
+

@@ -42,15 +42,6 @@ export const translations = {
         aboutPoint3Text: "Handcrafted in Cuddalore district, Tamil Nadu. GSTN: 33FDAPM8867B1ZI.",
         aboutReadStoryBtn: "Read Our Full Story",
 
-        // Science Section
-        scienceTitle: "The Sprout-Activation Breakthrough",
-        scienceLead: "Standard health mixes contain unsprouted grains carrying phytic acid—an anti-nutrient that locks in minerals. Mangalam soak-sprouts grains to unlock up to 300% higher nutrient absorption.",
-        sciencePoint1Title: "Natural Phytase Activation",
-        sciencePoint1Desc: "Germination degrades phytic acid, releasing essential Calcium, Iron, and Zinc for maximum digestive absorption.",
-        sciencePoint2Title: "Pre-Digested Complex Starches",
-        sciencePoint2Desc: "Enzymes break down heavy proteins and starches into gentle amino acids, eliminating stomach heaviness.",
-        learnMoreScience: "Discover Full Science",
-
         // Product Section Header
         productSectionSub: "OUR TRADITIONAL TASTE",
         productSectionTitle: "Our Pure Health Mixes",
@@ -163,15 +154,6 @@ export const translations = {
         aboutPoint3Title: "சேத்தியாத்தோப்பு பாரம்பரிய உற்பத்தி:",
         aboutPoint3Text: "கடலூர் மாவட்டம் சேத்தியாத்தோப்பில் சுகாதாரமான முறையில் தயாரிக்கப்படுகிறது. GSTN: 33FDAPM8867B1ZI.",
         aboutReadStoryBtn: "எங்கள் முழு கதையை படிக்கவும்",
-
-        // Science Section
-        scienceTitle: "முளைகட்டிய தானியங்களின் அபார நன்மை",
-        scienceLead: "சாதாரண சத்து மாவில் உள்ள தானியங்கள் செரிமானத்தை தடுக்கும் ஃபைடிக் அமிலத்தைக் கொண்டிருக்கும். மங்களம் தானியங்களை முளைகட்டி 300% அதிக சத்துக்கள் உடலுக்கு கிடைக்க செய்கிறது.",
-        sciencePoint1Title: "இயற்கை என்சைம் தூண்டல்",
-        sciencePoint1Desc: "முளைகட்டும் போது ஃபைடிக் அமிலம் நீங்கி கால்சியம், இரும்புச்சத்து மற்றும் துத்தநாகம் உடலுக்கு எளிதில் உறிஞ்சப்படுகிறது.",
-        sciencePoint2Title: "எளிதில் செரிக்கும் புரதம்",
-        sciencePoint2Desc: "என்சைம்கள் கடினமான புரதங்களை எளிய அமைனோ அமிலங்களாக மாற்றி வயிற்று உப்பசம் மற்றும் மந்தத்தை போக்குகிறது.",
-        learnMoreScience: "அறிவியல் தகவல்களை அறிய",
 
         // Product Section Header
         productSectionSub: "எங்கள் பாரம்பரிய சுவை",
