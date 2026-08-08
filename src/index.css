@@ -5211,6 +5211,12 @@ body {
         gap: 32px;
     }
 
+    .pdp-left-gallery-wrap {
+        position: static !important;
+        top: auto !important;
+        width: 100% !important;
+    }
+
     .shop-grid,
     .products-grid {
         grid-template-columns: repeat(2, 1fr) !important;
@@ -5652,83 +5658,228 @@ body {
 
     /* Product Detail Page (PDP Mobile Layout) */
     .pdp-page {
-        padding-top: 14px;
-        padding-bottom: 36px;
+        padding-top: calc(var(--header-height) + 12px) !important;
+        padding-bottom: 36px !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
     }
 
     .pdp-back {
-        font-size: 0.78rem;
-        margin-bottom: 14px;
+        font-size: 0.8rem !important;
+        margin-bottom: 16px !important;
     }
 
     .pdp-grid-novelty {
         grid-template-columns: 1fr !important;
-        gap: 16px;
+        gap: 20px !important;
+        margin-bottom: 32px !important;
+    }
+
+    .pdp-left-gallery-wrap {
+        position: static !important;
+        top: auto !important;
+        width: 100% !important;
     }
 
     .pdp-gallery-flex-left {
+        display: flex !important;
         flex-direction: column-reverse !important;
-        gap: 8px;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    .pdp-main-image-card {
+        padding: 16px !important;
+        border-radius: 18px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .pdp-main-img-holder {
+        height: 250px !important;
+        width: 100% !important;
+    }
+
+    .pdp-hero-display-img {
+        max-height: 230px !important;
+        max-width: 100% !important;
+        width: auto !important;
+        object-fit: contain !important;
     }
 
     .pdp-thumbnails-col-vertical {
         display: flex !important;
         flex-direction: row !important;
-        overflow-x: auto;
-        width: 100%;
-        max-width: 100%;
-        padding-bottom: 4px;
-        gap: 6px;
+        overflow-x: auto !important;
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 4px 0 !important;
+        gap: 8px !important;
         -webkit-overflow-scrolling: touch;
     }
 
     .pdp-thumb-box {
-        width: 48px;
-        height: 48px;
-        flex-shrink: 0;
-        border-radius: 8px;
+        width: 52px !important;
+        height: 52px !important;
+        flex-shrink: 0 !important;
+        border-radius: 10px !important;
+        padding: 4px !important;
     }
 
-    .pdp-main-hero-holder {
-        width: 100%;
-        height: 260px;
-        border-radius: 12px;
+    .pdp-thumb-box img {
+        max-height: 100% !important;
+        max-width: 100% !important;
+        object-fit: contain !important;
     }
 
-    .pdp-title-main {
-        font-size: 1.3rem;
-        line-height: 1.25;
+    .pdp-right-info-panel {
+        width: 100% !important;
+        align-items: flex-start !important;
+        text-align: left !important;
     }
 
-    .pdp-subtitle {
-        font-size: 0.78rem;
+    .pdp-stars-row {
+        margin-bottom: 8px !important;
     }
 
-    .pdp-inr-price-val {
-        font-size: 1.4rem;
+    .pdp-novelty-title {
+        font-size: 1.55rem !important;
+        line-height: 1.25 !important;
+        margin-bottom: 10px !important;
     }
 
-    .pdp-gram-pill {
-        padding: 7px 10px;
-        font-size: 0.72rem;
+    .pdp-benefits-tags-row {
+        gap: 8px 12px !important;
+        margin-bottom: 14px !important;
     }
 
-    .pdp-cta-sticky-bar {
-        flex-direction: column;
-        gap: 8px;
+    .benefit-tag-item {
+        font-size: 0.76rem !important;
+    }
+
+    .pdp-novelty-desc {
+        font-size: 0.88rem !important;
+        line-height: 1.55 !important;
+        margin-bottom: 20px !important;
+    }
+
+    .pdp-gram-selector-block {
+        width: 100% !important;
+        margin-bottom: 18px !important;
+    }
+
+    .gram-selector-label {
+        font-size: 0.82rem !important;
+        margin-bottom: 8px !important;
+    }
+
+    .gram-options-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        width: 100% !important;
+    }
+
+    .gram-card-box {
+        padding: 12px 10px !important;
+        border-radius: 12px !important;
+    }
+
+    .gram-deal-badge {
+        top: -9px !important;
+        right: 12px !important;
+        font-size: 0.6rem !important;
+        padding: 2px 7px !important;
+    }
+
+    .gram-card-inner {
+        gap: 8px !important;
+    }
+
+    .gram-thumb-img {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .gram-size-text {
+        font-size: 0.82rem !important;
+    }
+
+    .gram-price-text {
+        font-size: 0.76rem !important;
+    }
+
+    .pdp-trust-guarantee-row {
+        gap: 8px 12px !important;
+        font-size: 0.74rem !important;
+        margin-bottom: 16px !important;
+        padding-bottom: 12px !important;
+        width: 100% !important;
+    }
+
+    .pdp-novelty-price-row {
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+    }
+
+    .novelty-current-price {
+        font-size: 1.75rem !important;
+    }
+
+    .novelty-original-price {
+        font-size: 1rem !important;
+    }
+
+    .pdp-cta-bar-novelty {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px !important;
+        width: 100% !important;
+        margin-bottom: 16px !important;
     }
 
     .pdp-qty-counter {
-        width: 100%;
-        justify-content: center;
-        height: 40px;
+        width: 95px !important;
+        height: 46px !important;
+        border-radius: 10px !important;
+        padding: 0 6px !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
     }
 
-    .pdp-add-cart-btn-large {
-        width: 100%;
-        height: 44px;
-        font-size: 0.85rem;
-        border-radius: 22px;
+    .pdp-big-add-btn {
+        flex-grow: 1 !important;
+        height: 46px !important;
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
+        padding: 0 14px !important;
+        border-radius: 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .pdp-risk-free-msg {
+        padding: 10px 14px !important;
+        font-size: 0.78rem !important;
+        margin-bottom: 24px !important;
+        border-radius: 12px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .pdp-accordions-group {
+        width: 100% !important;
+    }
+
+    .pdp-accordion-head {
+        font-size: 0.95rem !important;
+        padding: 10px 0 !important;
+    }
+
+    .pdp-accordion-body {
+        font-size: 0.84rem !important;
+        padding: 6px 0 14px 0 !important;
     }
 
     /* Customer Reviews Slider Mobile */
@@ -5891,5 +6042,39 @@ body {
     .checkout-pill-btn {
         padding: 10px 14px;
         font-size: 0.8rem;
+    }
+
+    /* PDP Extra-Small Screen Adjustments */
+    .pdp-main-img-holder {
+        height: 220px !important;
+    }
+
+    .pdp-hero-display-img {
+        max-height: 200px !important;
+    }
+
+    .pdp-novelty-title {
+        font-size: 1.35rem !important;
+    }
+
+    .gram-card-box {
+        padding: 8px 6px !important;
+    }
+
+    .gram-size-text {
+        font-size: 0.78rem !important;
+    }
+
+    .gram-price-text {
+        font-size: 0.72rem !important;
+    }
+
+    .novelty-current-price {
+        font-size: 1.55rem !important;
+    }
+
+    .pdp-big-add-btn {
+        font-size: 0.8rem !important;
+        padding: 0 8px !important;
     }
 }
