@@ -30,7 +30,7 @@ export default function Science({ setPage }) {
                     <div className="science-wrapper">
                         <div className="science-info">
                             <span className="section-subtitle">THE SCIENCE</span>
-                            <h1 style={{ fontSize: '3.5rem', marginBottom: '24px' }}>The Bioavailability Breakthrough</h1>
+                            <h1 className="science-page-h1">{t('scienceTitle') || 'The Bioavailability Breakthrough'}</h1>
                             <p className="science-lead">Standard health mixes contain unsprouted grains that carry phytic acid—an anti-nutrient that binds to minerals and prevents absorption. Mangalam bypasses this limitation entirely.</p>
                             
                             {/* React Accordion */}

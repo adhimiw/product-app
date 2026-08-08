@@ -63,7 +63,83 @@ export default function Home({ setPage, onProductView, onAddToCart }) {
                 </div>
             </section>
 
-            {/* Section 1: About Mangalam Healthy Foods (Clean, Minimal & Informative Format with PDF Journey) */}
+            {/* Section 1: Product Showcase (4 Official Product Cards) */}
+            <section className="rituals-section" id="our-products" style={{ padding: '80px 0', background: 'linear-gradient(180deg, #e4efe3 0%, #d8ebd6 100%)' }}>
+                <div className="container">
+                    <div className="section-header">
+                        <span className="section-subtitle">{t('productSectionSub')}</span>
+                        <h2 className="section-title">{t('productSectionTitle')}</h2>
+                        <p className="section-description">{t('productSectionDesc')}</p>
+                    </div>
+
+                    <div className="shop-grid-4col" style={{ marginTop: '40px' }}>
+                        {PRODUCTS.map(product => (
+                            <ProductCard
+                                key={product.id}
+                                {...product}
+                                onProductView={onProductView}
+                                onAddToCart={onAddToCart}
+                            />
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Section 2: Why Sprouted? (The Bioavailability Breakthrough) */}
+            <section className="science-section" id="why-sprouted" style={{ padding: '80px 0', background: '#f6faf5' }}>
+                <div className="container">
+                    <div className="science-wrapper">
+                        <div className="science-info">
+                            <span className="section-subtitle">{t('navWhySprouted')}</span>
+                            <h2 className="section-title" style={{ fontSize: '2.5rem', marginBottom: '16px' }}>
+                                {t('scienceTitle')}
+                            </h2>
+                            <p className="science-lead">
+                                {t('scienceLead')}
+                            </p>
+
+                            <div className="accordion">
+                                <div className="accordion-item active">
+                                    <div className="accordion-trigger" style={{ cursor: 'default' }}>
+                                        <span>01. {t('sciencePoint1Title')}</span>
+                                    </div>
+                                    <div className="accordion-content" style={{ maxHeight: '200px' }}>
+                                        <p>{t('sciencePoint1Desc')}</p>
+                                    </div>
+                                </div>
+
+                                <div className="accordion-item">
+                                    <div className="accordion-trigger" style={{ cursor: 'default' }}>
+                                        <span>02. {t('sciencePoint2Title')}</span>
+                                    </div>
+                                    <div className="accordion-content" style={{ maxHeight: '200px' }}>
+                                        <p>{t('sciencePoint2Desc')}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onClick={() => setPage('science')} className="btn btn-secondary" style={{ marginTop: '24px', alignSelf: 'flex-start' }}>
+                                <span>{t('learnMoreScience')}</span>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    <polyline points="12 5 19 12 12 19"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="science-visual">
+                            <img src="/science_sprouts.png" alt="Mangalam Sprouted Ingredients" className="science-image" />
+                            <div className="science-overlay-card">
+                                <div className="overlay-card-title">Enzymatic Vitality</div>
+                                <div className="overlay-card-stat">+300%</div>
+                                <div className="overlay-card-desc">Increase in mineral absorption compared to unsprouted flours.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Section 3: Our Story (About Mangalam Healthy Foods) */}
             <section className="about-minimal-section" id="about-mangalam">
                 <div className="container">
                     <div className="about-minimal-grid">
@@ -121,28 +197,6 @@ export default function Home({ setPage, onProductView, onAddToCart }) {
                             </div>
                         </div>
 
-                    </div>
-                </div>
-            </section>
-
-            {/* Section 2: Product Showcase (4 Official Product Cards) */}
-            <section className="rituals-section" id="our-products" style={{ padding: '80px 0', background: 'linear-gradient(180deg, #e4efe3 0%, #d8ebd6 100%)' }}>
-                <div className="container">
-                    <div className="section-header">
-                        <span className="section-subtitle">{t('productSectionSub')}</span>
-                        <h2 className="section-title">{t('productSectionTitle')}</h2>
-                        <p className="section-description">{t('productSectionDesc')}</p>
-                    </div>
-
-                    <div className="shop-grid-4col" style={{ marginTop: '40px' }}>
-                        {PRODUCTS.map(product => (
-                            <ProductCard
-                                key={product.id}
-                                {...product}
-                                onProductView={onProductView}
-                                onAddToCart={onAddToCart}
-                            />
-                        ))}
                     </div>
                 </div>
             </section>
