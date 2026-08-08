@@ -2103,6 +2103,157 @@ body {
 }
 
 /* ==========================================================================
+   HERO CAROUSEL TOP CATEGORY CIRCLE BADGES (PREMIUM GRADIENT & HOVER GLOW)
+   ========================================================================== */
+
+/* ==========================================================================
+   HERO CAROUSEL TOP CATEGORY CIRCLE BADGES (COMPACT & DISTINCT HOVER COLORS)
+   ========================================================================== */
+
+.hero-category-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 28px;
+    margin: 12px 0 10px;
+    padding: 2px 0;
+}
+
+.category-circle-item {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.category-circle-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0f482d 0%, #073820 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 6px 16px rgba(7, 56, 32, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle Shimmer Highlight Effect on Resting State */
+.category-circle-icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transition: left 0.6s ease;
+}
+
+.category-circle-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2.2;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.22));
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
+}
+
+.category-circle-label {
+    font-family: 'Outfit', var(--font-sans);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-top: 6px;
+    letter-spacing: -0.01em;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+
+/* General Hover Shared Animation */
+.category-circle-item:hover .category-circle-icon {
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-4px) scale(1.08);
+}
+
+.category-circle-item:hover .category-circle-icon::after {
+    left: 100%;
+}
+
+.category-circle-item:hover .category-circle-icon svg {
+    transform: scale(1.15) rotate(5deg);
+    color: #ffffff;
+    stroke-width: 2.4;
+}
+
+.category-circle-item:hover .category-circle-label {
+    transform: translateY(-2px);
+}
+
+/* 1. Health Mix - Warm Terracotta Orange */
+.cat-health-mix:hover .category-circle-icon {
+    background: linear-gradient(135deg, #e07a52 0%, #d36a43 60%, #b8542f 100%);
+    box-shadow: 0 14px 28px rgba(211, 106, 67, 0.36), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+.cat-health-mix:hover .category-circle-label {
+    color: #d36a43;
+}
+
+/* 2. Family Packs - Rich Amber Gold */
+.cat-family-packs:hover .category-circle-icon {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 60%, #b45309 100%);
+    box-shadow: 0 14px 28px rgba(217, 119, 6, 0.36), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+.cat-family-packs:hover .category-circle-label {
+    color: #d97706;
+}
+
+/* 3. Digestive Care - Fresh Emerald Mint */
+.cat-digestive-care:hover .category-circle-icon {
+    background: linear-gradient(135deg, #34d399 0%, #059669 60%, #047857 100%);
+    box-shadow: 0 14px 28px rgba(5, 150, 105, 0.36), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+.cat-digestive-care:hover .category-circle-label {
+    color: #059669;
+}
+
+/* 4. Monsoon Special - Royal Ocean Blue */
+.cat-monsoon-special:hover .category-circle-icon {
+    background: linear-gradient(135deg, #60a5fa 0%, #1d4ed8 60%, #1e40af 100%);
+    box-shadow: 0 14px 28px rgba(29, 78, 216, 0.36), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+.cat-monsoon-special:hover .category-circle-label {
+    color: #1d4ed8;
+}
+
+/* 5. All Products - Royal Purple Plum */
+.cat-all-products:hover .category-circle-icon {
+    background: linear-gradient(135deg, #a78bfa 0%, #6d28d9 60%, #5b21b6 100%);
+    box-shadow: 0 14px 28px rgba(109, 40, 217, 0.36), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+.cat-all-products:hover .category-circle-label {
+    color: #6d28d9;
+}
+
+.category-circle-item:active .category-circle-icon {
+    transform: translateY(-1px) scale(0.96);
+}
+
+.category-circle-item:active .category-circle-icon {
+    transform: translateY(-2px) scale(0.96);
+    box-shadow: 0 6px 14px rgba(211, 106, 67, 0.25);
+}
+
+/* ==========================================================================
    SHOP CATALOG PAGE
    ========================================================================== */
 

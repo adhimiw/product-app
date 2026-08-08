@@ -10,8 +10,9 @@ export default function HeroCarousel({ setPage }) {
     const categories = [
         {
             name: "Health Mix",
+            colorClass: "cat-health-mix",
             icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
             ),
@@ -19,8 +20,9 @@ export default function HeroCarousel({ setPage }) {
         },
         {
             name: "Family Packs",
+            colorClass: "cat-family-packs",
             icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                     <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                     <line x1="12" y1="22.08" x2="12" y2="12"></line>
@@ -30,8 +32,9 @@ export default function HeroCarousel({ setPage }) {
         },
         {
             name: "Digestive Care",
+            colorClass: "cat-digestive-care",
             icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
             ),
@@ -39,8 +42,9 @@ export default function HeroCarousel({ setPage }) {
         },
         {
             name: "Monsoon Special",
+            colorClass: "cat-monsoon-special",
             icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
                     <path d="M16 14v6M8 14v6M12 16v6"></path>
                 </svg>
@@ -49,8 +53,9 @@ export default function HeroCarousel({ setPage }) {
         },
         {
             name: "All Products",
+            colorClass: "cat-all-products",
             icon: (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="7" height="7"></rect>
                     <rect x="14" y="3" width="7" height="7"></rect>
                     <rect x="14" y="14" width="7" height="7"></rect>
@@ -100,7 +105,7 @@ export default function HeroCarousel({ setPage }) {
                 {/* Clean Top Category Chips Bar */}
                 <div className="hero-category-row">
                     {categories.map((cat, idx) => (
-                        <button key={idx} className="category-circle-item" onClick={cat.action}>
+                        <button key={idx} className={`category-circle-item ${cat.colorClass}`} onClick={cat.action}>
                             <div className="category-circle-icon">
                                 {cat.icon}
                             </div>
