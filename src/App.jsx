@@ -19,10 +19,16 @@ export default function App() {
         return 'home';
     });
     const [activeProductId, setActiveProductId] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState('All Products');
     const [cart, setCart] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [user, setUser] = useState(null);
+
+    const handleSelectCategory = (catName) => {
+        setSelectedCategory(catName);
+        setPage('shop');
+    };
 
     // Sync page state with window location & popstate events
     useEffect(() => {
@@ -117,6 +123,7 @@ export default function App() {
                     setPage={setPage}
                     onProductView={handleProductView}
                     onAddToCart={handleAddToCart}
+                    onSelectCategory={handleSelectCategory}
                 />
             )}
 
@@ -124,6 +131,8 @@ export default function App() {
                 <Shop
                     onProductView={handleProductView}
                     onAddToCart={handleAddToCart}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
                 />
             )}
 

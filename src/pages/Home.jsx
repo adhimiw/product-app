@@ -5,12 +5,43 @@ import ReviewCardSlider from '../components/ReviewCardSlider';
 import { PRODUCTS } from './Shop';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Home({ setPage, onProductView, onAddToCart }) {
+export default function Home({ setPage, onProductView, onAddToCart, onSelectCategory }) {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('300g');
     const [purchaseOption, setPurchaseOption] = useState('one-time');
     const [newsletterEmail, setNewsletterEmail] = useState('');
     const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+
+    const categoryItems = [
+        {
+            id: 'health-mixes',
+            name: 'Health Mixes',
+            image: '/assets/images/categories/whey-protein.png'
+        },
+        {
+            id: 'traditional-rice',
+            name: 'Traditional Rice',
+            image: '/assets/images/categories/rice-svgrepo-com.svg'
+        },
+        {
+            id: 'millets-grains',
+            name: 'Millets & Grains',
+            image: '/assets/images/categories/rice.png'
+        },
+        {
+            id: 'natural-foods',
+            name: 'Traditional & Natural Foods',
+            image: '/assets/images/categories/organic-food-ingredients.png'
+        }
+    ];
+
+    const handleCategoryClick = (catName) => {
+        if (onSelectCategory) {
+            onSelectCategory(catName);
+        } else {
+            setPage('shop');
+        }
+    };
 
     // Contact Form States
     const [contactName, setContactName] = useState('');
@@ -60,6 +91,59 @@ export default function Home({ setPage, onProductView, onAddToCart }) {
                         <span style={{ fontSize: '1.5rem' }}>🛡️</span>
                         <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('badgeCertified')}</span>
                     </div>
+                </div>
+            </section>
+
+            {/* Shop by Category Section (Exact Reference Image Structure) */}
+            <section className="shop-by-category-section" id="shop-by-category">
+                <div className="container">
+                    
+                    {/* Header Row matching Reference Image layout */}
+                    <div className="category-ref-header">
+                        <div className="category-ref-title-group">
+                            <h2 className="category-ref-heading">Browse by Category</h2>
+                            <button
+                                className="category-all-link-btn"
+                                onClick={() => handleCategoryClick('All Products')}
+                            >
+                                <span>All Categories</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Navigation Arrows matching Reference Image */}
+                        <div className="category-ref-nav-arrows">
+                            <button className="category-arrow-btn" aria-label="Previous categories">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <button className="category-arrow-btn" aria-label="Next categories">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 4 Category Cards Grid matching Reference Portrait Card Structure */}
+                    <div className="category-ref-cards-row">
+                        {categoryItems.map((cat) => (
+                            <div
+                                key={cat.id}
+                                className="category-ref-card"
+                                onClick={() => handleCategoryClick(cat.name)}
+                            >
+                                <div className="category-ref-icon-wrap">
+                                    <img src={cat.image} alt={cat.name} className="category-ref-icon-img" />
+                                </div>
+                                <h3 className="category-ref-card-title">{cat.name}</h3>
+                            </div>
+                        ))}
+                    </div>
+
                 </div>
             </section>
 

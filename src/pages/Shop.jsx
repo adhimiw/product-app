@@ -181,13 +181,34 @@ const PRODUCTS = [
     }
 ];
 
-export default function Shop({ onProductView, onAddToCart }) {
+export default function Shop({ onProductView, onAddToCart, selectedCategory = 'All Products', setSelectedCategory }) {
     const { t } = useLanguage();
-    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [localCategory, setLocalCategory] = useState(selectedCategory);
 
-    const filteredProducts = selectedCategory === 'All'
-        ? PRODUCTS
-        : PRODUCTS.filter(p => p.tag === selectedCategory);
+    const activeCategory = setSelectedCategory ? selectedCategory : localCategory;
+    const handleCategoryClick = (cat) => {
+        if (setSelectedCategory) {
+            setSelectedCategory(cat);
+        } else {
+            setLocalCategory(cat);
+        }
+    };
+
+    const isAvailableCategory = activeCategory === 'All Products' || activeCategory === 'Health Mixes' || activeCategory === 'All' || activeCategory === 'Amutham' || activeCategory === 'Mangalam';
+
+    const filteredProducts = isAvailableCategory
+        ? (activeCategory === 'Amutham' || activeCategory === 'Mangalam'
+            ? PRODUCTS.filter(p => p.tag === activeCategory)
+            : PRODUCTS)
+        : [];
+
+    const shopCategories = [
+        { id: 'all', label: 'All Products' },
+        { id: 'health-mixes', label: 'Health Mixes' },
+        { id: 'traditional-rice', label: 'Traditional Rice' },
+        { id: 'millets-grains', label: 'Millets & Grains' },
+        { id: 'natural-foods', label: 'Traditional & Natural Foods' }
+    ];
 
     return (
         <main className="shop-page">
@@ -205,41 +226,50 @@ export default function Shop({ onProductView, onAddToCart }) {
                 {/* Filter Bar */}
                 <div className="shop-filter-bar">
                     <div className="shop-categories">
-                        <button
-                            className={`filter-chip ${selectedCategory === 'All' ? 'active' : ''}`}
-                            onClick={() => setSelectedCategory('All')}
-                        >
-                            {t('filterAll')}
-                        </button>
-                        <button
-                            className={`filter-chip ${selectedCategory === 'Amutham' ? 'active' : ''}`}
-                            onClick={() => setSelectedCategory('Amutham')}
-                        >
-                            {t('filterAmutham')}
-                        </button>
-                        <button
-                            className={`filter-chip ${selectedCategory === 'Mangalam' ? 'active' : ''}`}
-                            onClick={() => setSelectedCategory('Mangalam')}
-                        >
-                            {t('filterMangalam')}
-                        </button>
+                        {shopCategories.map(cat => (
+                            <button
+                                key={cat.id}
+                                className={`filter-chip ${activeCategory === cat.label || (activeCategory === 'All' && cat.id === 'all') ? 'active' : ''}`}
+                                onClick={() => handleCategoryClick(cat.label)}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
                     </div>
                     <div className="shop-item-count">
                         Showing {filteredProducts.length} items
                     </div>
                 </div>
 
-                {/* Products Grid - 4 Column Layout */}
-                <div className="shop-grid-4col">
-                    {filteredProducts.map(product => (
-                        <ProductCard
-                            key={product.id}
-                            {...product}
-                            onProductView={onProductView}
-                            onAddToCart={onAddToCart}
-                        />
-                    ))}
-                </div>
+                {/* Products Grid or Empty State */}
+                {filteredProducts.length > 0 ? (
+                    <div className="shop-grid-4col">
+                        {filteredProducts.map(product => (
+                            <ProductCard
+                                key={product.id}
+                                {...product}
+                                onProductView={onProductView}
+                                onAddToCart={onAddToCart}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="no-products-found-card">
+                        <div className="no-products-icon-wrap">
+                            <span>🌾</span>
+                        </div>
+                        <h3 className="no-products-title">No products available yet</h3>
+                        <p className="no-products-desc">
+                            We’re working on bringing more products to this category. Check back soon!
+                        </p>
+                        <button
+                            className="btn btn-primary no-products-btn"
+                            onClick={() => handleCategoryClick('Health Mixes')}
+                        >
+                            View Health Mixes Collection
+                        </button>
+                    </div>
+                )}
 
             </div>
         </main>
