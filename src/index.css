@@ -281,6 +281,17 @@ p {
     position: relative;
     z-index: 100;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: max-height 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.25s ease-out, padding 0.35s ease-out;
+    max-height: 50px;
+    opacity: 1;
+}
+
+.main-header.scrolled .announcement-marquee-bar {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    border-bottom: none;
+    pointer-events: none;
 }
 
 .marquee-track {
