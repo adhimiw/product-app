@@ -137,7 +137,24 @@ export default function ProductCard({
                 {/* Quick Add to Cart Action */}
                 <button
                     className="tb-add-cart-btn"
-                    onClick={() => onAddToCart && onAddToCart(id, name, itemPrice, '1 Pack')}
+                    onClick={() => {
+                        const activeWeight = selectedWeight || (weights[0] || '300g');
+                        const cleanBaseName = name.replace(/\s*\(\d+g[^\)]*\)/i, '');
+                        const variantName = `${cleanBaseName} (${activeWeight})`;
+
+                        let activePrice = price;
+                        if (activeWeight === '500g') {
+                            activePrice = id.includes('mangalam') ? 180 : 160;
+                        } else if (activeWeight === '300g') {
+                            activePrice = id.includes('mangalam') ? 115 : 110;
+                        }
+
+                        const variantId = `${id.replace(/-(300|500)g/, '')}-${activeWeight.replace(/\D/g, '')}g`;
+
+                        if (onAddToCart) {
+                            onAddToCart(variantId, variantName, activePrice, '1 Pack');
+                        }
+                    }}
                 >
                     {t('addToBagBtn')}
                 </button>

@@ -69,7 +69,7 @@ export default function App() {
     const handleAddToCart = (id, name, price, option = 'one-time', quantity = 1) => {
         setCart(prevCart => {
             const existingIndex = prevCart.findIndex(
-                item => item.id === id && item.option === option
+                item => item.id === id && item.name === name
             );
 
             if (existingIndex > -1) {
@@ -80,7 +80,18 @@ export default function App() {
                 return [...prevCart, { id, name, price, option, quantity }];
             }
         });
-        setIsCartOpen(true);
+    };
+
+    const handleUpdateQuantity = (index, newQuantity) => {
+        if (newQuantity <= 0) {
+            handleRemoveFromCart(index);
+        } else {
+            setCart(prevCart => {
+                const newCart = [...prevCart];
+                newCart[index].quantity = newQuantity;
+                return newCart;
+            });
+        }
     };
 
     const handleRemoveFromCart = (index) => {
@@ -156,6 +167,7 @@ export default function App() {
                 isOpen={isCartOpen}
                 onClose={() => setIsCartOpen(false)}
                 cart={cart}
+                onUpdateQuantity={handleUpdateQuantity}
                 onRemove={handleRemoveFromCart}
                 onCheckout={handleCheckout}
             />

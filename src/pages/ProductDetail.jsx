@@ -48,9 +48,14 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
     };
 
     const handleAddToCartClick = () => {
+        const cleanName = product.name.replace(/\s*\(\d+g[^\)]*\)/i, '');
+        const sizeWeight = activeGramOption.size.includes('500g') ? '500g' : '300g';
+        const variantName = `${cleanName} (${sizeWeight})`;
+        const variantId = `${product.id.replace(/-(300|500)g/, '')}-${sizeWeight}`;
+
         onAddToCart(
-            product.id,
-            `${product.name} (${activeGramOption.size})`,
+            variantId,
+            variantName,
             currentPrice,
             'one-time',
             quantity
