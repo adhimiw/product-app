@@ -194,10 +194,10 @@ export default function Shop({ onProductView, onAddToCart }) {
             <div className="container">
 
                 {/* Shop Header */}
-                <div style={{ marginBottom: '50px', textAlign: 'center' }}>
+                <div className="shop-header-wrapper">
                     <span className="section-subtitle">{t('productSectionSub')}</span>
-                    <h1 style={{ fontSize: '3rem', marginBottom: '16px' }}>{t('productSectionTitle')}</h1>
-                    <p style={{ maxWidth: '640px', margin: '0 auto', fontSize: '1rem', color: '#646a66' }}>
+                    <h1 className="shop-page-title">{t('productSectionTitle')}</h1>
+                    <p className="shop-page-desc">
                         {t('productSectionDesc')}
                     </p>
                 </div>
@@ -224,7 +224,7 @@ export default function Shop({ onProductView, onAddToCart }) {
                             {t('filterMangalam')}
                         </button>
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#646a66', fontWeight: 600 }}>
+                    <div className="shop-item-count">
                         Showing {filteredProducts.length} items
                     </div>
                 </div>

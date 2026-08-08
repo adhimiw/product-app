@@ -2111,6 +2111,28 @@ body {
     padding-bottom: 80px;
 }
 
+.shop-header-wrapper {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.shop-page-title {
+    font-family: 'Outfit', var(--font-sans);
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+}
+
+.shop-page-desc {
+    max-width: 640px;
+    margin: 0 auto;
+    font-size: 0.96rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}
+
 .shop-filter-bar {
     display: flex;
     justify-content: space-between;
@@ -2123,17 +2145,21 @@ body {
 .shop-categories {
     display: flex;
     gap: 12px;
+    align-items: center;
 }
 
 .filter-chip {
-    padding: 8px 20px;
+    padding: 9px 22px;
     background-color: var(--color-white);
     color: var(--color-text-muted);
-    border: 1px solid rgba(7, 56, 32, 0.08);
-    border-radius: var(--radius-full);
-    font-size: 0.8rem;
-    font-weight: 600;
-    transition: var(--transition-fast);
+    border: 1px solid rgba(7, 56, 32, 0.12);
+    border-radius: 30px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .filter-chip:hover,
@@ -2141,6 +2167,14 @@ body {
     background-color: var(--color-primary);
     color: var(--color-white);
     border-color: var(--color-primary);
+    box-shadow: 0 4px 14px rgba(27, 59, 43, 0.18);
+}
+
+.shop-item-count {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .shop-grid {
@@ -5573,7 +5607,65 @@ body {
         border-radius: 30px;
     }
 
-    /* Requirement 4: Mobile Product Section & Product Cards Presentation */
+    /* Mobile Shop Header & Category Filter Bar */
+    .shop-header-wrapper {
+        margin-bottom: 24px !important;
+        text-align: center !important;
+    }
+
+    .shop-page-title {
+        font-size: 1.75rem !important;
+        line-height: 1.22 !important;
+        margin-bottom: 10px !important;
+    }
+
+    .shop-page-desc {
+        font-size: 0.86rem !important;
+        line-height: 1.5 !important;
+    }
+
+    .shop-filter-bar {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+        margin-bottom: 24px !important;
+        padding-bottom: 14px !important;
+        border-bottom: 1px solid rgba(7, 56, 32, 0.08) !important;
+        width: 100% !important;
+    }
+
+    .shop-categories {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        overflow-x: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-bottom: 4px !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .shop-categories::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-chip {
+        padding: 7px 14px !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        border-radius: 20px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    .shop-item-count {
+        font-size: 0.75rem !important;
+        color: var(--color-text-muted) !important;
+        align-self: flex-end !important;
+    }
+
     .shop-grid-4col {
         display: grid !important;
         grid-template-columns: 1fr !important;
