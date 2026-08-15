@@ -1,43 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import HeroCarousel from '../components/HeroCarousel';
 import ProductCard from '../components/ProductCard';
 import ReviewCardSlider from '../components/ReviewCardSlider';
-import { PRODUCTS } from './Shop';
 import { useLanguage } from '../context/LanguageContext';
+import { fetchCategoriesApi, fetchProductsApi } from '../services/api';
 
-export default function Home({ setPage, onProductView, onAddToCart, onSelectCategory }) {
+export default function Home({ products: propProducts, loadingProducts: propLoading, setPage, onProductView, onAddToCart, onSelectCategory }) {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('300g');
     const [purchaseOption, setPurchaseOption] = useState('one-time');
     const [newsletterEmail, setNewsletterEmail] = useState('');
     const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
 
-    const categoryItems = [
-        {
-            id: 'health-mixes',
-            name: 'Ancestral Health Mixes',
-            desc: 'Handcrafted sprouted ancient grain porridge formulas for daily family vitality and stamina.',
-            image: '/assets/images/categories/whey-protein.png'
-        },
-        {
-            id: 'traditional-rice',
-            name: 'Heritage Mappillai Rice',
-            desc: 'Time-honored native rice varieties cultivated for bio-calcium, iron, and bone density.',
-            image: '/assets/images/categories/rice-svgrepo-com.svg'
-        },
-        {
-            id: 'millets-grains',
-            name: 'Soak-Sprouted Millets',
-            desc: 'Germinated millets optimized for 3x higher mineral absorption and easy digestion.',
-            image: '/assets/images/categories/rice.png'
-        },
-        {
-            id: 'natural-foods',
-            name: 'Sethiyathope Artisanal Blends',
-            desc: 'Naturally anti-inflammatory sprouted legume mixes enriched with organic cardamom.',
-            image: '/assets/images/categories/organic-food-ingredients.png'
+    // Dynamic Products State - 100% API Driven
+    const [productList, setProductList] = useState(propProducts || []);
+    const [loadingProducts, setLoadingProducts] = useState(propLoading !== undefined ? propLoading : (!propProducts || propProducts.length === 0));
+
+    useEffect(() => {
+        if (propProducts && propProducts.length > 0) {
+            setProductList(propProducts);
+            setLoadingProducts(false);
+        } else {
+            async function loadProducts() {
+                setLoadingProducts(true);
+                const res = await fetchProductsApi();
+                if (res.success && res.data) {
+                    setProductList(res.data);
+                }
+                setLoadingProducts(false);
+            }
+            loadProducts();
         }
-    ];
+    }, [propProducts]);
+
+    // Dynamic Categories State - 100% API Driven (No static data)
+    const [categoryItems, setCategoryItems] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+
+    useEffect(() => {
+        async function loadCategories() {
+            setLoadingCategories(true);
+            const res = await fetchCategoriesApi();
+            if (res.success && res.data) {
+                setCategoryItems(res.data);
+            }
+            setLoadingCategories(false);
+        }
+        loadCategories();
+    }, []);
 
     const handleCategoryClick = (catName) => {
         if (onSelectCategory) {
@@ -132,21 +142,47 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
                         </div>
                     </div>
 
-                    {/* 4 Category Cards Grid matching Reference Image Structure */}
+                    {/* Category Cards Grid with Dynamic API Data */}
                     <div className="category-ref-cards-row">
-                        {categoryItems.map((cat) => (
-                            <div
-                                key={cat.id}
-                                className="category-ref-card"
-                                onClick={() => handleCategoryClick(cat.name)}
-                            >
-                                <div className="category-ref-icon-wrap">
-                                    <img src={cat.image} alt={cat.name} className="category-ref-icon-img" />
+                        {loadingCategories ? (
+                            <div className="empty-category-container">
+                                <div className="admin-circle-spinner" style={{ margin: '0 auto 8px auto', width: '28px', height: '28px' }}>
+                                    <svg viewBox="0 0 50 50" className="admin-spinner-svg">
+                                        <circle className="admin-spinner-path" cx="25" cy="25" r="20" fill="none" strokeWidth="4" />
+                                    </svg>
                                 </div>
-                                <h3 className="category-ref-card-title">{cat.name}</h3>
-                                <p className="category-ref-card-desc">{cat.desc}</p>
+                                <span className="empty-category-text">Loading categories...</span>
                             </div>
-                        ))}
+                        ) : categoryItems && categoryItems.length > 0 ? (
+                            categoryItems.map((cat) => {
+                                const imgSrc = cat.icon_url || cat.image_url || cat.image || '/assets/images/categories/organic-food-ingredients.png';
+                                return (
+                                    <div
+                                        key={cat.id || cat.name}
+                                        className="category-ref-card"
+                                        onClick={() => handleCategoryClick(cat.name)}
+                                    >
+                                        <div className="category-ref-icon-wrap">
+                                            <img 
+                                                src={imgSrc} 
+                                                alt={cat.name} 
+                                                className="category-ref-icon-img"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = '/assets/images/categories/organic-food-ingredients.png';
+                                                }}
+                                            />
+                                        </div>
+                                        <h3 className="category-ref-card-title">{cat.name}</h3>
+                                        <p className="category-ref-card-desc">{cat.description || cat.desc}</p>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="empty-category-simple">
+                                No category available yet.
+                            </div>
+                        )}
                     </div>
 
                 </div>
@@ -214,7 +250,7 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
                 </div>
             </section>
 
-            {/* Section 2: Product Showcase (4 Official Product Cards) */}
+            {/* Section 2: Product Showcase (Official API Product Cards) */}
             <section className="rituals-section" id="our-products" style={{ padding: '80px 0', background: 'linear-gradient(180deg, #e4efe3 0%, #d8ebd6 100%)' }}>
                 <div className="container">
                     <div className="section-header">
@@ -224,14 +260,24 @@ export default function Home({ setPage, onProductView, onAddToCart, onSelectCate
                     </div>
 
                     <div className="shop-grid-4col" style={{ marginTop: '40px' }}>
-                        {PRODUCTS.map(product => (
-                            <ProductCard
-                                key={product.id}
-                                {...product}
-                                onProductView={onProductView}
-                                onAddToCart={onAddToCart}
-                            />
-                        ))}
+                        {loadingProducts ? (
+                            <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
+                                Loading products from backend server...
+                            </div>
+                        ) : productList.length > 0 ? (
+                            productList.map(product => (
+                                <ProductCard
+                                    key={product.id}
+                                    {...product}
+                                    onProductView={onProductView}
+                                    onAddToCart={onAddToCart}
+                                />
+                            ))
+                        ) : (
+                            <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
+                                No products available yet.
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

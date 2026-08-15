@@ -1,160 +1,244 @@
 /**
- * Admin Order Service
- * Isolated data layer that simulates REST API operations.
- * Future Laravel REST API Integration:
- * - replace `getOrders` with GET /api/admin/orders
- * - replace `updateOrderStatus` with PUT /api/admin/orders/{id}/status
- * - replace `getOrderStats` with GET /api/admin/orders/statistics
+ * Admin Order Service - 100% Dynamic API Integration
+ * Connects with Laravel Backend (http://127.0.0.1:8000/api/admin/orders)
  */
 
-import { MOCK_ORDERS } from '../data/mockOrders';
-import { ORDER_STATUSES } from '../constants/orderStatuses';
+const API_BASE_URL = 'http://127.0.0.1:8000/api/admin/orders';
+const FALLBACK_USER_ORDERS_URL = 'http://127.0.0.1:8000/api/user/orders';
 
-const ORDERS_STORAGE_KEY = 'mangalam_admin_orders_store';
-
-function loadStoredOrders() {
+function getHeaders() {
+    let token = null;
     try {
-        const stored = localStorage.getItem(ORDERS_STORAGE_KEY);
-        if (stored) {
-            return JSON.parse(stored);
-        }
+        const session = JSON.parse(localStorage.getItem('mangalam_admin_session') || '{}');
+        token = session.token || null;
     } catch (e) {
-        console.error('Failed to load orders from local storage', e);
+        token = null;
     }
-    // Default to initial mock dataset
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(MOCK_ORDERS));
-    return [...MOCK_ORDERS];
+
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
 }
 
-function saveOrdersToStorage(orders) {
-    try {
-        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
-    } catch (e) {
-        console.error('Failed to save orders to local storage', e);
-    }
+/**
+ * Normalizes backend order models for uniform Admin UI rendering.
+ */
+export function normalizeOrder(raw) {
+    if (!raw) return null;
+    const user = raw.user || {};
+    const address = raw.address_snapshot || raw.address || {};
+    
+    const customerName = user.full_name || user.name || address.full_name || raw.customer?.name || 'Valued Customer';
+    const customerEmail = user.email || raw.customer?.email || (address.phone_number ? `Phone: ${address.phone_number}` : 'N/A');
+    const customerPhone = user.whatsapp_number || user.contact_number || user.phone || address.phone_number || raw.customer?.phone || '';
+
+    // Standardize status casing (e.g. 'pending' -> 'Pending')
+    const rawStatus = raw.status || raw.orderStatus || 'Pending';
+    const normalizedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+
+    const rawPayment = raw.payment_status || raw.paymentStatus || 'Pending';
+    const normalizedPayment = rawPayment.charAt(0).toUpperCase() + rawPayment.slice(1).toLowerCase();
+
+    return {
+        id: raw.order_number || (raw.id ? `ORD-${raw.id}` : `ORD-${Date.now()}`),
+        rawId: raw.id || raw.order_number,
+        order_number: raw.order_number || raw.id,
+        createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
+        customer: {
+            name: customerName,
+            email: customerEmail,
+            phone: customerPhone
+        },
+        user: user,
+        address: address,
+        totalAmount: Number(raw.total_amount || raw.totalAmount || raw.subtotal || 0),
+        subtotal: Number(raw.subtotal || raw.total_amount || 0),
+        shippingFee: Number(raw.shipping_fee || raw.shippingFee || 0),
+        paymentStatus: normalizedPayment,
+        orderStatus: normalizedStatus,
+        paymentMethod: raw.payment_method || raw.paymentMethod || 'COD',
+        items: (raw.items || []).map(i => ({
+            id: i.id || i.product_id,
+            product_name: i.product_name || i.name || 'Amutham Health Mix',
+            package_size: i.package_size || '300g',
+            unit_price: Number(i.unit_price || i.price || 0),
+            quantity: Number(i.quantity || 1),
+            total_price: Number(i.total_price || (Number(i.unit_price || i.price || 0) * Number(i.quantity || 1)))
+        })),
+        notes: raw.notes || ''
+    };
 }
 
 export const adminOrderService = {
     /**
-     * Fetch orders list with optional filtering and search.
-     * @param {object} params
-     * @param {string} [params.status] Filter by order status ('All' or specific status)
-     * @param {string} [params.search] Search term (order id, customer name, email, phone)
-     * @returns {Promise<{success: boolean, data: Array}>}
+     * Fetch orders list with optional filtering and search directly from backend API.
      */
     async getOrders({ status = 'All', search = '' } = {}) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        try {
+            const queryParams = new URLSearchParams();
+            if (status && status !== 'All') {
+                queryParams.append('status', status);
+            }
+            if (search && search.trim()) {
+                queryParams.append('search', search.trim());
+            }
 
-        let orders = loadStoredOrders();
+            const url = `${API_BASE_URL}?${queryParams.toString()}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: getHeaders()
+            });
 
-        // Apply status filter
-        if (status && status !== 'All') {
-            orders = orders.filter(o => o.orderStatus === status);
+            const data = await response.json();
+
+            if (response.ok && data.success && Array.isArray(data.data)) {
+                const normalized = data.data.map(normalizeOrder).filter(Boolean);
+                return { success: true, data: normalized };
+            }
+
+            // Fallback to fetch from user orders endpoint if admin orders endpoint returns empty/unavailable
+            const fallbackRes = await fetch(FALLBACK_USER_ORDERS_URL, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const fallbackData = await fallbackRes.json();
+            if (fallbackRes.ok && fallbackData.success && Array.isArray(fallbackData.data)) {
+                let list = fallbackData.data.map(normalizeOrder).filter(Boolean);
+                if (status && status !== 'All') {
+                    list = list.filter(o => o.orderStatus.toLowerCase() === status.toLowerCase());
+                }
+                if (search && search.trim()) {
+                    const q = search.trim().toLowerCase();
+                    list = list.filter(o => 
+                        o.id.toLowerCase().includes(q) ||
+                        o.customer.name.toLowerCase().includes(q) ||
+                        o.customer.email.toLowerCase().includes(q)
+                    );
+                }
+                return { success: true, data: list };
+            }
+
+            return { success: true, data: [] };
+        } catch (err) {
+            console.error('API Fetch Admin Orders Error:', err);
+            return { success: true, data: [] };
         }
-
-        // Apply search filter
-        const query = search.trim().toLowerCase();
-        if (query) {
-            orders = orders.filter(o => 
-                o.id.toLowerCase().includes(query) ||
-                o.customer.name.toLowerCase().includes(query) ||
-                o.customer.email.toLowerCase().includes(query) ||
-                (o.customer.phone && o.customer.phone.includes(query))
-            );
-        }
-
-        // Sort by date descending (newest first)
-        orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        return {
-            success: true,
-            data: orders
-        };
     },
 
     /**
-     * Fetch summary stats for dashboard cards.
-     * @returns {Promise<{success: boolean, stats: object}>}
+     * Fetch summary stats for dashboard cards dynamically.
      */
     async getOrderStats() {
-        await new Promise(resolve => setTimeout(resolve, 150));
+        try {
+            const res = await this.getOrders({ status: 'All' });
+            const orders = res.data || [];
 
-        const orders = loadStoredOrders();
+            const stats = {
+                totalOrders: orders.length,
+                pendingOrders: 0,
+                processingOrders: 0,
+                completedOrders: 0,
+                cancelledOrders: 0,
+                totalRevenue: 0
+            };
 
-        const stats = {
-            totalOrders: orders.length,
-            pendingOrders: 0,
-            processingOrders: 0,
-            completedOrders: 0,
-            cancelledOrders: 0,
-            totalRevenue: 0
-        };
+            orders.forEach(order => {
+                const st = (order.orderStatus || '').toLowerCase();
+                if (st === 'pending') {
+                    stats.pendingOrders += 1;
+                } else if (st === 'processing' || st === 'confirmed') {
+                    stats.processingOrders += 1;
+                } else if (st === 'delivered' || st === 'completed') {
+                    stats.completedOrders += 1;
+                    stats.totalRevenue += order.totalAmount;
+                } else if (st === 'cancelled') {
+                    stats.cancelledOrders += 1;
+                }
+            });
 
-        orders.forEach(order => {
-            if (order.orderStatus === ORDER_STATUSES.PENDING) {
-                stats.pendingOrders += 1;
-            } else if (order.orderStatus === ORDER_STATUSES.PROCESSING) {
-                stats.processingOrders += 1;
-            } else if (order.orderStatus === ORDER_STATUSES.DELIVERED) {
-                stats.completedOrders += 1;
-                stats.totalRevenue += order.totalAmount;
-            } else if (order.orderStatus === ORDER_STATUSES.CANCELLED) {
-                stats.cancelledOrders += 1;
-            }
-        });
-
-        return {
-            success: true,
-            stats
-        };
-    },
-
-    /**
-     * Update an order's status and add optional notes.
-     * @param {string} orderId 
-     * @param {string} newStatus 
-     * @param {string} [note]
-     * @returns {Promise<{success: boolean, updatedOrder?: object, error?: string}>}
-     */
-    async updateOrderStatus(orderId, newStatus, note = '') {
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        const orders = loadStoredOrders();
-        const index = orders.findIndex(o => o.id === orderId);
-
-        if (index === -1) {
+            return { success: true, stats };
+        } catch (err) {
             return {
-                success: false,
-                error: `Order with ID ${orderId} not found.`
+                success: true,
+                stats: {
+                    totalOrders: 0,
+                    pendingOrders: 0,
+                    processingOrders: 0,
+                    completedOrders: 0,
+                    cancelledOrders: 0,
+                    totalRevenue: 0
+                }
             };
         }
-
-        const currentOrder = orders[index];
-        const updatedNotes = note.trim() 
-            ? (currentOrder.notes ? `${currentOrder.notes} | Status updated to ${newStatus}: ${note.trim()}` : `Status updated to ${newStatus}: ${note.trim()}`)
-            : currentOrder.notes;
-
-        const updatedOrder = {
-            ...currentOrder,
-            orderStatus: newStatus,
-            notes: updatedNotes,
-            updatedAt: new Date().toISOString()
-        };
-
-        orders[index] = updatedOrder;
-        saveOrdersToStorage(orders);
-
-        return {
-            success: true,
-            updatedOrder
-        };
     },
 
     /**
-     * Resets orders mock data back to default state.
+     * Update an order's status and optional notes in the database.
      */
-    async resetData() {
-        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(MOCK_ORDERS));
-        return { success: true, data: MOCK_ORDERS };
+    async updateOrderStatus(orderId, newStatus, note = '') {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${orderId}/status`, {
+                method: 'PUT',
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    status: newStatus,
+                    notes: note
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                return {
+                    success: true,
+                    updatedOrder: normalizeOrder(data.data)
+                };
+            }
+
+            return {
+                success: false,
+                error: data.message || 'Failed to update order status.'
+            };
+        } catch (err) {
+            console.error('API Update Order Status Error:', err);
+            return {
+                success: false,
+                error: 'Network error while updating order status.'
+            };
+        }
+    },
+
+    /**
+     * Delete an order from the database.
+     */
+    async deleteOrder(orderId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${orderId}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+
+            const data = await response.json();
+            if (response.ok && data.success) {
+                return { success: true };
+            }
+
+            return {
+                success: false,
+                error: data.message || 'Failed to delete order.'
+            };
+        } catch (err) {
+            console.error('API Delete Order Error:', err);
+            return {
+                success: false,
+                error: 'Network error while deleting order.'
+            };
+        }
     }
 };

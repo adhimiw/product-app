@@ -1,12 +1,120 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { PRODUCTS } from '../pages/Shop';
+import { fetchAddressesApi, createOrderApi } from '../services/api';
 
-export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, onRemove, onCheckout }) {
+export default function CartDrawer({
+    isOpen,
+    onClose,
+    cart,
+    products = [],
+    onUpdateQuantity,
+    onRemove,
+    onCheckout,
+    onCheckoutSuccess,
+    user,
+    onAuthOpen,
+    setPage,
+    showToast
+}) {
     const { t } = useLanguage();
+    const [selectedAddress, setSelectedAddress] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && user) {
+            loadUserAddress();
+        }
+    }, [isOpen, user]);
+
+    const loadUserAddress = async () => {
+        const res = await fetchAddressesApi();
+        if (res.success && res.data && res.data.length > 0) {
+            const def = res.data.find(a => a.is_default) || res.data[0];
+            setSelectedAddress(def);
+        } else {
+            setSelectedAddress(null);
+        }
+    };
 
     const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * item.quantity, 0);
     const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+    const handleAddressRedirect = () => {
+        onClose();
+        if (setPage) {
+            setPage('profile');
+        }
+    };
+
+    const handleCheckoutClick = async () => {
+        if (!user) {
+            if (onAuthOpen) onAuthOpen();
+            return;
+        }
+
+        if (!selectedAddress) {
+            if (showToast) {
+                showToast('Delivery Address Required', 'Please add or select a delivery address to place your order.', 'warning');
+            } else {
+                alert('Please add or select a delivery address to place your order.');
+            }
+            handleAddressRedirect();
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const payload = {
+                address_id: selectedAddress.id,
+                items: cart.map(item => {
+                    const rawId = item.product_id || item.id;
+                    const productId = typeof rawId === 'number' ? rawId : (parseInt(rawId, 10) || null);
+                    return {
+                        id: item.id,
+                        product_id: productId,
+                        name: item.name,
+                        price: parseFloat(item.price) || 0,
+                        quantity: item.quantity,
+                        package_size: item.name.match(/\(([^)]+)\)/)?.[1] || '300g'
+                    };
+                }),
+                subtotal: subtotal,
+                total_amount: subtotal,
+                payment_method: 'COD'
+            };
+
+            const res = await createOrderApi(payload);
+
+            if (res.success) {
+                const orderData = res.data || {};
+                const orderNum = orderData.order_number || ('MHF-' + Date.now().toString().slice(-6));
+
+                if (showToast) {
+                    showToast('Order Placed Successfully!', `Order #${orderNum} has been recorded. Thank you for your purchase!`, 'success');
+                }
+
+                if (onCheckoutSuccess) {
+                    onCheckoutSuccess(orderData);
+                } else if (onCheckout) {
+                    onCheckout(orderData);
+                }
+            } else {
+                if (showToast) {
+                    showToast('Checkout Failed', res.message || 'Unable to complete order.', 'error');
+                } else {
+                    alert(res.message || 'Unable to complete order.');
+                }
+            }
+        } catch (err) {
+            console.error('Checkout error:', err);
+            if (showToast) {
+                showToast('Checkout Error', 'An unexpected error occurred during checkout.', 'error');
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <div className={`cart-drawer ${isOpen ? 'active' : ''}`} aria-hidden={!isOpen}>
@@ -42,8 +150,8 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
                         </div>
                     ) : (
                         cart.map((item, index) => {
-                            const matchedProduct = PRODUCTS.find(p => p.id === item.id) || PRODUCTS[0];
-                            const itemImg = matchedProduct ? matchedProduct.image : '/assets/images/300g_amutham/amutham-01.jpg';
+                            const matchedProduct = products.find(p => String(p.id) === String(item.id) || String(item.id).startsWith(String(p.id))) || products[0];
+                            const itemImg = matchedProduct ? (matchedProduct.image || (matchedProduct.images ? matchedProduct.images[0] : '')) : '/assets/images/300g_amutham/amutham-01.jpg';
                             const itemPriceNum = parseFloat(item.price) || 110;
                             const lineTotal = itemPriceNum * item.quantity;
 
@@ -53,7 +161,7 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
                             const cleanTitle = item.name.replace(/\s*\(\d+g[^\)]*\)/i, '');
 
                             return (
-                                <div className="cart-item-card" key={`${item.id}-${item.name}-${index}`}>
+                                <div className="cart-item-card" key={`${item.id}-${index}`}>
                                     <div className="cart-item-img-holder">
                                         <img src={itemImg} alt={cleanTitle} />
                                     </div>
@@ -100,6 +208,67 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
                 
                 {/* Edge-to-Edge Footer Subtotal & Checkout CTA */}
                 <div className="cart-drawer-footer" style={{ opacity: cart.length === 0 ? 0.6 : 1 }}>
+                    
+                    {/* Delivery Address Section inside Cart */}
+                    {cart.length > 0 && (
+                        <div className="cart-address-box">
+                            <div className="cart-address-header">
+                                <div className="cart-address-title-group">
+                                    <span className="cart-address-icon">📍</span>
+                                    <span className="cart-address-title">Delivery Destination</span>
+                                </div>
+                                {user && (
+                                    <button 
+                                        className="cart-address-manage-btn"
+                                        onClick={handleAddressRedirect}
+                                    >
+                                        {selectedAddress ? 'Change Address ↗' : '+ Add Address'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {!user ? (
+                                <div className="cart-address-guest">
+                                    <p className="cart-address-guest-text">
+                                        Sign in to select your saved delivery address.
+                                    </p>
+                                    <button 
+                                        className="cart-address-signin-btn"
+                                        onClick={() => {
+                                            if (onAuthOpen) onAuthOpen();
+                                        }}
+                                    >
+                                        Sign In to Add / Select Address
+                                    </button>
+                                </div>
+                            ) : selectedAddress ? (
+                                <div className="cart-address-details">
+                                    <div className="cart-address-name-row">
+                                        <span className="cart-address-badge">{selectedAddress.type || 'Home'}</span>
+                                        <strong className="cart-address-name">{selectedAddress.full_name || selectedAddress.name}</strong>
+                                        {selectedAddress.phone_number && (
+                                            <span className="cart-address-phone">📞 {selectedAddress.phone_number}</span>
+                                        )}
+                                    </div>
+                                    <p className="cart-address-text">
+                                        {selectedAddress.address_line1 || selectedAddress.line1}
+                                        {selectedAddress.address_line2 ? `, ${selectedAddress.address_line2}` : ''}, {selectedAddress.city}, {selectedAddress.state} - <strong>{selectedAddress.pincode}</strong>
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="cart-address-empty">
+                                    <p style={{ margin: '0 0 8px 0', fontSize: '0.82rem', color: '#64748b' }}>No saved delivery address found.</p>
+                                    <button 
+                                        className="cart-address-add-btn"
+                                        onClick={handleAddressRedirect}
+                                    >
+                                        + Add New Delivery Address
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="cart-subtotal-row">
                         <span className="subtotal-label">Subtotal</span>
                         <span className="subtotal-val">₹{subtotal}</span>
@@ -111,10 +280,15 @@ export default function CartDrawer({ isOpen, onClose, cart, onUpdateQuantity, on
 
                     <button 
                         className="checkout-pill-btn" 
-                        onClick={onCheckout}
-                        disabled={cart.length === 0}
+                        onClick={handleCheckoutClick}
+                        disabled={cart.length === 0 || isSubmitting}
                     >
-                        <span>🔒 {t('checkoutBtn')}</span>
+                        <span>
+                            {isSubmitting 
+                                ? 'Processing Checkout...' 
+                                : (!user ? 'Sign In to Checkout' : t('checkoutBtn'))
+                            }
+                        </span>
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                             <polyline points="12 5 19 12 12 19"></polyline>

@@ -1,25 +1,48 @@
-import React, { useState } from 'react';
-import { PRODUCTS } from './Shop';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { fetchProductsApi } from '../services/api';
 
-export default function ProductDetail({ productId, onAddToCart, onBack }) {
+export default function ProductDetail({ productId, products: propProducts, onAddToCart, onBack }) {
     const { t } = useLanguage();
-    const product = PRODUCTS.find(p => p.id === productId) || PRODUCTS[0];
+    const [products, setProducts] = useState(propProducts || []);
+    const [loading, setLoading] = useState(!propProducts || propProducts.length === 0);
 
-    // Multiple images list setup
-    const imgList = (product.images && product.images.length > 0)
-        ? product.images
-        : [product.image];
+    useEffect(() => {
+        if (propProducts && propProducts.length > 0) {
+            setProducts(propProducts);
+            setLoading(false);
+        } else {
+            async function loadProducts() {
+                setLoading(true);
+                const res = await fetchProductsApi();
+                if (res.success && res.data) {
+                    setProducts(res.data);
+                }
+                setLoading(false);
+            }
+            loadProducts();
+        }
+    }, [propProducts]);
 
-    // Gram package options (300g and 500g default)
-    const gramOptions = product.gramOptions || [
-        { size: '300g Package', price: 12.00, inrPrice: '₹499', badge: 'Popular' },
-        { size: '500g Package', price: 17.00, inrPrice: '₹699', badge: 'Best Deal' }
-    ];
+    const product = products.find(p => String(p.id) === String(productId) || p.slug === productId) || products[0];
 
     const [selectedImgIndex, setSelectedImgIndex] = useState(0);
     const [selectedGramIndex, setSelectedGramIndex] = useState(0);
     const [quantity, setQuantity] = useState(1);
+
+    // Selected package variant specific images if available, otherwise deduplicated product images
+    const currentPkg = (product && product.package_sizes && product.package_sizes.length > selectedGramIndex)
+        ? product.package_sizes[selectedGramIndex]
+        : null;
+
+    const variantImages = currentPkg && Array.isArray(currentPkg.variant_images) && currentPkg.variant_images.length > 0
+        ? currentPkg.variant_images
+        : (currentPkg && Array.isArray(currentPkg.images) && currentPkg.images.length > 0 ? currentPkg.images : null);
+
+    const rawImgList = variantImages || (product && product.images && product.images.length > 0 ? product.images : [product?.image]);
+    
+    // Deduplicate image URLs to eliminate duplicate thumbnails
+    const imgList = Array.from(new Set((rawImgList || []).filter(Boolean)));
 
     // Accordion expand/collapse states
     const [openAccordion, setOpenAccordion] = useState({
@@ -27,6 +50,23 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
         benefits: false,
         ingredients: false
     });
+
+    if (loading || !product) {
+        return (
+            <main className="pdp-page">
+                <div className="container" style={{ textAlign: 'center', padding: '100px 20px', color: '#646a66' }}>
+                    {loading ? 'Loading product details...' : 'Product not found.'}
+                </div>
+            </main>
+        );
+    }
+
+    // Gram package options (300g and 500g default)
+    const gramOptions = (product && product.gramOptions && product.gramOptions.length > 0)
+        ? product.gramOptions
+        : [
+            { size: '300g Package', price: product?.price || 110, inrPrice: product?.inrPrice || '₹110', badge: 'Popular' }
+        ];
 
     const activeGramOption = gramOptions[selectedGramIndex] || gramOptions[0];
     const currentPrice = activeGramOption.price;
@@ -144,9 +184,13 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                         </div>
 
                         {/* Lead Description Paragraph */}
-                        <p className="pdp-novelty-desc">
-                            {product.description}
-                        </p>
+                        {typeof product.description === 'string' && (product.description.includes('<') || product.description.includes('>')) ? (
+                            <div className="pdp-novelty-desc" dangerouslySetInnerHTML={{ __html: product.description }} />
+                        ) : (
+                            <p className="pdp-novelty-desc">
+                                {product.description}
+                            </p>
+                        )}
 
                         {/* Gram Package Size Selector (300g & 500g Packets) */}
                         <div className="pdp-gram-selector-block">
@@ -165,11 +209,6 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                                             <span className="gram-deal-badge">{opt.badge}</span>
                                         )}
                                         <div className="gram-card-inner">
-                                            <img
-                                                src={imgList[idx] || product.image}
-                                                alt={opt.size}
-                                                className="gram-thumb-img"
-                                            />
                                             <div className="gram-card-info">
                                                 <span className="gram-size-text">{opt.size}</span>
                                                 <span className="gram-price-text">{opt.inrPrice}</span>
@@ -218,7 +257,7 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                         {/* Expandable Accordions: How to use, Benefits, Ingredients */}
                         <div className="pdp-accordions-group">
 
-                            {/* Accordion 1: How to use & taste */}
+                            {/* Accordion 1: How to use & preparation */}
                             <div className={`pdp-accordion-item ${openAccordion.howToUse ? 'open' : ''}`}>
                                 <button
                                     className="pdp-accordion-head"
@@ -231,11 +270,11 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
                                 {openAccordion.howToUse && (
                                     <div className="pdp-accordion-body">
                                         <div className="how-to-use-box">
-                                            <h5>In English:</h5>
-                                            <p>{product.howToUse?.english || "Dissolve 2 tablespoons in 200ml clean water without lumps. Boil on medium flame for 5-6 minutes. Add jaggery or salt to taste. Serve warm with milk."}</p>
-
-                                            <h5 style={{ marginTop: '12px' }}>தமிழ் பதிப்பு:</h5>
-                                            <p style={{ fontFamily: 'var(--font-sans)' }}>{product.howToUse?.tamil || "200ml தண்ணீரில் 2 ஸ்பூன் மாவை கட்டியில்லாமல் கரைத்து 5-6 நிமிடம் கொதிக்க வைக்கவும். நாட்டுச்சர்க்கரை அல்லது பாலுடன் பருகவும்."}</p>
+                                            {product.howToUse ? (
+                                                <div dangerouslySetInnerHTML={{ __html: product.howToUse }} />
+                                            ) : (
+                                                <p>Dissolve 2 tablespoons in 200ml clean water without lumps. Boil on medium flame for 5-6 minutes. Add jaggery or salt to taste. Serve warm with milk.</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -253,15 +292,11 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                                 {openAccordion.benefits && (
                                     <div className="pdp-accordion-body">
-                                        <ul className="pdp-bullet-list">
-                                            {(product.benefitsList || [
-                                                "100% Soak-sprouted millets bio-activate maximum nutrient absorption.",
-                                                "Zero added sugar and zero chemical preservatives for daily natural energy.",
-                                                "Enriched with organic cardamom to prevent stomach acidity and gas."
-                                            ]).map((b, i) => (
-                                                <li key={i}>✓ {b}</li>
-                                            ))}
-                                        </ul>
+                                        {product.benefits ? (
+                                            <div dangerouslySetInnerHTML={{ __html: product.benefits }} />
+                                        ) : (
+                                            <p>100% Soak-sprouted millets bio-activate maximum nutrient absorption.</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -278,9 +313,13 @@ export default function ProductDetail({ productId, onAddToCart, onBack }) {
 
                                 {openAccordion.ingredients && (
                                     <div className="pdp-accordion-body">
-                                        <p className="pdp-ingredients-text">
-                                            {product.ingredientsList || "Pearl Millet (Kambu), Finger Millet (Ragi), Sorghum (Cholam), Bengal Gram, Black Gram, Green Gram, Wheat, Sprouted Roasted Gram, Organic Green Cardamom."}
-                                        </p>
+                                        {product.ingredients ? (
+                                            <div className="pdp-ingredients-text" dangerouslySetInnerHTML={{ __html: product.ingredients }} />
+                                        ) : (
+                                            <p className="pdp-ingredients-text">
+                                                Pearl Millet (Kambu), Finger Millet (Ragi), Sorghum (Cholam), Bengal Gram, Black Gram, Green Gram, Wheat, Sprouted Roasted Gram, Organic Green Cardamom.
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -22,7 +22,9 @@ export default function ProductCard({
     badgeType = "green", // "green" or "orange"
     image = "/assets/images/300g_amutham/amutham-01.jpg",
     imageStyle = {},
-    weights = ["300g", "500g", "1kg"],
+    weights = ["300g", "500g"],
+    package_sizes = [],
+    gramOptions = [],
     onProductView,
     onAddToCart
 }) {
@@ -143,13 +145,19 @@ export default function ProductCard({
                         const variantName = `${cleanBaseName} (${activeWeight})`;
 
                         let activePrice = price;
-                        if (activeWeight === '500g') {
-                            activePrice = id.includes('mangalam') ? 180 : 160;
-                        } else if (activeWeight === '300g') {
-                            activePrice = id.includes('mangalam') ? 115 : 110;
+                        if (Array.isArray(package_sizes) && package_sizes.length > 0) {
+                            const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === activeWeight);
+                            if (found && found.variant_price !== undefined && found.variant_price !== null) {
+                                activePrice = Number(found.variant_price);
+                            }
+                        } else if (Array.isArray(gramOptions) && gramOptions.length > 0) {
+                            const foundOpt = gramOptions.find(opt => opt.size.startsWith(activeWeight));
+                            if (foundOpt && foundOpt.price) {
+                                activePrice = Number(foundOpt.price);
+                            }
                         }
 
-                        const variantId = `${id.replace(/-(300|500)g/, '')}-${activeWeight.replace(/\D/g, '')}g`;
+                        const variantId = `${id}-${activeWeight}`;
 
                         if (onAddToCart) {
                             onAddToCart(variantId, variantName, activePrice, '1 Pack');

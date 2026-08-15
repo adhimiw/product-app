@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { PRODUCTS } from '../pages/Shop';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Header({ page, setPage, cartCount, onCartOpen, onProductView, user, onAuthOpen }) {
+export default function Header({ page, setPage, products = [], cartCount, onCartOpen, onProductView, user, onAuthOpen, onLogout }) {
     const { lang, toggleLanguage, t } = useLanguage();
     const [scrolled, setScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [userDropdownOpen, setUserDropdownOpen] = useState(false);
     const searchContainerRef = useRef(null);
+    const userMenuRef = useRef(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -21,11 +22,14 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Close search dropdown on click outside
+    // Close search dropdown & user dropdown on click outside
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
                 setSearchQuery('');
+            }
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setUserDropdownOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -34,11 +38,11 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
 
     const searchResults = searchQuery.trim() === ''
         ? []
-        : PRODUCTS.filter(p => 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.description.toLowerCase().includes(searchQuery.toLowerCase())
+        : (products || []).filter(p => 
+            (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.subtitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.description || '').toLowerCase().includes(searchQuery.toLowerCase())
           );
 
     const handleSearchSubmit = (e) => {
@@ -142,40 +146,79 @@ export default function Header({ page, setPage, cartCount, onCartOpen, onProduct
                         <img src="/mangalam_logo.png" alt="Mangalam Healthy Foods Logo" />
                     </button>
 
-                    {/* Right: Language Switcher, User Account & Cart Icons */}
+                    {/* Right: User Account & Cart Icons */}
                     <div className="header-right-actions">
-                        {/* Minimal Compact Language Switcher Pill */}
-                        <button 
-                            className="header-lang-btn"
-                            onClick={toggleLanguage}
-                            title="Switch Language / மொழியை மாற்றுக"
-                            aria-label="Switch Language"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="2" y1="12" x2="22" y2="12"></line>
-                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                            </svg>
-                            <span className="lang-text">{lang === 'en' ? 'ENG' : 'தமிழ்'}</span>
-                        </button>
 
-                        <button 
-                            className={`header-icon-btn ${user ? 'user-logged-in' : ''}`} 
-                            onClick={onAuthOpen}
-                            aria-label="User Account"
-                            title={user ? `Signed in as ${user.name}` : 'Login / Register'}
+                        {/* User Account / Profile Dropdown */}
+                        <div 
+                            ref={userMenuRef} 
+                            className="header-user-wrapper" 
+                            style={{ position: 'relative' }}
+                            onMouseEnter={() => user && setUserDropdownOpen(true)}
+                            onMouseLeave={() => user && setUserDropdownOpen(false)}
                         >
-                            {user ? (
-                                <span className="header-user-avatar-initials">
-                                    {user.name.slice(0, 2).toUpperCase()}
-                                </span>
-                            ) : (
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
+                            <button 
+                                className={`header-icon-btn ${user ? 'user-logged-in' : ''}`} 
+                                onClick={() => {
+                                    if (user) {
+                                        setUserDropdownOpen(!userDropdownOpen);
+                                    } else {
+                                        onAuthOpen();
+                                    }
+                                }}
+                                aria-label="User Account"
+                                title={user ? `Signed in as ${user.full_name || user.name || user.email}` : 'Login / Register'}
+                            >
+                                {user ? (
+                                    <span className="header-user-avatar-initials">
+                                        {(user.full_name || user.name || user.email || 'ME').slice(0, 2).toUpperCase()}
+                                    </span>
+                                ) : (
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                )}
+                            </button>
+
+                            {/* Luxury User Hover Dropdown Menu */}
+                            {user && userDropdownOpen && (
+                                <div className="header-user-dropdown">
+                                    <div className="header-user-dropdown-info">
+                                        <span className="user-drop-name">{user.full_name || user.name || 'Valued Member'}</span>
+                                        <span className="user-drop-email">{user.email}</span>
+                                    </div>
+                                    <div className="header-user-dropdown-divider"></div>
+                                    <button 
+                                        className="header-user-drop-btn"
+                                        onClick={() => {
+                                            setPage('profile');
+                                            setUserDropdownOpen(false);
+                                        }}
+                                    >
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <span>View Profile & Settings</span>
+                                    </button>
+                                    <button 
+                                        className="header-user-drop-btn logout"
+                                        onClick={() => {
+                                            if (onLogout) onLogout();
+                                            setUserDropdownOpen(false);
+                                        }}
+                                    >
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                            <polyline points="16 17 21 12 16 7"></polyline>
+                                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                                        </svg>
+                                        <span>Logout</span>
+                                    </button>
+                                </div>
                             )}
-                        </button>
+                        </div>
 
                         <button 
                             className="header-icon-btn" 

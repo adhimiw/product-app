@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 export default function AdminLogin({ onLoginSuccess }) {
-    const [email, setEmail] = useState('admin@mangalam.com');
-    const [password, setPassword] = useState('admin123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,17 +39,18 @@ export default function AdminLogin({ onLoginSuccess }) {
             <div className="admin-login-card">
                 <div className="admin-login-header">
                     <div className="admin-brand-badge">
-                        <span>🌱 Mangalam Admin Portal</span>
+                        <span style={{ fontSize: '1rem' }}>🌿</span>
+                        <span>Mangalam Enterprise</span>
                     </div>
-                    <h1 className="admin-login-title">Management Sign In</h1>
+                    <h1 className="admin-login-title">Control Center Sign In</h1>
                     <p className="admin-login-subtitle">
-                        Access your store control center and manage incoming orders
+                        Enter your Super Admin credentials to access store operations
                     </p>
                 </div>
 
                 {errorMessage && (
-                    <div className="admin-alert-error">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="admin-badge admin-badge-danger" style={{ width: '100%', padding: '10px 14px', marginBottom: '20px', borderRadius: '8px', fontSize: '0.82rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -59,16 +60,16 @@ export default function AdminLogin({ onLoginSuccess }) {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    <div className="admin-form-group">
+                    <div className="admin-form-group" style={{ marginBottom: '16px' }}>
                         <label className="admin-label" htmlFor="admin-email">
-                            Email or Username
+                            Email Address or Username
                         </label>
                         <div className="admin-input-wrapper">
                             <input
                                 id="admin-email"
                                 type="text"
                                 className="admin-input"
-                                placeholder="e.g. admin@mangalam.com"
+                                placeholder="superadmin@mangalam.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 autoComplete="username"
@@ -77,16 +78,16 @@ export default function AdminLogin({ onLoginSuccess }) {
                         </div>
                     </div>
 
-                    <div className="admin-form-group">
+                    <div className="admin-form-group" style={{ marginBottom: '20px' }}>
                         <label className="admin-label" htmlFor="admin-password">
-                            Password
+                            Account Password
                         </label>
                         <div className="admin-input-wrapper">
                             <input
                                 id="admin-password"
                                 type={showPassword ? 'text' : 'password'}
                                 className="admin-input admin-input-has-toggle"
-                                placeholder="Enter admin password"
+                                placeholder="••••••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 autoComplete="current-password"
@@ -100,12 +101,12 @@ export default function AdminLogin({ onLoginSuccess }) {
                                 tabIndex="-1"
                             >
                                 {showPassword ? (
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                                         <line x1="1" y1="1" x2="23" y2="23"/>
                                     </svg>
                                 ) : (
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                         <circle cx="12" cy="12" r="3"/>
                                     </svg>
@@ -116,15 +117,16 @@ export default function AdminLogin({ onLoginSuccess }) {
 
                     <button
                         type="submit"
-                        className="admin-btn-primary"
+                        className="admin-btn admin-btn-primary"
                         disabled={isSubmitting}
+                        style={{ width: '100%', padding: '11px', fontSize: '0.92rem' }}
                     >
                         {isSubmitting ? (
-                            <span>Signing In...</span>
+                            <span>Authenticating Session...</span>
                         ) : (
                             <>
                                 <span>Sign In to Dashboard</span>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="5" y1="12" x2="19" y2="12"/>
                                     <polyline points="12 5 19 12 12 19"/>
                                 </svg>
@@ -132,11 +134,6 @@ export default function AdminLogin({ onLoginSuccess }) {
                         )}
                     </button>
                 </form>
-
-                <div className="admin-demo-hint">
-                    <strong>Demo Access Credentials:</strong><br />
-                    Email: <code>admin@mangalam.com</code> | Password: <code>admin123</code>
-                </div>
             </div>
         </div>
     );

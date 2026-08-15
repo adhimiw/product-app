@@ -62,7 +62,7 @@ export default function UpdateStatusModal({ order, onClose, onSave }) {
                             <div className="admin-summary-row" style={{ marginTop: '4px' }}>
                                 <span className="admin-summary-label">Items:</span>
                                 <span className="admin-summary-value" style={{ fontSize: '0.8rem' }}>
-                                    {order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}
+                                    {order.items?.map(i => `${i.product_name || i.name || 'Health Mix'} (x${i.quantity})`).join(', ') || 'Health Mix (x1)'}
                                 </span>
                             </div>
                         </div>

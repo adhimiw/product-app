@@ -67,9 +67,9 @@ export const translations = {
         satisfactionGuarantee: "100% Satisfaction Guarantee. Handcrafted with traditional Tamil food wisdom for pure digestive wellness.",
 
         // Accordions
-        accHowToUse: "How to use & taste / தயாரிப்பு முறை",
-        accBenefits: "Benefits / ஆரோக்கிய நன்மைகள்",
-        accIngredients: "Ingredients / பொருட்கள்",
+        accHowToUse: "How to Use & Preparation",
+        accBenefits: "Health Benefits & Highlights",
+        accIngredients: "Ingredients List",
 
         // Contact Section
         getInTouchSub: "GET IN TOUCH",
