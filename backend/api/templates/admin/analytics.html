@@ -1,0 +1,109 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<style>
+  .an-wrap { max-width: 1100px; }
+  .an-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+  .an-kpi { background: var(--darkened-bg, #f6f7f6); border: 1px solid rgba(0,0,0,.08); border-radius: 10px; padding: 16px 18px; }
+  .an-kpi .v { font-size: 1.9rem; font-weight: 700; color: #1b5a2f; line-height: 1; }
+  .an-kpi .l { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: #777; margin-top: 6px; }
+  .an-card { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 10px; padding: 18px 20px; margin-bottom: 22px; }
+  .an-card h2 { font-size: 1rem; margin: 0 0 14px; }
+  .an-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: .85rem; }
+  .an-row .lbl { width: 150px; flex-shrink: 0; color: #444; }
+  .an-row .bar { height: 16px; background: #2c7844; border-radius: 4px; min-width: 2px; }
+  .an-row .num { color: #666; }
+  .an-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .heat-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+  #heat { border: 1px solid rgba(0,0,0,.12); border-radius: 8px; background: #faf8f2; max-width: 100%; }
+  @media (max-width: 800px){ .an-kpis{grid-template-columns:repeat(2,1fr)} .an-grid2{grid-template-columns:1fr} }
+</style>
+
+<div class="an-wrap">
+  <p style="color:#777;">Last {{ window_days }} days · data from your own database (no third-party tracker).</p>
+
+  <div class="an-kpis">
+    <div class="an-kpi"><div class="v">{{ kpis.visitors }}</div><div class="l">Visitors</div></div>
+    <div class="an-kpi"><div class="v">{{ kpis.page_views }}</div><div class="l">Page views</div></div>
+    <div class="an-kpi"><div class="v">{{ kpis.add_to_cart }}</div><div class="l">Add to cart</div></div>
+    <div class="an-kpi"><div class="v">₹{{ order_stats.revenue }}</div><div class="l">Revenue · {{ order_stats.count }} orders</div></div>
+  </div>
+
+  <div class="an-grid2">
+    <div class="an-card">
+      <h2>Conversion funnel</h2>
+      {% for f in funnel %}
+      <div class="an-row"><span class="lbl">{{ f.label }}</span>
+        <span class="bar" style="width: {{ f.pct }}%"></span>
+        <span class="num">{{ f.count }} ({{ f.pct }}%)</span></div>
+      {% endfor %}
+    </div>
+
+    <div class="an-card">
+      <h2>Top pages</h2>
+      {% for p in top_pages %}
+      <div class="an-row"><span class="lbl">{{ p.page }}</span>
+        <span class="bar" style="width: {% widthratio p.n max_page 100 %}%"></span>
+        <span class="num">{{ p.n }}</span></div>
+      {% empty %}<p style="color:#999;">No page views yet.</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="an-card">
+    <h2>Daily visitors</h2>
+    {% for d in daily %}
+    <div class="an-row"><span class="lbl">{{ d.date }}</span>
+      <span class="bar" style="width: {% widthratio d.sessions max_sessions 100 %}%"></span>
+      <span class="num">{{ d.sessions }} visitors · {{ d.events }} events</span></div>
+    {% empty %}<p style="color:#999;">No activity yet.</p>{% endfor %}
+  </div>
+
+  <div class="an-card">
+    <h2>Coupons</h2>
+    <div class="an-row"><span class="lbl">Applied successfully</span><span class="bar" style="width:{% widthratio coupon.success coupon.attempt 100 %}%"></span><span class="num">{{ coupon.success }}</span></div>
+    <div class="an-row"><span class="lbl">Failed attempts</span><span class="bar" style="width:{% widthratio coupon.failure coupon.attempt 100 %}%;background:#c0392b"></span><span class="num">{{ coupon.failure }}</span></div>
+  </div>
+
+  <div class="an-card">
+    <h2>Click heatmap</h2>
+    <div class="heat-toolbar">
+      <label for="heat-page">Page:</label>
+      <select id="heat-page"><option value="">All pages</option>
+        {% for pg in click_pages %}<option value="{{ pg }}">{{ pg }}</option>{% endfor %}
+      </select>
+      <span id="heat-count" style="color:#777;"></span>
+    </div>
+    <canvas id="heat" width="1000" height="1400"></canvas>
+    <p style="color:#999;font-size:.8rem;">X normalized to viewport width; Y normalized to each visit's page height. Warmer = more clicks.</p>
+  </div>
+</div>
+
+{{ click_points|json_script:"click-data" }}
+<script>
+(function () {
+  var points = JSON.parse(document.getElementById('click-data').textContent);
+  var canvas = document.getElementById('heat'), ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var sel = document.getElementById('heat-page'), count = document.getElementById('heat-count');
+
+  function draw(page) {
+    ctx.clearRect(0, 0, W, H);
+    var pts = points.filter(function (p) { return !page || p.page === page; });
+    count.textContent = pts.length + ' clicks';
+    // additive warm blobs → density
+    ctx.globalCompositeOperation = 'lighter';
+    pts.forEach(function (p) {
+      var x = (p.x / p.vw) * W;
+      var y = p.dh ? (p.y / p.dh) * H : Math.min(p.y, H);
+      var g = ctx.createRadialGradient(x, y, 0, x, y, 26);
+      g.addColorStop(0, 'rgba(255,120,0,0.35)');
+      g.addColorStop(1, 'rgba(255,120,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  sel.addEventListener('change', function () { draw(sel.value); });
+  draw('');
+})();
+</script>
+{% endblock %}

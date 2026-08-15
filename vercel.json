@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/config/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxDuration": 25
+      }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/config/wsgi.py"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "backend/config/wsgi.py"
+    },
+    {
+      "src": "/static/admin/(.*)",
+      "dest": "backend/config/wsgi.py"
+    },
+    {
+      "src": "/static/rest_framework/(.*)",
+      "dest": "backend/config/wsgi.py"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/favicon.svg",
+      "dest": "/favicon.svg"
+    },
+    {
+      "src": "/refence image/(.*)",
+      "dest": "/refence image/$1"
+    },
+    {
+      "src": "/(.*\\.(webp|png|jpe?g|svg|ico|txt|xml|json))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

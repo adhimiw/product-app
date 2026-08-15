@@ -1,0 +1,162 @@
+.card-swap-container {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    bottom: auto;
+    /* Pull the deck lower so the upward-stacked cards clear the top nav /
+       "Our Story" link on laptop widths. */
+    transform: translate(2%, -42%);
+    transform-origin: center center;
+    perspective: 900px;
+    overflow: visible;
+}
+
+.card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: var(--color-harvest-cream);
+    box-shadow:
+        0 24px 60px rgba(7, 56, 32, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    transform-style: preserve-3d;
+    will-change: transform;
+    backface-visibility: hidden;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+/* --- On-brand promo card content --- */
+.swap-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    color: var(--color-white);
+}
+
+.swap-card-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+.swap-card-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        180deg,
+        rgba(7, 56, 32, 0.05) 0%,
+        rgba(7, 56, 32, 0.35) 45%,
+        rgba(5, 33, 18, 0.92) 100%
+    );
+}
+
+.swap-card-body {
+    position: relative;
+    z-index: 2;
+    padding: 28px;
+}
+
+.swap-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 7px 14px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    margin-bottom: auto;
+}
+
+.swap-card-title {
+    font-family: var(--font-serif);
+    font-size: 1.85rem;
+    line-height: 1.12;
+    font-weight: 600;
+    color: var(--color-white);
+    margin: 16px 0 8px;
+}
+
+.swap-card-title em {
+    font-style: italic;
+    color: var(--color-accent-gold-rich);
+}
+
+.swap-card-desc {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 18px;
+    max-width: 92%;
+}
+
+.swap-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-accent-gold-rich);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.swap-card-hint {
+    display: block;
+    margin-top: 12px;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.swap-card-cta svg {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card:hover .swap-card-cta svg {
+    transform: translateX(5px);
+}
+
+@media (max-width: 1024px) {
+    .card-swap-container {
+        top: 50%;
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        margin: 0;
+        transform: translate(-48%, -50%) scale(0.9);
+    }
+}
+
+@media (max-width: 768px) {
+    .card-swap-container {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        margin: 0 auto;
+        transform: scale(0.74);
+    }
+}

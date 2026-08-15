@@ -23,4 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+*.zip
+OpenWA/
+backend/vendor/
+backend/.env
+backend/public/storage
+backend/db.sqlite3
+mangalam.txt
+screenshot_*.png
 
