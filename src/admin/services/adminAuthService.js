@@ -4,7 +4,7 @@
  * Validates Role 1 (Super Admin) for Admin Portal access, rejecting Role 2 (Customer).
  */
 
-const API_LOGIN_URL = 'http://127.0.0.1:8000/api/login';
+const API_LOGIN_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/login';
 const STORAGE_KEY = 'mangalam_admin_session';
 
 export const adminAuthService = {

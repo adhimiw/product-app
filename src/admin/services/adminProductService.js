@@ -7,8 +7,8 @@
  * - Fetch API:  GET http://127.0.0.1:8000/api/admin/products
  */
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api/admin/products';
-const FALLBACK_API_URL = 'http://127.0.0.1:8000/api/products';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/admin/products';
+const FALLBACK_API_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/products';
 const STORAGE_KEY = 'mangalam_admin_products_v6';
 
 export const BADGE_OPTIONS = [
