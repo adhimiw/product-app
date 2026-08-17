@@ -6,17 +6,17 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductPackageSize;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProductSeeder extends Seeder
 {
     public function run(): void
     {
         // Disable foreign key checks to wipe existing product data cleanly
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Schema::disableForeignKeyConstraints();
         ProductPackageSize::truncate();
         Product::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        Schema::enableForeignKeyConstraints();
 
         $catAncestral = Category::firstOrCreate(
             ['name' => 'Ancestral Health Mixes'],

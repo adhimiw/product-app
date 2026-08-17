@@ -388,11 +388,19 @@ export default function AdminCategories() {
                                                     justifyContent: 'center',
                                                     overflow: 'hidden'
                                                 }}>
-                                                    {iconSrc ? (
-                                                        <img src={iconSrc} alt="Icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    ) : (
-                                                        <span style={{ fontSize: '1.1rem' }}>📁</span>
+                                                    {iconSrc && (
+                                                        <img 
+                                                            src={iconSrc} 
+                                                            alt="Icon" 
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                            onError={(e) => {
+                                                                e.currentTarget.style.display = 'none';
+                                                                const fallback = e.currentTarget.parentElement.querySelector('.cat-icon-fallback');
+                                                                if (fallback) fallback.style.display = 'inline';
+                                                            }}
+                                                        />
                                                     )}
+                                                    <span className="cat-icon-fallback" style={{ fontSize: '1.1rem', display: iconSrc ? 'none' : 'inline' }}>📁</span>
                                                 </div>
                                             </td>
                                             <td>

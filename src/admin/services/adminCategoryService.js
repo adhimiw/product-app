@@ -19,6 +19,21 @@ function saveLocalCategories(categories) {
     }
 }
 
+// Helper to resolve icon and image assets correctly
+function getAssetUrl(path) {
+    if (!path || typeof path !== 'string') return null;
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+        return path;
+    }
+    if (path.startsWith('/storage/')) {
+        return path;
+    }
+    if (path.startsWith('storage/')) {
+        return `/${path}`;
+    }
+    return `/storage/${path}`;
+}
+
 // Normalize backend category object for frontend UI
 function normalizeCategory(cat) {
     if (!cat) return null;
@@ -29,9 +44,9 @@ function normalizeCategory(cat) {
         slug: cat.slug || '',
         description: cat.description || '',
         icon: cat.icon || null,
-        icon_url: cat.icon_url || (typeof cat.icon === 'string' && cat.icon.startsWith('http') ? cat.icon : null),
+        icon_url: cat.icon_url || getAssetUrl(cat.icon),
         image: cat.image || null,
-        image_url: cat.image_url || (typeof cat.image === 'string' && cat.image.startsWith('http') ? cat.image : null),
+        image_url: cat.image_url || getAssetUrl(cat.image),
         status: cat.status !== undefined ? Number(cat.status) : (isActive ? 1 : 0),
         is_active: isActive,
         products_count: cat.products_count ?? 0,
@@ -45,12 +60,15 @@ export const adminCategoryService = {
      */
     async getCategories(search = '') {
         try {
-            const url = new URL(`${API_BASE_URL}/category`);
-            if (search) {
-                url.searchParams.append('search', search);
+            const queryParams = new URLSearchParams();
+            if (search && search.trim() !== '') {
+                queryParams.append('search', search.trim());
             }
 
-            const response = await fetch(url.toString(), {
+            const queryString = queryParams.toString();
+            const endpoint = `${API_BASE_URL}/category${queryString ? `?${queryString}` : ''}`;
+
+            const response = await fetch(endpoint, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json'
