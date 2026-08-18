@@ -79,6 +79,7 @@ export const adminCategoryService = {
 
             if (response.ok && (data.status === true || data.success === true)) {
                 const list = Array.isArray(data.data) ? data.data.map(normalizeCategory) : [];
+                saveLocalCategories(list);
                 return {
                     success: true,
                     message: data.message || 'Categories retrieved successfully',
@@ -158,10 +159,14 @@ export const adminCategoryService = {
             const data = await response.json();
 
             if (response.ok && (data.status === true || data.success === true)) {
+                const normalized = normalizeCategory(data.data);
+                const list = getLocalCategories();
+                list.unshift(normalized);
+                saveLocalCategories(list);
                 return {
                     success: true,
                     message: data.message || 'Category created successfully',
-                    data: normalizeCategory(data.data)
+                    data: normalized
                 };
             } else if (response.status === 422 || data.errors) {
                 return {
