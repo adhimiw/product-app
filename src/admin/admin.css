@@ -596,20 +596,26 @@
 /* ==========================================================================
    BUTTONS & CONTROLS
    ========================================================================== */
-.admin-btn {
+.admin-btn,
+.admin-btn-primary,
+.admin-btn-secondary,
+.admin-btn-danger {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 8px 16px;
+    padding: 9px 18px;
     border-radius: var(--admin-radius-md);
     font-size: 0.85rem;
     font-weight: 600;
+    line-height: 1.25;
     cursor: pointer;
     transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     border: 1px solid transparent;
     text-decoration: none;
     white-space: nowrap;
+    user-select: none;
 }
 
 .admin-btn-primary {
@@ -627,7 +633,7 @@
 }
 
 .admin-btn-secondary {
-    background-color: var(--admin-card-bg);
+    background-color: #FFFFFF;
     color: var(--admin-text-main) !important;
     border-color: var(--admin-border-color);
     box-shadow: var(--admin-shadow-xs);
@@ -636,6 +642,7 @@
 .admin-btn-secondary:hover:not(:disabled) {
     background-color: var(--admin-surface-subtle);
     border-color: var(--admin-text-muted);
+    transform: translateY(-1px);
 }
 
 .admin-btn-danger {
@@ -647,6 +654,7 @@
 .admin-btn-danger:hover:not(:disabled) {
     background-color: var(--admin-danger-hover);
     border-color: var(--admin-danger-text);
+    transform: translateY(-1px);
 }
 
 .admin-btn-icon {
@@ -996,12 +1004,13 @@
 
 .admin-modal-footer,
 .admin-modal-dialog-footer {
-    padding: 14px 24px;
-    background: var(--admin-card-bg);
+    padding: 16px 24px;
+    background: #FAFAF9;
     border-top: 1px solid var(--admin-border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     position: sticky;
     bottom: 0;
     z-index: 20;

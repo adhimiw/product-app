@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
 import EmptyState from '../components/EmptyState';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
-import { Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 function RichTextEditor({ value, onChange, placeholder, minHeight = '140px' }) {
     const editorRef = useRef(null);
@@ -943,11 +943,12 @@ export default function AdminProducts() {
                             </button>
                         </div>
 
-                        {/* Modal Body Scrollable Container */}
-                        <form onSubmit={handleSubmitForm} style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            
-                            {/* TAB 1: BASIC INFO & TAGS */}
-                            {modalActiveTab === 'basic' && (
+                        {/* Modal Body & Form Container */}
+                        <form onSubmit={handleSubmitForm} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+                            <div className="admin-modal-body" style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                
+                                {/* TAB 1: BASIC INFO & TAGS */}
+                                {modalActiveTab === 'basic' && (
                                 <>
                                     <div className="admin-form-group">
                                         <label className="admin-label">Product Name *</label>
@@ -1000,7 +1001,7 @@ export default function AdminProducts() {
                                             />
                                             <button
                                                 type="button"
-                                                className="admin-btn-secondary"
+                                                className="admin-btn admin-btn-secondary"
                                                 onClick={handleAddTag}
                                                 style={{ whiteSpace: 'nowrap' }}
                                             >
@@ -1048,7 +1049,7 @@ export default function AdminProducts() {
                                             </label>
                                             <button
                                                 type="button"
-                                                className="admin-btn-secondary"
+                                                className="admin-btn admin-btn-secondary"
                                                 onClick={handleAddPackageSize}
                                                 style={{ fontSize: '0.8rem', padding: '6px 12px' }}
                                             >
@@ -1212,7 +1213,7 @@ export default function AdminProducts() {
                                                                     />
                                                                     <label
                                                                         htmlFor={`pkg-multi-img-${pkg.id}`}
-                                                                        className="admin-btn-secondary"
+                                                                        className="admin-btn admin-btn-secondary"
                                                                         style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '0.78rem' }}
                                                                     >
                                                                         + Upload Variant Images (Binary)
@@ -1342,8 +1343,8 @@ export default function AdminProducts() {
                                             />
                                             <label
                                                 htmlFor="gallery-images-upload"
-                                                className="admin-btn-primary"
-                                                style={{ cursor: 'pointer', display: 'inline-block', padding: '10px 20px', borderRadius: '10px' }}
+                                                className="admin-btn admin-btn-primary"
+                                                style={{ cursor: 'pointer', display: 'inline-flex', padding: '10px 20px', borderRadius: '8px' }}
                                             >
                                                 + Select Image Files from System (Binary)
                                             </label>
@@ -1417,19 +1418,34 @@ export default function AdminProducts() {
                                     </div>
                                 </>
                             )}
+                            </div>
 
                             {/* Modal Footer Actions */}
                             <div className="admin-modal-footer">
-                                <button type="button" className="admin-btn-secondary" onClick={handleCloseModal}>
+                                <button type="button" className="admin-btn admin-btn-secondary" onClick={handleCloseModal}>
                                     <X size={15} />
                                     <span>Cancel</span>
                                 </button>
                                 
-                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                    {modalActiveTab !== 'basic' && (
+                                        <button
+                                            type="button"
+                                            className="admin-btn admin-btn-secondary"
+                                            onClick={() => {
+                                                if (modalActiveTab === 'content') setModalActiveTab('packages');
+                                                else if (modalActiveTab === 'packages') setModalActiveTab('basic');
+                                            }}
+                                        >
+                                            <ArrowLeft size={15} />
+                                            <span>Previous Step</span>
+                                        </button>
+                                    )}
+
                                     {modalActiveTab !== 'content' && (
                                         <button
                                             type="button"
-                                            className="admin-btn-secondary"
+                                            className="admin-btn admin-btn-secondary"
                                             onClick={() => {
                                                 if (modalActiveTab === 'basic') setModalActiveTab('packages');
                                                 else if (modalActiveTab === 'packages') setModalActiveTab('content');
@@ -1440,7 +1456,7 @@ export default function AdminProducts() {
                                         </button>
                                     )}
 
-                                    <button type="submit" className="admin-btn-primary" disabled={isSubmitting}>
+                                    <button type="submit" className="admin-btn admin-btn-primary" disabled={isSubmitting}>
                                         <CheckCircle2 size={16} />
                                         <span>{isSubmitting ? 'Saving Configuration...' : (editingProduct ? 'Update Product' : 'Save & Publish Product')}</span>
                                     </button>

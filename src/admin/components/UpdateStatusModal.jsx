@@ -117,7 +117,7 @@ export default function UpdateStatusModal({ order, onClose, onSave }) {
                     <div className="admin-modal-footer">
                         <button
                             type="button"
-                            className="admin-btn-secondary"
+                            className="admin-btn admin-btn-secondary"
                             onClick={onClose}
                             disabled={isSubmitting}
                         >
@@ -125,7 +125,7 @@ export default function UpdateStatusModal({ order, onClose, onSave }) {
                         </button>
                         <button
                             type="submit"
-                            className="admin-btn-primary"
+                            className="admin-btn admin-btn-primary"
                             style={{ width: 'auto', padding: '9px 20px' }}
                             disabled={isSubmitting}
                         >
