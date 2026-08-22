@@ -1133,6 +1133,93 @@
 }
 
 /* ==========================================================================
+   RICH TEXT EDITOR COMPONENT
+   ========================================================================== */
+.rich-editor-wrapper {
+    border: 1px solid var(--admin-border-color);
+    border-radius: var(--admin-radius-lg);
+    background-color: var(--admin-card-bg);
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rich-editor-wrapper:focus-within {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px var(--admin-primary-faint);
+}
+
+.rich-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    background-color: var(--admin-surface-subtle);
+    border-bottom: 1px solid var(--admin-border-color);
+}
+
+.rich-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: var(--admin-radius-sm);
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--admin-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.rich-toolbar-btn:hover {
+    background-color: var(--admin-card-bg);
+    color: var(--admin-text-main);
+    border-color: var(--admin-border-color);
+}
+
+.rich-toolbar-btn.active {
+    background-color: var(--admin-primary-faint);
+    color: var(--admin-primary);
+    border-color: var(--admin-primary);
+    font-weight: 700;
+}
+
+.rich-toolbar-btn.clear:hover {
+    background-color: var(--admin-danger-bg);
+    color: var(--admin-danger-text);
+    border-color: var(--admin-danger-border);
+}
+
+.rich-toolbar-sep {
+    display: inline-block;
+    height: 18px;
+    width: 1px;
+    background-color: var(--admin-border-color);
+    margin: 0 4px;
+}
+
+.rich-editor-content {
+    padding: 14px 16px;
+    color: var(--admin-text-main);
+    font-size: 0.88rem;
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    line-height: 1.6;
+    outline: none;
+    overflow-y: auto;
+}
+
+.rich-editor-content[placeholder]:empty:before {
+    content: attr(placeholder);
+    color: var(--admin-text-faint);
+    cursor: text;
+}
+
+/* ==========================================================================
    FORM CONTROLS
    ========================================================================== */
 .admin-form-group {

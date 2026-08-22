@@ -5,10 +5,11 @@ import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
 import EmptyState from '../components/EmptyState';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser } from 'lucide-react';
 
-function RichTextEditor({ value, onChange, placeholder, minHeight = '120px' }) {
+function RichTextEditor({ value, onChange, placeholder, minHeight = '140px' }) {
     const editorRef = useRef(null);
+    const [activeFormats, setActiveFormats] = useState({});
 
     useEffect(() => {
         if (editorRef.current && editorRef.current.innerHTML !== (value || '')) {
@@ -16,35 +17,134 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = '120px' }) {
         }
     }, [value]);
 
+    const checkCommandStates = () => {
+        try {
+            setActiveFormats({
+                bold: document.queryCommandState('bold'),
+                italic: document.queryCommandState('italic'),
+                underline: document.queryCommandState('underline'),
+                strikeThrough: document.queryCommandState('strikeThrough'),
+                insertUnorderedList: document.queryCommandState('insertUnorderedList'),
+                insertOrderedList: document.queryCommandState('insertOrderedList')
+            });
+        } catch (err) {
+            // Ignore command state check errors
+        }
+    };
+
     const execCommand = (cmd, arg = null) => {
         document.execCommand(cmd, false, arg);
         if (editorRef.current) {
             onChange(editorRef.current.innerHTML);
         }
+        checkCommandStates();
     };
 
     return (
         <div className="rich-editor-wrapper">
             <div className="rich-editor-toolbar">
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('bold')} title="Bold (Ctrl+B)"><b>B</b></button>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('italic')} title="Italic (Ctrl+I)"><i>I</i></button>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('underline')} title="Underline (Ctrl+U)"><u>U</u></button>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('strikeThrough')} title="Strikethrough"><s>S</s></button>
-                <span className="rich-toolbar-sep">|</span>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('formatBlock', '<h3>')} title="Heading 3"><b>H3</b></button>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('formatBlock', '<p>')} title="Normal Text">P</button>
-                <span className="rich-toolbar-sep">|</span>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('insertUnorderedList')} title="Bullet List">• Bullet List</button>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('insertOrderedList')} title="Numbered List">1. Numbered List</button>
-                <span className="rich-toolbar-sep">|</span>
-                <button type="button" className="rich-toolbar-btn" onClick={() => execCommand('removeFormat')} title="Clear Formatting">🧹 Clear</button>
+                <button
+                    type="button"
+                    className={`rich-toolbar-btn ${activeFormats.bold ? 'active' : ''}`}
+                    onClick={() => execCommand('bold')}
+                    title="Bold (Ctrl+B)"
+                >
+                    <Bold size={14} />
+                    <span>Bold</span>
+                </button>
+                <button
+                    type="button"
+                    className={`rich-toolbar-btn ${activeFormats.italic ? 'active' : ''}`}
+                    onClick={() => execCommand('italic')}
+                    title="Italic (Ctrl+I)"
+                >
+                    <Italic size={14} />
+                    <span>Italic</span>
+                </button>
+                <button
+                    type="button"
+                    className={`rich-toolbar-btn ${activeFormats.underline ? 'active' : ''}`}
+                    onClick={() => execCommand('underline')}
+                    title="Underline (Ctrl+U)"
+                >
+                    <Underline size={14} />
+                    <span>Underline</span>
+                </button>
+                <button
+                    type="button"
+                    className={`rich-toolbar-btn ${activeFormats.strikeThrough ? 'active' : ''}`}
+                    onClick={() => execCommand('strikeThrough')}
+                    title="Strikethrough"
+                >
+                    <Strikethrough size={14} />
+                    <span>Strike</span>
+                </button>
+
+                <span className="rich-toolbar-sep" />
+
+                <button
+                    type="button"
+                    className="rich-toolbar-btn"
+                    onClick={() => execCommand('formatBlock', '<h3>')}
+                    title="Heading 3"
+                >
+                    <Heading3 size={14} />
+                    <span>H3 Heading</span>
+                </button>
+                <button
+                    type="button"
+                    className="rich-toolbar-btn"
+                    onClick={() => execCommand('formatBlock', '<p>')}
+                    title="Normal Paragraph"
+                >
+                    <Type size={14} />
+                    <span>Paragraph</span>
+                </button>
+
+                <span className="rich-toolbar-sep" />
+
+                <button
+                    type="button"
+                    className={`rich-toolbar-btn ${activeFormats.insertUnorderedList ? 'active' : ''}`}
+                    onClick={() => execCommand('insertUnorderedList')}
+                    title="Bullet List"
+                >
+                    <List size={14} />
+                    <span>Bullet List</span>
+                </button>
+                <button
+                    type="button"
+                    className={`rich-toolbar-btn ${activeFormats.insertOrderedList ? 'active' : ''}`}
+                    onClick={() => execCommand('insertOrderedList')}
+                    title="Numbered List"
+                >
+                    <ListOrdered size={14} />
+                    <span>Numbered List</span>
+                </button>
+
+                <span className="rich-toolbar-sep" />
+
+                <button
+                    type="button"
+                    className="rich-toolbar-btn clear"
+                    onClick={() => execCommand('removeFormat')}
+                    title="Clear Formatting"
+                >
+                    <Eraser size={14} />
+                    <span>Clear Format</span>
+                </button>
             </div>
             <div
                 ref={editorRef}
                 className="rich-editor-content"
                 contentEditable
                 style={{ minHeight }}
-                onInput={(e) => onChange(e.currentTarget.innerHTML)}
+                onInput={(e) => {
+                    onChange(e.currentTarget.innerHTML);
+                    checkCommandStates();
+                }}
+                onKeyUp={checkCommandStates}
+                onMouseUp={checkCommandStates}
                 onBlur={(e) => onChange(e.currentTarget.innerHTML)}
                 placeholder={placeholder}
             />
