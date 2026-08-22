@@ -386,6 +386,59 @@ export default function AdminProducts() {
         }));
     };
 
+    const handleMovePackageVariantImage = (pkgId, fromIndex, toIndex) => {
+        setFormData(prev => ({
+            ...prev,
+            package_sizes: prev.package_sizes.map(p => {
+                if (p.id === pkgId) {
+                    const images = [...(Array.isArray(p.variant_images) ? p.variant_images : [])];
+                    const files = [...(Array.isArray(p.variant_image_files) ? p.variant_image_files : [])];
+
+                    if (toIndex < 0 || toIndex >= images.length) return p;
+
+                    const [movedImg] = images.splice(fromIndex, 1);
+                    images.splice(toIndex, 0, movedImg);
+
+                    if (files.length > fromIndex) {
+                        const [movedFile] = files.splice(fromIndex, 1);
+                        files.splice(toIndex, 0, movedFile);
+                    }
+
+                    return {
+                        ...p,
+                        variant_images: images,
+                        variant_image_files: files
+                    };
+                }
+                return p;
+            })
+        }));
+    };
+
+    const handleReplacePackageVariantImage = (pkgId, imgIndex, file) => {
+        if (!file) return;
+        const newPreviewUrl = URL.createObjectURL(file);
+        setFormData(prev => ({
+            ...prev,
+            package_sizes: prev.package_sizes.map(p => {
+                if (p.id === pkgId) {
+                    const images = [...(Array.isArray(p.variant_images) ? p.variant_images : [])];
+                    const files = [...(Array.isArray(p.variant_image_files) ? p.variant_image_files : [])];
+
+                    images[imgIndex] = newPreviewUrl;
+                    files[imgIndex] = file;
+
+                    return {
+                        ...p,
+                        variant_images: images,
+                        variant_image_files: files
+                    };
+                }
+                return p;
+            })
+        }));
+    };
+
     // Store actual binary File objects in image_files array for FormData
     const handleMultipleImagesUpload = (e) => {
         const files = Array.from(e.target.files);
@@ -405,6 +458,29 @@ export default function AdminProducts() {
             images: prev.images.filter((_, i) => i !== index),
             image_files: (prev.image_files || []).filter((_, i) => i !== index)
         }));
+    };
+
+    const handleMoveGalleryImage = (fromIndex, toIndex) => {
+        setFormData(prev => {
+            const images = [...prev.images];
+            const files = [...(prev.image_files || [])];
+
+            if (toIndex < 0 || toIndex >= images.length) return prev;
+
+            const [movedImg] = images.splice(fromIndex, 1);
+            images.splice(toIndex, 0, movedImg);
+
+            if (files.length > fromIndex) {
+                const [movedFile] = files.splice(fromIndex, 1);
+                files.splice(toIndex, 0, movedFile);
+            }
+
+            return {
+                ...prev,
+                images,
+                image_files: files
+            };
+        });
     };
 
     const handleSubmitForm = async (e) => {
@@ -1053,6 +1129,26 @@ export default function AdminProducts() {
                                                                                 alt={`Variant ${pkg.size_number}${pkg.size_unit} #${imgIdx + 1}`}
                                                                             />
                                                                             <div className="admin-image-card-overlay">
+                                                                                {imgIdx > 0 && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="admin-img-action-icon"
+                                                                                        title="Move Image Left"
+                                                                                        onClick={() => handleMovePackageVariantImage(pkg.id, imgIdx, imgIdx - 1)}
+                                                                                    >
+                                                                                        ←
+                                                                                    </button>
+                                                                                )}
+                                                                                {imgIdx < variantImagesList.length - 1 && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="admin-img-action-icon"
+                                                                                        title="Move Image Right"
+                                                                                        onClick={() => handleMovePackageVariantImage(pkg.id, imgIdx, imgIdx + 1)}
+                                                                                    >
+                                                                                        →
+                                                                                    </button>
+                                                                                )}
                                                                                 <button
                                                                                     type="button"
                                                                                     className="admin-img-action-icon"
@@ -1061,6 +1157,25 @@ export default function AdminProducts() {
                                                                                 >
                                                                                     👁️
                                                                                 </button>
+                                                                                <label
+                                                                                    htmlFor={`replace-img-${pkg.id}-${imgIdx}`}
+                                                                                    className="admin-img-action-icon"
+                                                                                    title="Replace Image"
+                                                                                    style={{ cursor: 'pointer' }}
+                                                                                >
+                                                                                    ✏️
+                                                                                    <input
+                                                                                        type="file"
+                                                                                        id={`replace-img-${pkg.id}-${imgIdx}`}
+                                                                                        accept="image/*"
+                                                                                        style={{ display: 'none' }}
+                                                                                        onChange={(e) => {
+                                                                                            if (e.target.files && e.target.files[0]) {
+                                                                                                handleReplacePackageVariantImage(pkg.id, imgIdx, e.target.files[0]);
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                </label>
                                                                                 <button
                                                                                     type="button"
                                                                                     className="admin-img-action-icon delete"
