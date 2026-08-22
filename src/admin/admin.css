@@ -997,12 +997,14 @@
 .admin-modal-footer,
 .admin-modal-dialog-footer {
     padding: 14px 24px;
-    background: var(--admin-surface-subtle);
+    background: var(--admin-card-bg);
     border-top: 1px solid var(--admin-border-color);
     display: flex;
-    gap: 10px;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
 }
 
 /* Modal Step Navigation Bar */

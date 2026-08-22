@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
 import EmptyState from '../components/EmptyState';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
-import { Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser } from 'lucide-react';
+import { Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 function RichTextEditor({ value, onChange, placeholder, minHeight = '140px' }) {
     const editorRef = useRef(null);
@@ -1419,12 +1419,13 @@ export default function AdminProducts() {
                             )}
 
                             {/* Modal Footer Actions */}
-                            <div className="admin-modal-footer" style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '18px', borderTop: '1px solid #E4E4E7' }}>
+                            <div className="admin-modal-footer">
                                 <button type="button" className="admin-btn-secondary" onClick={handleCloseModal}>
-                                    Cancel
+                                    <X size={15} />
+                                    <span>Cancel</span>
                                 </button>
                                 
-                                <div style={{ display: 'flex', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                     {modalActiveTab !== 'content' && (
                                         <button
                                             type="button"
@@ -1434,12 +1435,14 @@ export default function AdminProducts() {
                                                 else if (modalActiveTab === 'packages') setModalActiveTab('content');
                                             }}
                                         >
-                                            Next Step →
+                                            <span>Next Step</span>
+                                            <ArrowRight size={15} />
                                         </button>
                                     )}
 
                                     <button type="submit" className="admin-btn-primary" disabled={isSubmitting}>
-                                        {isSubmitting ? 'Saving Configuration...' : (editingProduct ? 'Update Product' : 'Save & Publish Product')}
+                                        <CheckCircle2 size={16} />
+                                        <span>{isSubmitting ? 'Saving Configuration...' : (editingProduct ? 'Update Product' : 'Save & Publish Product')}</span>
                                     </button>
                                 </div>
                             </div>
