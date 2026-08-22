@@ -28,6 +28,7 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
 
     const [selectedImgIndex, setSelectedImgIndex] = useState(0);
     const [selectedGramIndex, setSelectedGramIndex] = useState(0);
+    const [quantity, setQuantity] = useState(1);
     // Gram package options (dynamically mapped from backend package_sizes or gramOptions)
     const gramOptions = (product && Array.isArray(product.package_sizes) && product.package_sizes.length > 0)
         ? product.package_sizes.map((pkg, idx) => {
