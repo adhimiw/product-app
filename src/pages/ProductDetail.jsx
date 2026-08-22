@@ -28,18 +28,58 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
 
     const [selectedImgIndex, setSelectedImgIndex] = useState(0);
     const [selectedGramIndex, setSelectedGramIndex] = useState(0);
-    const [quantity, setQuantity] = useState(1);
+    // Gram package options (dynamically mapped from backend package_sizes or gramOptions)
+    const gramOptions = (product && Array.isArray(product.package_sizes) && product.package_sizes.length > 0)
+        ? product.package_sizes.map((pkg, idx) => {
+            const sizeNum = pkg.size_number || 300;
+            const sizeUnit = pkg.size_unit || 'g';
+            const sizeWeight = `${sizeNum}${sizeUnit}`;
+            const price = Number(pkg.variant_price || product.actual_price || product.price || 110);
+            let badge = '';
+            if (pkg.variant_badge === 1) badge = 'Best Value';
+            else if (pkg.variant_badge === 2) badge = 'Save 15%';
+            else if (idx === 0) badge = 'Popular';
+
+            return {
+                id: pkg.id || `pkg-${idx}`,
+                size: `${sizeWeight} Package`,
+                sizeWeight,
+                price,
+                inrPrice: `₹${price}`,
+                badge,
+                variant_images: pkg.variant_images || pkg.images || []
+            };
+        })
+        : ((product && Array.isArray(product.gramOptions) && product.gramOptions.length > 0)
+            ? product.gramOptions
+            : [
+                {
+                    id: 'pkg-default',
+                    size: '300g Package',
+                    sizeWeight: '300g',
+                    price: Number(product?.actual_price || product?.price || 110),
+                    inrPrice: `₹${Number(product?.actual_price || product?.price || 110)}`,
+                    badge: 'Popular',
+                    variant_images: []
+                }
+            ]);
+
+    const activeGramOption = gramOptions[selectedGramIndex] || gramOptions[0] || {};
+    const currentPrice = Number(activeGramOption?.price || product?.actual_price || product?.price || 110);
+    const currentInrPrice = activeGramOption?.inrPrice || `₹${currentPrice}`;
 
     // Selected package variant specific images if available, otherwise deduplicated product images
     const currentPkg = (product && product.package_sizes && product.package_sizes.length > selectedGramIndex)
         ? product.package_sizes[selectedGramIndex]
         : null;
 
-    const variantImages = currentPkg && Array.isArray(currentPkg.variant_images) && currentPkg.variant_images.length > 0
+    const variantImages = (currentPkg && Array.isArray(currentPkg.variant_images) && currentPkg.variant_images.length > 0)
         ? currentPkg.variant_images
-        : (currentPkg && Array.isArray(currentPkg.images) && currentPkg.images.length > 0 ? currentPkg.images : null);
+        : ((currentPkg && Array.isArray(currentPkg.images) && currentPkg.images.length > 0)
+            ? currentPkg.images
+            : (activeGramOption?.variant_images && activeGramOption.variant_images.length > 0 ? activeGramOption.variant_images : null));
 
-    const rawImgList = variantImages || (product && product.images && product.images.length > 0 ? product.images : [product?.image]);
+    const rawImgList = variantImages || (product && Array.isArray(product.images) && product.images.length > 0 ? product.images : [product?.image]);
     
     // Deduplicate image URLs to eliminate duplicate thumbnails
     const imgList = Array.from(new Set((rawImgList || []).filter(Boolean)));
@@ -61,17 +101,6 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
         );
     }
 
-    // Gram package options (300g and 500g default)
-    const gramOptions = (product && product.gramOptions && product.gramOptions.length > 0)
-        ? product.gramOptions
-        : [
-            { size: '300g Package', price: product?.price || 110, inrPrice: product?.inrPrice || '₹110', badge: 'Popular' }
-        ];
-
-    const activeGramOption = gramOptions[selectedGramIndex] || gramOptions[0];
-    const currentPrice = activeGramOption.price;
-    const currentInrPrice = activeGramOption.inrPrice;
-
     const toggleAccordion = (key) => {
         setOpenAccordion(prev => ({
             ...prev,
@@ -88,17 +117,19 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
     };
 
     const handleAddToCartClick = () => {
-        const cleanName = product.name.replace(/\s*\(\d+g[^\)]*\)/i, '');
-        const sizeWeight = activeGramOption.size.includes('500g') ? '500g' : '300g';
+        if (!product || !onAddToCart) return;
+        const cleanName = (product.name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+        const sizeWeight = activeGramOption.sizeWeight || (activeGramOption.size ? String(activeGramOption.size).replace(/\s*Package/i, '').trim() : '300g');
         const variantName = `${cleanName} (${sizeWeight})`;
-        const variantId = `${product.id.replace(/-(300|500)g/, '')}-${sizeWeight}`;
+        const baseId = String(product.id || '1').replace(/-(300|500)g/, '');
+        const variantId = `${baseId}-${sizeWeight}`;
 
         onAddToCart(
             variantId,
             variantName,
-            currentPrice,
+            Number(currentPrice || 110),
             'one-time',
-            quantity
+            Number(quantity || 1)
         );
     };
 
@@ -203,7 +234,10 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
                                     <div
                                         key={idx}
                                         className={`gram-card-box ${idx === selectedGramIndex ? 'active' : ''}`}
-                                        onClick={() => setSelectedGramIndex(idx)}
+                                        onClick={() => {
+                                            setSelectedGramIndex(idx);
+                                            setSelectedImgIndex(0);
+                                        }}
                                     >
                                         {opt.badge && (
                                             <span className="gram-deal-badge">{opt.badge}</span>

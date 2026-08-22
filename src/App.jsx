@@ -46,7 +46,14 @@ export default function App() {
     const [loadingProducts, setLoadingProducts] = useState(true);
     const [activeProductId, setActiveProductId] = useState(initialRoute.param);
     const [selectedCategory, setSelectedCategory] = useState('All Products');
-    const [cart, setCart] = useState([]);
+    const [cart, setCart] = useState(() => {
+        try {
+            const saved = localStorage.getItem('mangalam_cart');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            return [];
+        }
+    });
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [toast, setToast] = useState(null);
@@ -58,6 +65,12 @@ export default function App() {
             return null;
         }
     });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('mangalam_cart', JSON.stringify(cart));
+        } catch (e) {}
+    }, [cart]);
 
     useEffect(() => {
         loadProducts();
@@ -155,19 +168,25 @@ export default function App() {
     };
 
     const handleAddToCart = (id, name, price, option = 'one-time', quantity = 1) => {
+        const numericPrice = typeof price === 'number' ? price : (parseFloat(price) || 0);
+        const numQty = typeof quantity === 'number' ? quantity : (parseInt(quantity, 10) || 1);
+
         setCart(prevCart => {
             const existingIndex = prevCart.findIndex(
-                item => item.id === id && item.name === name
+                item => String(item.id) === String(id) && item.name === name
             );
 
             if (existingIndex > -1) {
                 const newCart = [...prevCart];
-                newCart[existingIndex].quantity += quantity;
+                newCart[existingIndex].quantity += numQty;
                 return newCart;
             } else {
-                return [...prevCart, { id, name, price, option, quantity }];
+                return [...prevCart, { id, name, price: numericPrice, option, quantity: numQty }];
             }
         });
+
+        setIsCartOpen(true);
+        showToast('Added to Cart 🛒', `${name} (${numQty > 1 ? numQty + ' packs' : '1 pack'}) added to your bag.`, 'success');
     };
 
     const handleUpdateQuantity = (index, newQuantity) => {
