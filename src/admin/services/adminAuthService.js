@@ -141,7 +141,18 @@ export const adminAuthService = {
      */
     isAuthenticated() {
         const session = this.getCurrentSession();
-        return !!(session && session.token && session.user && Number(session.user.role_id) === 1);
+        if (!session || !session.token || !session.user || Number(session.user.role_id) !== 1) {
+            return false;
+        }
+        if (session.loggedInAt) {
+            const loggedInTime = new Date(session.loggedInAt).getTime();
+            const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+            if (Date.now() - loggedInTime > SEVEN_DAYS_MS) {
+                this.logout();
+                return false;
+            }
+        }
+        return true;
     },
 
     /**
