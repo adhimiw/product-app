@@ -5,7 +5,16 @@ import ReviewCardSlider from '../components/ReviewCardSlider';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchCategoriesApi, fetchProductsApi } from '../services/api';
 
-export default function Home({ products: propProducts, loadingProducts: propLoading, setPage, onProductView, onAddToCart, onSelectCategory }) {
+export default function Home({
+    products: propProducts,
+    loadingProducts: propLoading,
+    setPage,
+    onProductView,
+    onAddToCart,
+    onSelectCategory,
+    favoriteProductIds = [],
+    onToggleFavorite
+}) {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState('300g');
     const [purchaseOption, setPurchaseOption] = useState('one-time');
@@ -271,6 +280,8 @@ export default function Home({ products: propProducts, loadingProducts: propLoad
                                     {...product}
                                     onProductView={onProductView}
                                     onAddToCart={onAddToCart}
+                                    isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(product.id)}
+                                    onToggleFavorite={onToggleFavorite}
                                 />
                             ))
                         ) : (

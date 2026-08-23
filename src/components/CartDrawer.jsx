@@ -150,15 +150,17 @@ export default function CartDrawer({
                         </div>
                     ) : (
                         cart.map((item, index) => {
-                            const matchedProduct = products.find(p => String(p.id) === String(item.id) || String(item.id).startsWith(String(p.id))) || products[0];
-                            const itemImg = matchedProduct ? (matchedProduct.image || (matchedProduct.images ? matchedProduct.images[0] : '')) : '/assets/images/300g_amutham/amutham-01.jpg';
+                            const matchedProduct = Array.isArray(products) 
+                                ? products.find(p => String(p.id) === String(item.id) || String(item.id).startsWith(String(p.id))) || products[0]
+                                : null;
+                            const itemImg = item.image || (matchedProduct ? (matchedProduct.image || (Array.isArray(matchedProduct.images) ? matchedProduct.images[0] : '')) : '/mangalam_logo.png');
                             const itemPriceNum = parseFloat(item.price) || 110;
-                            const lineTotal = itemPriceNum * item.quantity;
+                            const lineTotal = itemPriceNum * (item.quantity || 1);
 
                             // Extract gram size badge (e.g. 300g vs 500g)
-                            const matchGram = item.name.match(/\((\d+g[^\)]*)\)/i);
-                            const gramBadge = matchGram ? matchGram[1] : (matchedProduct.weights ? matchedProduct.weights[0] : '300g');
-                            const cleanTitle = item.name.replace(/\s*\(\d+g[^\)]*\)/i, '');
+                            const matchGram = String(item.name || '').match(/\((\d+g[^\)]*)\)/i);
+                            const gramBadge = matchGram ? matchGram[1] : (item.size || (matchedProduct?.weights ? matchedProduct.weights[0] : '300g'));
+                            const cleanTitle = String(item.name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+g[^\)]*\)/i, '');
 
                             return (
                                 <div className="cart-item-card" key={`${item.id}-${index}`}>

@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminOrders from './pages/AdminOrders';
 import AdminCategories from './pages/AdminCategories';
 import AdminProducts from './pages/AdminProducts';
+import AdminUsers from './pages/AdminUsers';
 import AdminLayout from './components/AdminLayout';
 import { adminAuthService } from './services/adminAuthService';
 import { adminOrderService } from './services/adminOrderService';
@@ -91,6 +92,9 @@ export default function AdminRoot({ onGoToStore }) {
                 )}
                 {activeTab === 'orders' && (
                     <AdminOrders />
+                )}
+                {activeTab === 'users' && (
+                    <AdminUsers />
                 )}
             </AdminLayout>
         </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\CartFavoriteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,13 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected CartFavoriteService $cartService;
+
+    public function __construct(CartFavoriteService $cartService)
+    {
+        $this->cartService = $cartService;
+    }
+
     /**
      * Register a new user.
      */
@@ -22,10 +30,24 @@ class AuthController extends Controller
                 'email'          => 'required|email|unique:users,email',
                 'contact_number' => 'required|string|max:20|unique:users,contact_number',
                 'password'       => 'required|string|min:8',
+                'guest_token'    => 'nullable|string',
             ]);
 
-            $user = User::create($validated);
+            $user = User::create([
+                'full_name'      => $validated['full_name'],
+                'email'          => $validated['email'],
+                'contact_number' => $validated['contact_number'],
+                'password'       => $validated['password'],
+            ]);
+
             $token = $user->createToken('auth-token')->plainTextToken;
+
+            // Merge guest cart and favorites if guest_token provided
+            $guestToken = $request->header('X-Guest-Token') ?: ($validated['guest_token'] ?? null);
+            $mergeResult = null;
+            if (!empty($guestToken)) {
+                $mergeResult = $this->cartService->mergeGuestToUser($user->id, $guestToken);
+            }
 
             return response()->json([
                 'status'  => true,
@@ -33,6 +55,7 @@ class AuthController extends Controller
                 'data'    => [
                     'user'  => $user,
                     'token' => $token,
+                    'merge' => $mergeResult,
                 ],
             ], 201);
         } catch (ValidationException $e) {
@@ -44,7 +67,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,
-                'message' => 'Something went wrong. Please try again later.',
+                'message' => 'Something went wrong: ' . $e->getMessage(),
                 'data'    => null,
             ], 500);
         }
@@ -57,8 +80,9 @@ class AuthController extends Controller
     {
         try {
             $validated = $request->validate([
-                'email'    => 'required|email',
-                'password' => 'required|string',
+                'email'       => 'required|email',
+                'password'    => 'required|string',
+                'guest_token' => 'nullable|string',
             ]);
 
             $user = User::where('email', $validated['email'])->first();
@@ -71,7 +95,22 @@ class AuthController extends Controller
                 ], 401);
             }
 
+            if ($user->is_blocked) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Your account has been suspended by administration. Reason: ' . ($user->blocked_reason ?: 'Terms of service violation'),
+                    'data'    => null,
+                ], 403);
+            }
+
             $token = $user->createToken('auth-token')->plainTextToken;
+
+            // Merge guest cart and favorites if guest_token provided
+            $guestToken = $request->header('X-Guest-Token') ?: ($validated['guest_token'] ?? null);
+            $mergeResult = null;
+            if (!empty($guestToken)) {
+                $mergeResult = $this->cartService->mergeGuestToUser($user->id, $guestToken);
+            }
 
             return response()->json([
                 'status'  => true,
@@ -79,6 +118,7 @@ class AuthController extends Controller
                 'data'    => [
                     'user'  => $user,
                     'token' => $token,
+                    'merge' => $mergeResult,
                 ],
             ]);
         } catch (ValidationException $e) {
@@ -90,7 +130,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => false,
-                'message' => 'Something went wrong. Please try again later.',
+                'message' => 'Something went wrong: ' . $e->getMessage(),
                 'data'    => null,
             ], 500);
         }

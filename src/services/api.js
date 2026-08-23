@@ -1,22 +1,52 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
- * Register a new user
+ * Get or generate persistent Guest Token for unauthenticated users
+ */
+export function getGuestToken() {
+    let token = localStorage.getItem('mangalam_guest_token');
+    if (!token || typeof token !== 'string' || token.length < 6) {
+        token = 'gst_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('mangalam_guest_token', token);
+    }
+    return token;
+}
+
+/**
+ * Standard Auth & Guest Headers for all API calls
+ */
+export function getAuthHeaders(customHeaders = {}) {
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Guest-Token': getGuestToken(),
+        ...customHeaders
+    };
+
+    const authToken = localStorage.getItem('mangalam_auth_token') || localStorage.getItem('auth_token') || localStorage.getItem('sanctum_auth_token');
+    if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    return headers;
+}
+
+/**
+ * Register a new user with automatic guest cart/favorites merge
  * @param {Object} userData - { full_name, email, contact_number, password }
  */
 export async function registerApi({ full_name, email, contact_number, password }) {
     try {
+        const guestToken = getGuestToken();
         const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 full_name,
                 email,
                 contact_number,
-                password
+                password,
+                guest_token: guestToken
             })
         });
 
@@ -48,20 +78,19 @@ export async function registerApi({ full_name, email, contact_number, password }
 }
 
 /**
- * Login user
+ * Login user with automatic guest cart/favorites merge
  * @param {Object} credentials - { email, password }
  */
 export async function loginApi({ email, password }) {
     try {
+        const guestToken = getGuestToken();
         const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 email,
-                password
+                password,
+                guest_token: guestToken
             })
         });
 
@@ -346,23 +375,6 @@ function getAuthToken() {
         localStorage.getItem('auth_token') || 
         localStorage.getItem('sanctum_auth_token') ||
         storedUser?.token;
-}
-
-/**
- * Helper to build auth headers
- */
-function getAuthHeaders(includeContentType = false) {
-    const token = getAuthToken();
-    const headers = {
-        'Accept': 'application/json'
-    };
-    if (includeContentType) {
-        headers['Content-Type'] = 'application/json';
-    }
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
 }
 
 /**
@@ -716,3 +728,337 @@ export async function fetchOrdersApi() {
         return { success: true, data: getLocalOrders() };
     }
 }
+
+/* ==========================================================================
+   DYNAMIC CART APIS (Supports Both Authenticated and Guest Users)
+   ========================================================================== */
+
+/**
+ * Fetch cart items with full calculation and summary
+ */
+export async function fetchCartApi() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            message: data.message || 'Failed to fetch cart',
+            data: { items: [], summary: { total_items: 0, total_quantity: 0, subtotal: 0, grand_total: 0 } }
+        };
+    } catch (err) {
+        console.error('API Fetch Cart Error:', err);
+        return {
+            success: false,
+            message: err.message,
+            data: { items: [], summary: { total_items: 0, total_quantity: 0, subtotal: 0, grand_total: 0 } }
+        };
+    }
+}
+
+/**
+ * Add a product to the cart (or increment quantity if already present)
+ */
+export async function addToCartApi(productId, quantity = 1, packageSizeId = null) {
+    let cleanProductId = null;
+    if (typeof productId === 'number' && !isNaN(productId)) {
+        cleanProductId = productId;
+    } else if (typeof productId === 'string') {
+        const matched = productId.match(/^(\d+)/);
+        if (matched) {
+            cleanProductId = parseInt(matched[1], 10);
+        } else {
+            const parsed = parseInt(productId, 10);
+            cleanProductId = !isNaN(parsed) ? parsed : null;
+        }
+    }
+
+    if (!cleanProductId) {
+        console.warn('Invalid product_id passed to addToCartApi:', productId);
+        return {
+            success: false,
+            message: 'Invalid product ID'
+        };
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                product_id: cleanProductId,
+                quantity: Number(quantity) || 1,
+                package_size_id: (packageSizeId && !isNaN(Number(packageSizeId))) ? Number(packageSizeId) : null
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                message: data.message || 'Product added to cart',
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            message: data.message || 'Failed to add product to cart',
+            errors: data.errors || null
+        };
+    } catch (err) {
+        console.error('API Add to Cart Error:', err);
+        return {
+            success: false,
+            message: 'Unable to connect to cart server.',
+            errors: null
+        };
+    }
+}
+
+/**
+ * Update cart item quantity
+ */
+export async function updateCartQuantityApi(cartItemIdOrProductId, quantity, packageSizeId = null) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart/${cartItemIdOrProductId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                quantity: Number(quantity),
+                package_size_id: packageSizeId ? Number(packageSizeId) : null
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                message: data.message || 'Cart updated',
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            message: data.message || 'Failed to update cart'
+        };
+    } catch (err) {
+        console.error('API Update Cart Error:', err);
+        return {
+            success: false,
+            message: 'Unable to update cart.'
+        };
+    }
+}
+
+/**
+ * Remove specific item from cart
+ */
+export async function removeFromCartApi(cartItemIdOrProductId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart/${cartItemIdOrProductId}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                message: data.message || 'Item removed from cart',
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            message: data.message || 'Failed to remove item'
+        };
+    } catch (err) {
+        console.error('API Remove Cart Error:', err);
+        return {
+            success: false,
+            message: 'Unable to remove item from cart.'
+        };
+    }
+}
+
+/**
+ * Clear the entire cart
+ */
+export async function clearCartApi() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                message: data.message || 'Cart cleared',
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            message: data.message || 'Failed to clear cart'
+        };
+    } catch (err) {
+        console.error('API Clear Cart Error:', err);
+        return {
+            success: false,
+            message: 'Unable to clear cart.'
+        };
+    }
+}
+
+/**
+ * Fetch fast cart count for badge
+ */
+export async function fetchCartCountApi() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cart/count`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                count: data.data.count || 0,
+                total_items: data.data.total_items || 0,
+                total_quantity: data.data.total_quantity || 0,
+                data: data.data
+            };
+        }
+
+        return { success: false, count: 0 };
+    } catch (err) {
+        return { success: false, count: 0 };
+    }
+}
+
+/* ==========================================================================
+   DYNAMIC FAVOURITE / WISHLIST APIS (Supports Both Authenticated & Guest Users)
+   ========================================================================== */
+
+/**
+ * Fetch all favorites with product details
+ */
+export async function fetchFavoritesApi() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/favorites`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                favorites: data.data.favorites || [],
+                count: data.data.count || 0,
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            favorites: [],
+            count: 0
+        };
+    } catch (err) {
+        console.error('API Fetch Favorites Error:', err);
+        return {
+            success: false,
+            favorites: [],
+            count: 0
+        };
+    }
+}
+
+/**
+ * Toggle favorite status for a product
+ */
+export async function toggleFavoriteApi(productId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/favorites/toggle`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                product_id: Number(productId)
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                message: data.message,
+                is_favorite: data.data.is_favorite,
+                count: data.data.count,
+                data: data.data
+            };
+        }
+
+        return {
+            success: false,
+            message: data.message || 'Failed to toggle favorite'
+        };
+    } catch (err) {
+        console.error('API Toggle Favorite Error:', err);
+        return {
+            success: false,
+            message: 'Unable to update favorites.'
+        };
+    }
+}
+
+/**
+ * Fetch favorites count and list of favorited product IDs
+ */
+export async function fetchFavoritesCountApi() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/favorites/count`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status && data.data) {
+            return {
+                success: true,
+                count: data.data.count || 0,
+                favorite_product_ids: data.data.favorite_product_ids || []
+            };
+        }
+
+        return {
+            success: false,
+            count: 0,
+            favorite_product_ids: []
+        };
+    } catch (err) {
+        return {
+            success: false,
+            count: 0,
+            favorite_product_ids: []
+        };
+    }
+}
+

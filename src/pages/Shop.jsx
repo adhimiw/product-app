@@ -3,15 +3,15 @@ import ProductCard from '../components/ProductCard';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchCategoriesApi, fetchProductsApi } from '../services/api';
 
-export const PRODUCTS = [];
-
 export default function Shop({
     products: propProducts,
     loadingProducts: propLoading,
     onProductView,
     onAddToCart,
     selectedCategory = 'All Products',
-    setSelectedCategory
+    setSelectedCategory,
+    favoriteProductIds = [],
+    onToggleFavorite
 }) {
     const { t } = useLanguage();
     const [localCategory, setLocalCategory] = useState(selectedCategory);
@@ -111,6 +111,8 @@ export default function Shop({
                                 {...product}
                                 onProductView={onProductView}
                                 onAddToCart={onAddToCart}
+                                isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(product.id)}
+                                onToggleFavorite={onToggleFavorite}
                             />
                         ))}
                     </div>

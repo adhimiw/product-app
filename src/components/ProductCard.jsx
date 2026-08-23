@@ -11,33 +11,70 @@ import { useLanguage } from '../context/LanguageContext';
  * 5. Weight selector dropdown pill in Row 4
  */
 export default function ProductCard({
-    id,
-    name,
+    id = 1,
+    name = "Amutham Sprouted Health Mix",
     price,
+    actual_price,
     inrPrice,
     subtitle = "100% Sprouted | Bio-Activated",
     rating = 4.9,
     reviewCount = 1240,
     badge = "Best Seller",
     badgeType = "green", // "green" or "orange"
-    image = "/assets/images/300g_amutham/amutham-01.jpg",
+    image,
+    images = [],
     imageStyle = {},
     weights = ["300g", "500g"],
     package_sizes = [],
     gramOptions = [],
     onProductView,
-    onAddToCart
+    onAddToCart,
+    isFavorite = false,
+    onToggleFavorite
 }) {
     const { t } = useLanguage();
-    const [selectedWeight, setSelectedWeight] = useState(weights[0] || "300g");
-    const [isWishlisted, setIsWishlisted] = useState(false);
 
-    const itemPrice = price || (inrPrice ? parseInt(inrPrice.replace(/\D/g, '')) : 110);
+    const availableWeights = (Array.isArray(package_sizes) && package_sizes.length > 0)
+        ? package_sizes.map(ps => `${ps.size_number}${ps.size_unit || 'g'}`)
+        : (Array.isArray(weights) && weights.length > 0 ? weights : ["300g", "500g"]);
+
+    const [selectedWeight, setSelectedWeight] = useState(availableWeights[0] || "300g");
+    const [localWishlisted, setLocalWishlisted] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
-    const toggleWishlist = (e) => {
+    const isLiked = isFavorite || localWishlisted;
+    const basePrice = price || actual_price || (inrPrice ? parseInt(String(inrPrice).replace(/\D/g, ''), 10) : 110);
+    const displayImage = image || (Array.isArray(images) && images.length > 0 ? images[0] : "/mangalam_logo.png");
+
+    let activePrice = basePrice;
+    let packageSizeId = null;
+
+    if (Array.isArray(package_sizes) && package_sizes.length > 0) {
+        const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === selectedWeight);
+        if (found) {
+            if (found.id && typeof found.id === 'number') {
+                packageSizeId = found.id;
+            }
+            if (found.variant_price !== undefined && found.variant_price !== null) {
+                activePrice = Number(found.variant_price);
+            }
+        }
+    } else if (Array.isArray(gramOptions) && gramOptions.length > 0) {
+        const foundOpt = gramOptions.find(opt => opt.size && opt.size.startsWith(selectedWeight));
+        if (foundOpt && foundOpt.price) {
+            activePrice = Number(foundOpt.price);
+        }
+    }
+
+    const displayInrPrice = `₹${activePrice}`;
+
+    const handleHeartClick = (e) => {
         e.stopPropagation();
-        setIsWishlisted(!isWishlisted);
+        if (onToggleFavorite) {
+            onToggleFavorite(id);
+        } else {
+            setLocalWishlisted(!localWishlisted);
+        }
     };
 
     return (
@@ -51,27 +88,58 @@ export default function ProductCard({
                 {/* Grain texture backdrop */}
                 <div className="tb-grain-backdrop"></div>
 
-                {/* Floating Badge Pill in Top Right */}
-                {badge && (
+                {/* Floating Badge Pill in Top Right or Standalone Heart */}
+                {badge ? (
                     <div className={`tb-badge-pill ${badgeType === 'orange' ? 'trending' : 'bestseller'}`}>
                         <span>{badge}</span>
                         <span className="tb-badge-divider">|</span>
                         <button
-                            className={`tb-heart-btn ${isWishlisted ? 'liked' : ''}`}
-                            onClick={toggleWishlist}
+                            type="button"
+                            className={`tb-heart-btn ${isLiked ? 'liked' : ''}`}
+                            onClick={handleHeartClick}
                             aria-label="Wishlist"
                         >
-                            {isWishlisted ? '♥' : '♡'}
+                            {isLiked ? '♥' : '♡'}
                         </button>
                     </div>
+                ) : (
+                    <button
+                        type="button"
+                        className={`tb-heart-btn standalone ${isLiked ? 'liked' : ''}`}
+                        onClick={handleHeartClick}
+                        aria-label="Wishlist"
+                        style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '10px',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '30px',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '17px',
+                            color: isLiked ? '#ef4444' : '#64748b',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                            cursor: 'pointer',
+                            zIndex: 3
+                        }}
+                    >
+                        {isLiked ? '♥' : '♡'}
+                    </button>
                 )}
 
                 {/* Product Packaging Image */}
                 <img
-                    src={image}
-                    alt={name}
+                    src={displayImage}
+                    alt={name || 'Product'}
                     className="tb-product-img"
                     style={imageStyle}
+                    onError={(e) => {
+                        e.target.src = '/mangalam_logo.png';
+                    }}
                 />
             </div>
 
@@ -88,7 +156,7 @@ export default function ProductCard({
                         {name}
                     </h3>
                     <span className="tb-card-price">
-                        {inrPrice}
+                        {displayInrPrice}
                     </span>
                 </div>
 
@@ -108,6 +176,7 @@ export default function ProductCard({
                 {/* Row 4: Weight Selector Dropdown Pill */}
                 <div className="tb-weight-selector-wrap">
                     <button
+                        type="button"
                         className="tb-weight-dropdown-btn"
                         onClick={() => setDropdownOpen(!dropdownOpen)}
                     >
@@ -120,8 +189,9 @@ export default function ProductCard({
                     {/* Weight Options Dropdown Menu */}
                     {dropdownOpen && (
                         <div className="tb-weight-dropdown-menu">
-                            {weights.map((w) => (
+                            {availableWeights.map((w) => (
                                 <button
+                                    type="button"
                                     key={w}
                                     className={`tb-weight-option ${w === selectedWeight ? 'active' : ''}`}
                                     onClick={() => {
@@ -138,33 +208,18 @@ export default function ProductCard({
 
                 {/* Quick Add to Cart Action */}
                 <button
+                    type="button"
                     className="tb-add-cart-btn"
                     onClick={() => {
-                        const activeWeight = selectedWeight || (weights[0] || '300g');
-                        const cleanBaseName = name.replace(/\s*\(\d+g[^\)]*\)/i, '');
-                        const variantName = `${cleanBaseName} (${activeWeight})`;
-
-                        let activePrice = price;
-                        if (Array.isArray(package_sizes) && package_sizes.length > 0) {
-                            const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === activeWeight);
-                            if (found && found.variant_price !== undefined && found.variant_price !== null) {
-                                activePrice = Number(found.variant_price);
-                            }
-                        } else if (Array.isArray(gramOptions) && gramOptions.length > 0) {
-                            const foundOpt = gramOptions.find(opt => opt.size.startsWith(activeWeight));
-                            if (foundOpt && foundOpt.price) {
-                                activePrice = Number(foundOpt.price);
-                            }
-                        }
-
-                        const variantId = `${id}-${activeWeight}`;
+                        const cleanBaseName = String(name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+g[^\)]*\)/i, '');
+                        const variantName = `${cleanBaseName} (${selectedWeight})`;
 
                         if (onAddToCart) {
-                            onAddToCart(variantId, variantName, activePrice, '1 Pack');
+                            onAddToCart(id, variantName, activePrice, '1 Pack', 1, packageSizeId);
                         }
                     }}
                 >
-                    {t('addToBagBtn')}
+                    {t('addToBagBtn') || 'Add to Bag'}
                 </button>
 
             </div>

@@ -2,7 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchProductsApi } from '../services/api';
 
-export default function ProductDetail({ productId, products: propProducts, onAddToCart, onBack }) {
+export default function ProductDetail({ 
+    productId, 
+    products: propProducts, 
+    onAddToCart, 
+    onBack,
+    isFavorite = false,
+    onToggleFavorite 
+}) {
     const { t } = useLanguage();
     const [products, setProducts] = useState(propProducts || []);
     const [loading, setLoading] = useState(!propProducts || propProducts.length === 0);
@@ -122,15 +129,24 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
         const cleanName = (product.name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
         const sizeWeight = activeGramOption.sizeWeight || (activeGramOption.size ? String(activeGramOption.size).replace(/\s*Package/i, '').trim() : '300g');
         const variantName = `${cleanName} (${sizeWeight})`;
-        const baseId = String(product.id || '1').replace(/-(300|500)g/, '');
-        const variantId = `${baseId}-${sizeWeight}`;
+
+        let packageSizeId = null;
+        if (activeGramOption && activeGramOption.id && typeof activeGramOption.id === 'number') {
+            packageSizeId = activeGramOption.id;
+        } else if (Array.isArray(product.package_sizes)) {
+            const matchedPkg = product.package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === sizeWeight);
+            if (matchedPkg && typeof matchedPkg.id === 'number') {
+                packageSizeId = matchedPkg.id;
+            }
+        }
 
         onAddToCart(
-            variantId,
+            product.id,
             variantName,
             Number(currentPrice || 110),
             'one-time',
-            Number(quantity || 1)
+            Number(quantity || 1),
+            packageSizeId
         );
     };
 
@@ -267,8 +283,8 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
                             <span className="novelty-original-price">₹{(parseInt(currentInrPrice.replace(/\D/g, '')) * 1.25).toFixed(0)}</span>
                         </div>
 
-                        {/* Big Single Add to Bag CTA Button with Quantity Counter */}
-                        <div className="pdp-cta-bar-novelty">
+                        {/* Big Single Add to Bag CTA Button with Quantity Counter & Wishlist Button */}
+                        <div className="pdp-cta-bar-novelty" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div className="pdp-qty-counter">
                                 <button onClick={() => handleQtyChange('dec')}>-</button>
                                 <span>{quantity}</span>
@@ -278,8 +294,33 @@ export default function ProductDetail({ productId, products: propProducts, onAdd
                             <button
                                 className="btn btn-primary pdp-big-add-btn"
                                 onClick={handleAddToCartClick}
+                                style={{ flex: 1 }}
                             >
                                 {t('addToBagBtn')} - ({currentInrPrice})
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`btn-icon ${isFavorite ? 'liked' : ''}`}
+                                onClick={() => onToggleFavorite && onToggleFavorite(product?.id || productId)}
+                                title={isFavorite ? 'Remove from Favourites' : 'Save to Favourites'}
+                                aria-label="Toggle Favourite"
+                                style={{
+                                    width: '48px',
+                                    height: '48px',
+                                    borderRadius: '12px',
+                                    border: isFavorite ? '1.5px solid #ef4444' : '1.5px solid #cbd5e1',
+                                    background: isFavorite ? 'rgba(239, 68, 68, 0.08)' : '#ffffff',
+                                    color: isFavorite ? '#ef4444' : '#64748b',
+                                    fontSize: '22px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    flexShrink: 0
+                                }}
+                            >
+                                {isFavorite ? '♥' : '♡'}
                             </button>
                         </div>
 

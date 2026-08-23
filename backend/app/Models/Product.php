@@ -70,4 +70,14 @@ class Product extends Model
     {
         return $this->hasMany(ProductPackageSize::class);
     }
+
+    public function carts(): HasMany
+    {
+        return $this->hasMany(Cart::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(Favorite::class);
+    }
 }

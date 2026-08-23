@@ -24,6 +24,10 @@ export default function AdminHeader({
         orders: {
             title: 'Orders Management',
             subtitle: 'Track dispatch status, filter customer orders, and update statuses'
+        },
+        users: {
+            title: 'User Management',
+            subtitle: 'Manage registered customer accounts (Role 2) and vendor partners (Role 3)'
         }
     };
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Header({ page, setPage, products = [], cartCount, onCartOpen, onProductView, user, onAuthOpen, onLogout }) {
+export default function Header({ page, setPage, products = [], cartCount, onCartOpen, onProductView, user, onAuthOpen, onLogout, favoriteCount = 0, onFavoritesOpen }) {
     const { lang, toggleLanguage, t } = useLanguage();
     const [scrolled, setScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -120,12 +120,16 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
                                             className="search-result-item"
                                             onClick={() => handleProductSelect(prod.id)}
                                         >
-                                            <img src={prod.image} alt={prod.name} className="search-result-thumb" />
+                                            <img 
+                                                src={prod.image || (Array.isArray(prod.images) && prod.images[0]) || '/mangalam_logo.png'} 
+                                                alt={prod.name || 'Product'} 
+                                                className="search-result-thumb" 
+                                            />
                                             <div className="search-result-info">
                                                 <span className="search-result-title">{prod.name}</span>
-                                                <span className="search-result-sub">{prod.subtitle}</span>
+                                                <span className="search-result-sub">{prod.subtitle || prod.category}</span>
                                             </div>
-                                            <span className="search-result-price">{prod.inrPrice}</span>
+                                            <span className="search-result-price">{prod.inrPrice || `₹${prod.price || prod.actual_price || 110}`}</span>
                                         </div>
                                     ))
                                 ) : (
@@ -222,8 +226,21 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
 
                         <button 
                             className="header-icon-btn" 
+                            onClick={onFavoritesOpen || (() => setPage && setPage('shop'))}
+                            aria-label="Favourites"
+                            title="Favourites"
+                        >
+                            <svg width="21" height="21" viewBox="0 0 24 24" fill={favoriteCount > 0 ? '#ef4444' : 'none'} stroke={favoriteCount > 0 ? '#ef4444' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            {favoriteCount > 0 && <span className="cart-badge" style={{ background: '#ef4444' }}>{favoriteCount}</span>}
+                        </button>
+
+                        <button 
+                            className="header-icon-btn" 
                             onClick={onCartOpen}
                             aria-label="Shopping Cart"
+                            title="Shopping Cart"
                         >
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="9" cy="21" r="1"></circle>

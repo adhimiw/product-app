@@ -12,7 +12,16 @@ import About from './pages/About';
 import UserProfile from './pages/UserProfile';
 import Toast from './components/Toast';
 import AdminRoot from './admin/AdminRoot';
-import { fetchProductsApi } from './services/api';
+import { 
+    fetchProductsApi,
+    fetchCartApi,
+    addToCartApi,
+    updateCartQuantityApi,
+    removeFromCartApi,
+    clearCartApi,
+    fetchFavoritesApi,
+    toggleFavoriteApi
+} from './services/api';
 
 const parseRouteFromUrl = () => {
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
@@ -54,6 +63,7 @@ export default function App() {
             return [];
         }
     });
+    const [favoriteProductIds, setFavoriteProductIds] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [toast, setToast] = useState(null);
@@ -74,6 +84,8 @@ export default function App() {
 
     useEffect(() => {
         loadProducts();
+        loadCart();
+        loadFavorites();
     }, []);
 
     const loadProducts = async () => {
@@ -85,11 +97,55 @@ export default function App() {
         setLoadingProducts(false);
     };
 
-    const showToast = (title, message, type = 'success') => {
-        setToast({ id: Date.now(), title, message, type });
+    const loadCart = async () => {
+        try {
+            const res = await fetchCartApi();
+            if (res.success && res.data && Array.isArray(res.data.items)) {
+                // Map backend cart response items to frontend structure
+                const formatted = res.data.items.map(item => ({
+                    id: item.product_id,
+                    cart_item_id: item.id,
+                    name: item.product ? item.product.name : 'Health Mix',
+                    price: item.unit_price,
+                    regularPrice: item.regular_price,
+                    quantity: item.quantity,
+                    option: 'one-time',
+                    size: item.size_label,
+                    package_size_id: item.package_size_id,
+                    image: item.product?.image
+                }));
+                setCart(formatted);
+            }
+        } catch (err) {
+            console.error('Failed to load cart:', err);
+        }
     };
 
-    const handleLoginSuccess = (userData, token, isRegistering = false) => {
+    const loadFavorites = async () => {
+        try {
+            const res = await fetchFavoritesApi();
+            if (res.success && Array.isArray(res.favorites)) {
+                const ids = res.favorites.map(f => Number(f.product_id));
+                setFavoriteProductIds(ids);
+            }
+        } catch (err) {
+            console.error('Failed to load favorites:', err);
+        }
+    };
+
+    const showToast = (titleOrMessage, message = '', type = 'success', image = null) => {
+        let finalTitle = '';
+        let finalMessage = '';
+        if (typeof titleOrMessage === 'string' && !message) {
+            finalMessage = titleOrMessage;
+        } else {
+            finalTitle = titleOrMessage;
+            finalMessage = message;
+        }
+        setToast({ id: Date.now(), title: finalTitle, message: finalMessage, type, image });
+    };
+
+    const handleLoginSuccess = async (userData, token, isRegistering = false) => {
         const userWithToken = token ? { ...userData, token } : userData;
         setUser(userWithToken);
         if (token) {
@@ -105,6 +161,10 @@ export default function App() {
         } else {
             showToast('Welcome Back! 👋', `Login successful! Good to see you, ${name}.`, 'success');
         }
+
+        // Re-sync cart and favorites post-login to reflect merged items
+        await loadCart();
+        await loadFavorites();
     };
 
     const handleLogout = () => {
@@ -117,6 +177,9 @@ export default function App() {
         setIsAuthOpen(false);
         if (page === 'profile') setPage('home');
         showToast('Signed Out Successfully', name ? `See you again soon, ${name}!` : 'You have been signed out of your account.', 'info');
+        // Reload guest cart and favorites
+        loadCart();
+        loadFavorites();
     };
 
     const handleSelectCategory = (catName) => {
@@ -167,13 +230,33 @@ export default function App() {
         setPage('product', productIdOrSlug);
     };
 
-    const handleAddToCart = (id, name, price, option = 'one-time', quantity = 1) => {
+    const handleAddToCart = async (id, name, price, option = 'one-time', quantity = 1, packageSizeId = null) => {
         const numericPrice = typeof price === 'number' ? price : (parseFloat(price) || 0);
         const numQty = typeof quantity === 'number' ? quantity : (parseInt(quantity, 10) || 1);
 
+        // Resolve clean numeric product ID
+        let resolvedProductId = null;
+        if (typeof id === 'number' && !isNaN(id)) {
+            resolvedProductId = id;
+        } else if (typeof id === 'string') {
+            const matched = id.match(/^(\d+)/);
+            if (matched) {
+                resolvedProductId = parseInt(matched[1], 10);
+            } else {
+                const found = products.find(p => p.slug === id || p.name === name);
+                if (found) resolvedProductId = Number(found.id);
+                else if (products.length > 0) resolvedProductId = Number(products[0].id);
+            }
+        }
+
+        if (!resolvedProductId && products.length > 0) {
+            resolvedProductId = Number(products[0].id);
+        }
+
+        // Optimistic UI update (using clean product ID)
         setCart(prevCart => {
             const existingIndex = prevCart.findIndex(
-                item => String(item.id) === String(id) && item.name === name
+                item => (String(item.id) === String(resolvedProductId) || String(item.id) === String(id)) && item.name === name
             );
 
             if (existingIndex > -1) {
@@ -181,41 +264,122 @@ export default function App() {
                 newCart[existingIndex].quantity += numQty;
                 return newCart;
             } else {
-                return [...prevCart, { id, name, price: numericPrice, option, quantity: numQty }];
+                return [...prevCart, { id: resolvedProductId || id, name, price: numericPrice, option, quantity: numQty, package_size_id: packageSizeId }];
             }
         });
 
-        setIsCartOpen(true);
-        showToast('Added to Cart 🛒', `${name} (${numQty > 1 ? numQty + ' packs' : '1 pack'}) added to your bag.`, 'success');
-    };
+        // Show feedback toast with product image preview without opening the cart drawer
+        const foundProd = products.find(p => p.id === resolvedProductId || p.name === name);
+        const prodImg = foundProd?.image || (Array.isArray(foundProd?.images) ? foundProd?.images[0] : null);
+        showToast('Item has been added to your cart', '', 'success', prodImg);
 
-    const handleUpdateQuantity = (index, newQuantity) => {
-        if (newQuantity <= 0) {
-            handleRemoveFromCart(index);
-        } else {
-            setCart(prevCart => {
-                const newCart = [...prevCart];
-                newCart[index].quantity = newQuantity;
-                return newCart;
-            });
+        // Persist to backend database (works seamlessly for both user & guest)
+        try {
+            if (resolvedProductId) {
+                await addToCartApi(resolvedProductId, numQty, packageSizeId);
+                loadCart();
+            }
+        } catch (err) {
+            console.warn('Backend cart sync error:', err);
         }
     };
 
-    const handleRemoveFromCart = (index) => {
-        setCart(prevCart => prevCart.filter((_, idx) => idx !== index));
+    const handleUpdateQuantity = async (indexOrId, newQuantity, packageSizeId = null) => {
+        const itemToUpdate = cart[indexOrId] || cart.find(i => i.id === indexOrId || i.cart_item_id === indexOrId);
+
+        if (newQuantity <= 0) {
+            handleRemoveFromCart(indexOrId);
+        } else {
+            setCart(prevCart => {
+                const newCart = [...prevCart];
+                if (typeof indexOrId === 'number' && indexOrId < newCart.length) {
+                    newCart[indexOrId].quantity = newQuantity;
+                }
+                return newCart;
+            });
+
+            if (itemToUpdate) {
+                const targetId = itemToUpdate.cart_item_id || itemToUpdate.id;
+                try {
+                    await updateCartQuantityApi(targetId, newQuantity, packageSizeId || itemToUpdate.package_size_id);
+                } catch (err) {
+                    console.warn('Failed to update cart quantity on server:', err);
+                }
+            }
+        }
     };
 
-        const handleCheckoutSuccess = (orderData) => {
+    const handleRemoveFromCart = async (indexOrId) => {
+        const itemToRemove = typeof indexOrId === 'number' && indexOrId < cart.length
+            ? cart[indexOrId]
+            : cart.find(i => i.id === indexOrId || i.cart_item_id === indexOrId);
+
+        setCart(prevCart => {
+            if (typeof indexOrId === 'number' && indexOrId < prevCart.length) {
+                return prevCart.filter((_, idx) => idx !== indexOrId);
+            }
+            return prevCart.filter(i => i.id !== indexOrId && i.cart_item_id !== indexOrId);
+        });
+
+        if (itemToRemove) {
+            const targetId = itemToRemove.cart_item_id || itemToRemove.id;
+            try {
+                await removeFromCartApi(targetId);
+            } catch (err) {
+                console.warn('Failed to remove item from server cart:', err);
+            }
+        }
+    };
+
+    const handleCheckoutSuccess = async (orderData) => {
         setCart([]);
         setIsCartOpen(false);
+        try {
+            await clearCartApi();
+        } catch (err) {}
     };
 
     const handleCheckout = () => {
         if (!user) {
             setIsCartOpen(false);
             setIsAuthOpen(true);
-            if (showToast) showToast('Sign In Required 🔐', 'Please sign in or create an account to proceed to checkout.', 'info');
+            if (showToast) showToast('Please sign in or create an account to proceed to checkout.', '', 'info');
             return;
+        }
+    };
+
+    const handleToggleFavorite = async (productId) => {
+        const numId = Number(productId);
+        const isCurrentlyFav = favoriteProductIds.includes(numId);
+        const targetProd = products.find(p => p.id === numId);
+        const prodImg = targetProd?.image || (Array.isArray(targetProd?.images) ? targetProd?.images[0] : null);
+
+        // Optimistic UI update with exact Two Brothers toast wording
+        if (isCurrentlyFav) {
+            setFavoriteProductIds(prev => prev.filter(id => id !== numId));
+            showToast('Item has been successfully removed from your wishlist', '', 'info', prodImg);
+        } else {
+            setFavoriteProductIds(prev => [...prev, numId]);
+            if (user) {
+                showToast('Item has been added to your wishlist', '', 'success', prodImg);
+            } else {
+                showToast('Item has been temporarily added to wishlist, please login to save it permanently', '', 'info', prodImg);
+            }
+        }
+
+        // Persist to backend database
+        try {
+            const res = await toggleFavoriteApi(numId);
+            if (res.success && res.data) {
+                // Confirm server state
+                if (res.data.is_favorite && !favoriteProductIds.includes(numId)) {
+                    setFavoriteProductIds(prev => [...prev, numId]);
+                } else if (!res.data.is_favorite && favoriteProductIds.includes(numId)) {
+                    setFavoriteProductIds(prev => prev.filter(id => id !== numId));
+                }
+            }
+        } catch (err) {
+            console.warn('Failed to toggle favorite on server:', err);
         }
     };
 
@@ -239,6 +403,8 @@ export default function App() {
                 setPage={setPage}
                 products={products}
                 cartCount={totalCartCount}
+                favoriteCount={favoriteProductIds.length}
+                onFavoritesOpen={() => setPage('shop')}
                 onCartOpen={() => setIsCartOpen(true)}
                 onProductView={handleProductView}
                 user={user}
@@ -255,6 +421,8 @@ export default function App() {
                     onProductView={handleProductView}
                     onAddToCart={handleAddToCart}
                     onSelectCategory={handleSelectCategory}
+                    favoriteProductIds={favoriteProductIds}
+                    onToggleFavorite={handleToggleFavorite}
                 />
             )}
 
@@ -266,6 +434,8 @@ export default function App() {
                     onAddToCart={handleAddToCart}
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
+                    favoriteProductIds={favoriteProductIds}
+                    onToggleFavorite={handleToggleFavorite}
                 />
             )}
 
@@ -275,6 +445,8 @@ export default function App() {
                     products={products}
                     onAddToCart={handleAddToCart}
                     onBack={() => setPage('shop')}
+                    isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
+                    onToggleFavorite={handleToggleFavorite}
                 />
             )}
 

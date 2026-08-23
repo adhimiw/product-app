@@ -1,34 +1,48 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function Toast({ toast, onClose }) {
+    const [isExiting, setIsExiting] = useState(false);
+
     useEffect(() => {
         if (!toast) return;
-        const timer = setTimeout(() => {
-            onClose();
+        setIsExiting(false);
+
+        const autoCloseTimer = setTimeout(() => {
+            handleDismiss();
         }, 3500);
-        return () => clearTimeout(timer);
-    }, [toast, onClose]);
+
+        return () => clearTimeout(autoCloseTimer);
+    }, [toast]);
 
     if (!toast) return null;
 
-    const isSuccess = toast.type === 'success';
+    const handleDismiss = () => {
+        setIsExiting(true);
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 300);
+    };
 
     return (
-        <div className="toast-notification-banner" role="alert">
-            <div className={`toast-icon-wrap ${isSuccess ? 'success' : 'info'}`}>
-                {isSuccess ? '🌱' : '👋'}
-            </div>
-            
-            <div className="toast-content-body">
-                <h4 className="toast-title">{toast.title}</h4>
-                <p className="toast-message">{toast.message}</p>
+        <div 
+            className={`tb-slide-toaster ${isExiting ? 'exit' : 'enter'}`}
+            role="alert"
+        >
+            {/* Clean Notification Text Only */}
+            <div className="tb-toaster-body">
+                <p className="tb-toaster-text">
+                    {toast.message || toast.title}
+                </p>
             </div>
 
-            <button className="toast-close-btn" onClick={onClose} aria-label="Close notification">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+            {/* Minimalist Close '✕' Button */}
+            <button 
+                type="button"
+                className="tb-toaster-close" 
+                onClick={handleDismiss} 
+                aria-label="Close"
+            >
+                ✕
             </button>
         </div>
     );
