@@ -38,9 +38,13 @@ export default function AdminLogin({ onLoginSuccess }) {
         <div className="admin-login-wrapper">
             <div className="admin-login-card">
                 <div className="admin-login-header">
+                    <img 
+                        src="/mangalam_logo.png" 
+                        alt="Mangalam Healthy Foods Logo" 
+                        style={{ height: '44px', objectFit: 'contain', marginBottom: '12px', display: 'inline-block' }} 
+                    />
                     <div className="admin-brand-badge">
-                        <span style={{ fontSize: '1rem' }}>🌿</span>
-                        <span>Mangalam Enterprise</span>
+                        <span>Admin Control Center</span>
                     </div>
                     <h1 className="admin-login-title">Control Center Sign In</h1>
                     <p className="admin-login-subtitle">

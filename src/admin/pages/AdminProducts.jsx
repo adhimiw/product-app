@@ -5,7 +5,8 @@ import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
 import EmptyState from '../components/EmptyState';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
-import { Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import ProductDetailsModal from '../components/ProductDetailsModal';
+import { Eye, Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 function RichTextEditor({ value, onChange, placeholder, minHeight = '140px' }) {
     const editorRef = useRef(null);
@@ -168,6 +169,7 @@ export default function AdminProducts() {
     const [previewImageModal, setPreviewImageModal] = useState(null);
     const [productToDelete, setProductToDelete] = useState(null);
     const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+    const [selectedProductForDetails, setSelectedProductForDetails] = useState(null);
 
     // Form State
     const [tagInput, setTagInput] = useState('');
@@ -763,132 +765,185 @@ export default function AdminProducts() {
                         <table className="admin-table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '36px', textAlign: 'center', paddingLeft: '16px' }}>
+                                    <th style={{ width: '36px', textAlign: 'center', paddingLeft: '14px' }}>
                                         <input
                                             type="checkbox"
                                             onChange={handleSelectAll}
                                             checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
                                         />
                                     </th>
-                                    <th style={{ width: '50px' }}>Media</th>
+                                    <th style={{ width: '48px' }}>Media</th>
                                     <th>Product Name</th>
                                     <th>Category</th>
-                                    <th>Package Sizes</th>
-                                    <th>Pricing & Discount</th>
+                                    <th>Price & Sizes</th>
                                     <th>Stock</th>
                                     <th>Status</th>
-                                    <th style={{ textAlign: 'right', paddingRight: '16px' }}>Actions</th>
+                                    <th style={{ textAlign: 'right', paddingRight: '14px' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredProducts.map((prod) => (
-                                    <tr key={prod.id} className={selectedProductIds.includes(prod.id) ? 'selected' : ''}>
-                                        <td style={{ textAlign: 'center', width: '38px', paddingLeft: '16px' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedProductIds.includes(prod.id)}
-                                                onChange={() => handleSelectOne(prod.id)}
-                                            />
-                                        </td>
-                                        <td>
-                                            <div style={{ width: '38px', height: '38px', borderRadius: '8px', border: '1px solid var(--admin-border-color)', background: 'var(--admin-surface-subtle)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <img
-                                                    src={(Array.isArray(prod.images) && prod.images[0]) || '/assets/images/categories/organic-food-ingredients.png'}
-                                                    alt={prod.name}
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    onError={(e) => {
-                                                        e.target.onerror = null;
-                                                        e.target.src = '/assets/images/categories/organic-food-ingredients.png';
-                                                    }}
+                                {filteredProducts.map((prod) => {
+                                    const hasSizes = Array.isArray(prod.package_sizes) && prod.package_sizes.length > 0;
+                                    const primarySize = hasSizes ? `${prod.package_sizes[0].size_number}${prod.package_sizes[0].size_unit}` : '';
+                                    return (
+                                        <tr key={prod.id} className={selectedProductIds.includes(prod.id) ? 'selected' : ''}>
+                                            <td style={{ textAlign: 'center', width: '36px', paddingLeft: '14px' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedProductIds.includes(prod.id)}
+                                                    onChange={() => handleSelectOne(prod.id)}
                                                 />
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div style={{ fontWeight: 700, color: 'var(--admin-text-main)', fontSize: '0.88rem', lineHeight: '1.3' }}>
-                                                {prod.name}
-                                            </div>
-                                            {Array.isArray(prod.tags) && prod.tags.length > 0 && (
-                                                <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
-                                                    {prod.tags.slice(0, 3).map((t, idx) => (
-                                                        <span key={idx} style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', background: 'var(--admin-surface-subtle)', padding: '1px 6px', borderRadius: '4px' }}>
-                                                            #{t}
-                                                        </span>
-                                                    ))}
+                                            </td>
+                                            <td>
+                                                <div 
+                                                    style={{
+                                                        width: '38px',
+                                                        height: '38px',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid var(--admin-border-color)',
+                                                        background: 'var(--admin-surface-subtle)',
+                                                        overflow: 'hidden',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => setSelectedProductForDetails(prod)}
+                                                    title="Click to view details"
+                                                >
+                                                    <img
+                                                        src={(Array.isArray(prod.images) && prod.images[0]) || '/assets/images/categories/organic-food-ingredients.png'}
+                                                        alt={prod.name}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        onError={(e) => {
+                                                            e.target.onerror = null;
+                                                            e.target.src = '/assets/images/categories/organic-food-ingredients.png';
+                                                        }}
+                                                    />
                                                 </div>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <span style={{ background: 'var(--admin-surface-subtle)', color: 'var(--admin-text-secondary)', fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--admin-border-color)' }}>
-                                                {prod.category}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {Array.isArray(prod.package_sizes) && prod.package_sizes.length > 0 ? (
-                                                <div style={{ fontSize: '0.78rem', color: 'var(--admin-text-secondary)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                    {prod.package_sizes.map((ps, psIdx) => (
-                                                        <span key={psIdx}>
-                                                            {ps.size_number}{ps.size_unit} (<strong style={{ fontWeight: 800, color: 'var(--admin-text-main)' }}>₹{ps.variant_price}</strong>)
-                                                        </span>
-                                                    ))}
+                                            </td>
+                                            <td>
+                                                <div 
+                                                    style={{ fontWeight: 700, color: 'var(--admin-text-main)', fontSize: '0.84rem', cursor: 'pointer', lineHeight: '1.3' }}
+                                                    onClick={() => setSelectedProductForDetails(prod)}
+                                                    title="Click to view full details"
+                                                >
+                                                    {prod.name}
                                                 </div>
-                                            ) : (
-                                                <span style={{ color: 'var(--admin-text-muted)', fontSize: '0.78rem' }}>Standard</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <div style={{ fontWeight: 800, color: 'var(--admin-text-main)', fontSize: '0.9rem' }}>
-                                                ₹{prod.actual_price}
-                                            </div>
-                                            {prod.regular_price && Number(prod.regular_price) > Number(prod.actual_price) && (
-                                                <div style={{ fontSize: '0.72rem', color: 'var(--admin-text-muted)', textDecoration: 'line-through' }}>
-                                                    ₹{prod.regular_price}
-                                                </div>
-                                            )}
-                                            {prod.discount && (
-                                                <span className="admin-badge admin-badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px', marginTop: '2px' }}>
-                                                    {prod.discount}
+                                                {Array.isArray(prod.tags) && prod.tags.length > 0 && (
+                                                    <div style={{ display: 'flex', gap: '4px', marginTop: '3px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                        {prod.tags.slice(0, 2).map((t, idx) => (
+                                                            <span key={idx} style={{ fontSize: '0.68rem', color: 'var(--admin-text-muted)', background: 'var(--admin-surface-subtle)', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                #{t}
+                                                            </span>
+                                                        ))}
+                                                        {prod.tags.length > 2 && (
+                                                            <span style={{ fontSize: '0.68rem', color: 'var(--admin-text-faint)' }}>
+                                                                +{prod.tags.length - 2}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    background: 'var(--admin-surface-subtle)',
+                                                    color: 'var(--admin-text-secondary)',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 700,
+                                                    padding: '3px 8px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid var(--admin-border-color)',
+                                                    whiteSpace: 'nowrap',
+                                                    display: 'inline-block'
+                                                }}>
+                                                    {prod.category || 'Standard'}
                                                 </span>
-                                            )}
-                                        </td>
-                                        <td style={{ fontSize: '0.8rem', color: prod.stock !== null ? (prod.stock > 10 ? 'var(--admin-success-text)' : 'var(--admin-danger-text)') : 'var(--admin-text-muted)', fontWeight: 700 }}>
-                                            {prod.stock !== null && prod.stock !== undefined ? `${prod.stock} units` : 'Unlimited'}
-                                        </td>
-                                        <td>
-                                            <button
-                                                type="button"
-                                                className={`admin-badge ${Number(prod.status) === 1 ? 'admin-badge-success' : 'admin-badge-neutral'}`}
-                                                onClick={() => handleToggleStatus(prod.id)}
-                                                style={{ cursor: 'pointer', border: 'none' }}
-                                                title="Click to toggle status"
-                                            >
-                                                <span className="admin-badge-dot" />
-                                                {Number(prod.status) === 1 ? 'Active' : 'Inactive'}
-                                            </button>
-                                        </td>
-                                        <td style={{ textAlign: 'right', paddingRight: '16px' }}>
-                                            <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span style={{ fontWeight: 800, color: 'var(--admin-text-main)', fontSize: '0.86rem' }}>
+                                                        ₹{prod.actual_price}
+                                                    </span>
+                                                    {hasSizes && (
+                                                        <span style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', background: 'var(--admin-surface-subtle)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--admin-border-color)' }}>
+                                                            {prod.package_sizes.length === 1 ? primarySize : `${prod.package_sizes.length} sizes`}
+                                                        </span>
+                                                    )}
+                                                    {prod.discount && (
+                                                        <span className="admin-badge admin-badge-success" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
+                                                            {prod.discount}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span style={{
+                                                    fontSize: '0.78rem',
+                                                    fontWeight: 700,
+                                                    color: prod.stock !== null ? (prod.stock > 10 ? 'var(--admin-success-text)' : 'var(--admin-danger-text)') : 'var(--admin-text-muted)',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}>
+                                                    <span style={{
+                                                        width: '6px',
+                                                        height: '6px',
+                                                        borderRadius: '50%',
+                                                        background: prod.stock !== null ? (prod.stock > 10 ? 'var(--admin-primary)' : '#EF4444') : 'var(--admin-text-muted)'
+                                                    }} />
+                                                    {prod.stock !== null && prod.stock !== undefined ? `${prod.stock} units` : 'Unlimited'}
+                                                </span>
+                                            </td>
+                                            <td>
                                                 <button
                                                     type="button"
-                                                    className="admin-btn-icon"
-                                                    title="Edit product"
-                                                    onClick={() => handleOpenEditModal(prod)}
-                                                    style={{ width: '32px', height: '32px' }}
+                                                    className={`admin-badge ${Number(prod.status) === 1 ? 'admin-badge-success' : 'admin-badge-neutral'}`}
+                                                    onClick={() => handleToggleStatus(prod.id)}
+                                                    style={{ cursor: 'pointer', border: 'none' }}
+                                                    title="Click to toggle status"
                                                 >
-                                                    <Pencil size={14} strokeWidth={2} />
+                                                    <span className="admin-badge-dot" />
+                                                    {Number(prod.status) === 1 ? 'Active' : 'Inactive'}
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    className="admin-btn-icon"
-                                                    title="Delete product"
-                                                    onClick={() => handleDeleteProduct(prod)}
-                                                    style={{ width: '32px', height: '32px', color: 'var(--admin-danger-text)' }}
-                                                >
-                                                    <Trash2 size={14} strokeWidth={2} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td style={{ textAlign: 'right', paddingRight: '14px' }}>
+                                                <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center' }}>
+                                                    {/* View Details Button */}
+                                                    <button
+                                                        type="button"
+                                                        className="admin-btn-icon"
+                                                        title="View Product Details"
+                                                        onClick={() => setSelectedProductForDetails(prod)}
+                                                        style={{ width: '28px', height: '28px', color: '#2563eb', background: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.2)' }}
+                                                    >
+                                                        <Eye size={13} strokeWidth={2.2} />
+                                                    </button>
+                                                    {/* Edit Button */}
+                                                    <button
+                                                        type="button"
+                                                        className="admin-btn-icon"
+                                                        title="Edit product"
+                                                        onClick={() => handleOpenEditModal(prod)}
+                                                        style={{ width: '28px', height: '28px' }}
+                                                    >
+                                                        <Pencil size={13} strokeWidth={2} />
+                                                    </button>
+                                                    {/* Delete Button */}
+                                                    <button
+                                                        type="button"
+                                                        className="admin-btn-icon"
+                                                        title="Delete product"
+                                                        onClick={() => handleDeleteProduct(prod)}
+                                                        style={{ width: '28px', height: '28px', color: 'var(--admin-danger-text)' }}
+                                                    >
+                                                        <Trash2 size={13} strokeWidth={2} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -1524,6 +1579,18 @@ export default function AdminProducts() {
                         />
                     </div>
                 </div>
+            )}
+
+            {/* Rich Product Details Modal Popup */}
+            {selectedProductForDetails && (
+                <ProductDetailsModal
+                    product={selectedProductForDetails}
+                    onClose={() => setSelectedProductForDetails(null)}
+                    onEdit={(prod) => {
+                        setSelectedProductForDetails(null);
+                        handleOpenEditModal(prod);
+                    }}
+                />
             )}
 
             {/* Reusable Confirm Delete Modal */}

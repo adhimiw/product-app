@@ -311,12 +311,6 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
                         >
                             <span>📍 Saved Delivery Addresses</span>
                         </button>
-                        <button 
-                            className={`profile-nav-item ${activeTab === 'security' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('security')}
-                        >
-                            <span>🔒 Security & API Access</span>
-                        </button>
                     </aside>
 
                     {/* Main Content Card */}
@@ -701,27 +695,6 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
                                         ))}
                                     </div>
                                 )}
-                            </div>
-                        )}
-
-                        {/* Tab 4: Security & API Access */}
-                        {activeTab === 'security' && (
-                            <div className="profile-tab-section">
-                                <h3 className="profile-section-title">Security & Session Status</h3>
-                                <p className="profile-section-sub">Authenticated via Laravel Sanctum Token Authentication.</p>
-
-                                <div className="profile-info-grid">
-                                    <div className="profile-info-item">
-                                        <label className="profile-info-label">API Endpoint</label>
-                                        <div className="profile-info-val-box">http://127.0.0.1:8000/api</div>
-                                    </div>
-                                    <div className="profile-info-item">
-                                        <label className="profile-info-label">Token Status</label>
-                                        <div className="profile-info-val-box" style={{ color: '#27ae60', fontWeight: 700 }}>
-                                            Active bearer token in localStorage
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         )}
 

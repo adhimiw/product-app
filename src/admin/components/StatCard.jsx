@@ -7,42 +7,44 @@ export default function StatCard({
     icon,
     iconBg,
     iconColor,
-    trend
+    trend,
+    variant = 'default',
+    badgeText
 }) {
     return (
-        <div className="admin-stat-card">
+        <div className={`admin-stat-card admin-stat-card--${variant}`}>
             <div className="admin-stat-card-header">
-                <span className="admin-stat-title">{title}</span>
+                <div className="admin-stat-title-wrap">
+                    <span className="admin-stat-title">{title}</span>
+                    {badgeText && <span className="admin-stat-chip">{badgeText}</span>}
+                </div>
                 {icon && (
                     <div 
                         className="admin-stat-icon-wrapper"
                         style={{
-                            backgroundColor: iconBg || 'var(--admin-primary-faint)',
-                            color: iconColor || 'var(--admin-primary)'
+                            backgroundColor: iconBg,
+                            color: iconColor
                         }}
                     >
                         {icon}
                     </div>
                 )}
             </div>
-            <div>
+            
+            <div className="admin-stat-body">
                 <div className="admin-stat-value">{value}</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div className="admin-stat-footer">
                     {subtext && <span className="admin-stat-subtext">{subtext}</span>}
                     {trend && (
-                        <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            color: trend.isPositive ? 'var(--admin-success-text)' : 'var(--admin-danger-text)',
-                            background: trend.isPositive ? 'var(--admin-success-bg)' : 'var(--admin-danger-bg)',
-                            padding: '2px 6px',
-                            borderRadius: '4px'
-                        }}>
+                        <span className={`admin-trend-badge ${trend.isPositive ? 'trend-up' : 'trend-down'}`}>
                             {trend.isPositive ? '↑' : '↓'} {trend.text}
                         </span>
                     )}
                 </div>
             </div>
+
+            {/* Subtle matte ambient glow line */}
+            <div className="admin-stat-glow-line" />
         </div>
     );
 }

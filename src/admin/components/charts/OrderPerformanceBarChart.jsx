@@ -18,17 +18,17 @@ export default function OrderPerformanceBarChart() {
     }, []);
 
     const width = 450;
-    const height = 220;
-    const paddingLeft = 45;
-    const paddingRight = 20;
-    const paddingTop = 25;
-    const paddingBottom = 40;
+    const height = 200;
+    const paddingLeft = 40;
+    const paddingRight = 16;
+    const paddingTop = 20;
+    const paddingBottom = 32;
 
     const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
 
     const maxVal = Math.max(...data.map(d => d.value), 10) * 1.15;
-    const barWidth = Math.min(36, (chartWidth / (data.length || 1)) * 0.45);
+    const barWidth = Math.min(32, (chartWidth / (data.length || 1)) * 0.45);
 
     const bars = data.map((d, idx) => {
         const groupWidth = chartWidth / data.length;
@@ -45,8 +45,8 @@ export default function OrderPerformanceBarChart() {
             <div className="admin-card-header">
                 <div>
                     <h3 className="admin-card-title">Order Performance</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                        Comparative order volume per period
+                    <p style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)', margin: '1px 0 0 0' }}>
+                        Comparative volume per historical period
                     </p>
                 </div>
             </div>
@@ -59,51 +59,53 @@ export default function OrderPerformanceBarChart() {
                         <svg viewBox={`0 0 ${width} ${height}`} className="admin-chart-svg">
                             <defs>
                                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#1b3b2b" />
-                                    <stop offset="100%" stopColor="#285c43" />
+                                    <stop offset="0%" stopColor="#10B981" />
+                                    <stop offset="100%" stopColor="#059669" />
                                 </linearGradient>
                                 <linearGradient id="barHoverGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#c2a13f" />
-                                    <stop offset="100%" stopColor="#d8b756" />
+                                    <stop offset="0%" stopColor="#3B82F6" />
+                                    <stop offset="100%" stopColor="#1D4ED8" />
                                 </linearGradient>
                             </defs>
 
-                            {/* Y-axis Ticks & Horizontal Lines */}
-                            {yTicks.map((t, i) => {
-                                const y = height - paddingBottom - (t / maxVal) * chartHeight;
+                            {/* Horizontal grid lines & Y labels */}
+                            {yTicks.map((tick, idx) => {
+                                const y = height - paddingBottom - (tick / maxVal) * chartHeight;
                                 return (
-                                    <g key={i}>
+                                    <g key={idx}>
                                         <line
                                             x1={paddingLeft}
                                             y1={y}
                                             x2={width - paddingRight}
                                             y2={y}
-                                            stroke="rgba(27, 59, 43, 0.08)"
-                                            strokeDasharray="4,4"
+                                            stroke="var(--admin-border-color)"
+                                            strokeDasharray="3,3"
                                         />
                                         <text
                                             x={paddingLeft - 8}
-                                            y={y + 4}
+                                            y={y + 3}
                                             textAnchor="end"
-                                            fill="var(--color-text-muted)"
-                                            fontSize="11"
-                                            fontFamily="var(--font-sans)"
+                                            fill="var(--admin-text-muted)"
+                                            fontSize="10"
+                                            fontWeight="600"
                                         >
-                                            {t}
+                                            {tick}
                                         </text>
                                     </g>
                                 );
                             })}
 
-                            {/* Render Bars */}
-                            {bars.map((bar) => {
-                                const isHovered = hoveredBar?.index === bar.index;
+                            {/* Bars */}
+                            {bars.map((bar, idx) => {
+                                const isHovered = hoveredBar?.index === idx;
                                 return (
                                     <g
-                                        key={bar.index}
+                                        key={idx}
                                         onMouseEnter={() => setHoveredBar(bar)}
                                         onMouseLeave={() => setHoveredBar(null)}
+                                        style={{ cursor: 'pointer' }}
                                     >
+                                        {/* Bar Rect */}
                                         <rect
                                             x={bar.x}
                                             y={bar.y}
@@ -111,32 +113,35 @@ export default function OrderPerformanceBarChart() {
                                             height={bar.barHeight}
                                             rx="4"
                                             fill={isHovered ? "url(#barHoverGradient)" : "url(#barGradient)"}
-                                            style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
+                                            style={{ transition: 'all 0.15s ease' }}
                                         />
+
+                                        {/* Value above bar */}
                                         <text
                                             x={bar.x + barWidth / 2}
-                                            y={height - 12}
+                                            y={bar.y - 6}
                                             textAnchor="middle"
-                                            fill="var(--color-text-muted)"
-                                            fontSize="11"
-                                            fontWeight={isHovered ? '700' : '500'}
-                                            fontFamily="var(--font-sans)"
+                                            fill={isHovered ? "var(--admin-primary)" : "var(--admin-text-main)"}
+                                            fontSize="10"
+                                            fontWeight="700"
                                         >
-                                            {bar.label}
+                                            {bar.value}
+                                        </text>
+
+                                        {/* X-axis Label */}
+                                        <text
+                                            x={bar.x + barWidth / 2}
+                                            y={height - 10}
+                                            textAnchor="middle"
+                                            fill="var(--admin-text-muted)"
+                                            fontSize="10"
+                                            fontWeight="600"
+                                        >
+                                            {bar.period}
                                         </text>
                                     </g>
                                 );
                             })}
-
-                            {/* Tooltip */}
-                            {hoveredBar && (
-                                <g transform={`translate(${hoveredBar.x + barWidth / 2}, ${hoveredBar.y - 30})`}>
-                                    <rect x="-35" y="0" width="70" height="24" rx="4" fill="#182e22" />
-                                    <text x="0" y="16" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="700">
-                                        {hoveredBar.value} Orders
-                                    </text>
-                                </g>
-                            )}
                         </svg>
                     </div>
                 )}

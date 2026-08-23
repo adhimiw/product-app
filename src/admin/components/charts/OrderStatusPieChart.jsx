@@ -20,10 +20,10 @@ export default function OrderStatusPieChart() {
     }, []);
 
     // SVG donut dimensions
-    const size = 200;
+    const size = 180;
     const center = size / 2;
-    const radius = 70;
-    const strokeWidth = 26;
+    const radius = 62;
+    const strokeWidth = 22;
 
     // Calculate arc angles
     let cumulativeAngle = -90; // start at top
@@ -59,25 +59,25 @@ export default function OrderStatusPieChart() {
             <div className="admin-card-header">
                 <div>
                     <h3 className="admin-card-title">Orders by Status</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                    <p style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)', margin: '1px 0 0 0' }}>
                         Current fulfillment distribution
                     </p>
                 </div>
             </div>
 
-            <div className="admin-chart-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div className="admin-chart-body">
                 {loading ? (
                     <div className="admin-chart-loading">Loading status distribution...</div>
                 ) : (
-                    <>
-                        <div style={{ position: 'relative', width: `${size}px`, height: `${size}px` }}>
+                    <div className="admin-pie-layout">
+                        <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, flexShrink: 0 }}>
                             <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
                                 <circle
                                     cx={center}
                                     cy={center}
                                     r={radius}
                                     fill="none"
-                                    stroke="rgba(27, 59, 43, 0.05)"
+                                    stroke="var(--admin-surface-active)"
                                     strokeWidth={strokeWidth}
                                 />
 
@@ -92,9 +92,9 @@ export default function OrderStatusPieChart() {
                                             strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
                                             strokeLinecap="butt"
                                             style={{
-                                                transition: 'stroke-width 0.2s ease, opacity 0.2s ease',
+                                                transition: 'stroke-width 0.15s ease, opacity 0.15s ease',
                                                 cursor: 'pointer',
-                                                opacity: hoveredSlice && !isHovered ? 0.6 : 1
+                                                opacity: hoveredSlice && !isHovered ? 0.45 : 1
                                             }}
                                             onMouseEnter={() => setHoveredSlice(slice)}
                                             onMouseLeave={() => setHoveredSlice(null)}
@@ -104,32 +104,62 @@ export default function OrderStatusPieChart() {
                             </svg>
 
                             {/* Donut Center Display */}
-                            <div className="admin-donut-center">
-                                <span className="donut-value">
+                            <div style={{
+                                position: 'absolute',
+                                inset: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                pointerEvents: 'none'
+                            }}>
+                                <span style={{
+                                    fontSize: '1.25rem',
+                                    fontWeight: 800,
+                                    color: 'var(--admin-text-main)',
+                                    lineHeight: 1.1
+                                }}>
                                     {hoveredSlice ? hoveredSlice.count : totalOrders}
                                 </span>
-                                <span className="donut-label">
-                                    {hoveredSlice ? hoveredSlice.label : 'Total Orders'}
+                                <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600,
+                                    color: 'var(--admin-text-muted)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em'
+                                }}>
+                                    {hoveredSlice ? hoveredSlice.label : 'Orders'}
                                 </span>
                             </div>
                         </div>
 
                         {/* Status Legend Pills */}
                         <div className="admin-pie-legend">
-                            {statusData.map(item => (
-                                <div
-                                    key={item.status}
-                                    className={`legend-item ${hoveredSlice?.status === item.status ? 'highlight' : ''}`}
-                                    onMouseEnter={() => setHoveredSlice(item)}
-                                    onMouseLeave={() => setHoveredSlice(null)}
-                                >
-                                    <span className="legend-dot" style={{ backgroundColor: item.color }} />
-                                    <span className="legend-name">{item.label}</span>
-                                    <span className="legend-count">{item.count} ({item.percentage}%)</span>
-                                </div>
-                            ))}
+                            {statusData.map(item => {
+                                const isHovered = hoveredSlice?.status === item.status;
+                                return (
+                                    <div
+                                        key={item.status}
+                                        className="admin-legend-item"
+                                        style={{
+                                            padding: '4px 8px',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            backgroundColor: isHovered ? 'var(--admin-surface-hover)' : 'transparent',
+                                            transition: 'background-color 0.15s ease'
+                                        }}
+                                        onMouseEnter={() => setHoveredSlice(item)}
+                                        onMouseLeave={() => setHoveredSlice(null)}
+                                    >
+                                        <span className="admin-legend-dot" style={{ backgroundColor: item.color }} />
+                                        <span className="admin-legend-label">{item.label}</span>
+                                        <span className="admin-legend-value">{item.count}</span>
+                                        <span className="admin-legend-percent">({item.percentage}%)</span>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
         </div>

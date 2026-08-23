@@ -63,13 +63,11 @@ export default function AdminSidebar({
             {/* Header / Brand */}
             <div className="admin-sidebar-header">
                 <div className="admin-sidebar-brand">
-                    <div className="admin-brand-icon">M</div>
-                    {!isCollapsed && (
-                        <div className="admin-brand-text">
-                            <span className="admin-brand-name">Mangalam</span>
-                            <span className="admin-brand-sub">Admin Portal</span>
-                        </div>
-                    )}
+                    <img 
+                        src="/mangalam_logo.png" 
+                        alt="Mangalam Healthy Foods" 
+                        className="admin-brand-full-logo" 
+                    />
                 </div>
 
                 {!isCollapsed && onToggleCollapse && (

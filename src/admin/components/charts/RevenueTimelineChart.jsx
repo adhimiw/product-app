@@ -25,12 +25,12 @@ export default function RevenueTimelineChart() {
         return `₹${amt}`;
     };
 
-    const width = 800;
-    const height = 240;
-    const paddingLeft = 55;
-    const paddingRight = 30;
-    const paddingTop = 30;
-    const paddingBottom = 40;
+    const width = 600;
+    const height = 230;
+    const paddingLeft = 50;
+    const paddingRight = 24;
+    const paddingTop = 24;
+    const paddingBottom = 34;
 
     const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
@@ -65,15 +65,15 @@ export default function RevenueTimelineChart() {
         ? `${linePath} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`
         : '';
 
-    const yTicks = [0, 0.33, 0.66, 1].map(r => Math.round(maxVal * r));
+    const yTicks = [0, 0.5, 1].map(r => Math.round(maxVal * r));
 
     return (
         <div className="admin-card admin-chart-card">
             <div className="admin-card-header">
                 <div>
-                    <h3 className="admin-card-title">Revenue Timeline</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                        Gross sales revenue trends over selected time periods
+                    <h3 className="admin-card-title">Revenue Trajectory</h3>
+                    <p style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)', margin: '1px 0 0 0' }}>
+                        Gross sales receipts over period
                     </p>
                 </div>
 
@@ -92,20 +92,20 @@ export default function RevenueTimelineChart() {
 
             <div className="admin-chart-body">
                 {loading ? (
-                    <div className="admin-chart-loading">Loading revenue data...</div>
+                    <div className="admin-chart-loading">Loading revenue timeline...</div>
                 ) : (
                     <div className="admin-svg-wrapper">
                         <svg viewBox={`0 0 ${width} ${height}`} className="admin-chart-svg">
                             <defs>
                                 <linearGradient id="revenueTimelineGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#c2a13f" stopOpacity="0.3" />
-                                    <stop offset="100%" stopColor="#c2a13f" stopOpacity="0.01" />
+                                    <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.00" />
                                 </linearGradient>
                             </defs>
 
-                            {/* Horizontal Grid Lines */}
-                            {yTicks.map((t, idx) => {
-                                const y = height - paddingBottom - (t / maxVal) * chartHeight;
+                            {/* Horizontal Grid */}
+                            {yTicks.map((tick, idx) => {
+                                const y = height - paddingBottom - (tick / maxVal) * chartHeight;
                                 return (
                                     <g key={idx}>
                                         <line
@@ -113,18 +113,18 @@ export default function RevenueTimelineChart() {
                                             y1={y}
                                             x2={width - paddingRight}
                                             y2={y}
-                                            stroke="rgba(194, 161, 63, 0.12)"
-                                            strokeDasharray="4,4"
+                                            stroke="var(--admin-border-color)"
+                                            strokeDasharray="3,3"
                                         />
                                         <text
                                             x={paddingLeft - 8}
-                                            y={y + 4}
+                                            y={y + 3}
                                             textAnchor="end"
-                                            fill="var(--color-text-muted)"
-                                            fontSize="11"
-                                            fontFamily="var(--font-sans)"
+                                            fill="var(--admin-text-muted)"
+                                            fontSize="10"
+                                            fontWeight="600"
                                         >
-                                            {formatCurrency(t)}
+                                            {formatCurrency(tick)}
                                         </text>
                                     </g>
                                 );
@@ -132,7 +132,7 @@ export default function RevenueTimelineChart() {
 
                             {/* Area & Line */}
                             <path d={areaPath} fill="url(#revenueTimelineGradient)" />
-                            <path d={linePath} fill="none" stroke="#c2a13f" strokeWidth="3" strokeLinecap="round" />
+                            <path d={linePath} fill="none" stroke="#3B82F6" strokeWidth="2.5" strokeLinecap="round" />
 
                             {/* Data Points */}
                             {points.map((pt, idx) => {
@@ -141,12 +141,11 @@ export default function RevenueTimelineChart() {
                                     <g key={idx} onMouseEnter={() => setHoveredPoint({ ...pt, index: idx })} onMouseLeave={() => setHoveredPoint(null)}>
                                         <text
                                             x={pt.x}
-                                            y={height - 12}
+                                            y={height - 10}
                                             textAnchor="middle"
-                                            fill="var(--color-text-muted)"
-                                            fontSize="12"
-                                            fontWeight={isHovered ? '700' : '500'}
-                                            fontFamily="var(--font-sans)"
+                                            fill="var(--admin-text-muted)"
+                                            fontSize="10"
+                                            fontWeight="600"
                                         >
                                             {pt.label}
                                         </text>
@@ -154,28 +153,38 @@ export default function RevenueTimelineChart() {
                                         <circle
                                             cx={pt.x}
                                             cy={pt.y}
-                                            r={isHovered ? '6' : '4'}
-                                            fill="#ffffff"
-                                            stroke="#c2a13f"
-                                            strokeWidth={isHovered ? '3' : '2'}
-                                            style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
+                                            r={isHovered ? 5 : 3.5}
+                                            fill={isHovered ? '#3B82F6' : '#FFFFFF'}
+                                            stroke="#3B82F6"
+                                            strokeWidth={isHovered ? 2.5 : 2}
+                                            style={{ transition: 'all 0.15s ease', cursor: 'pointer' }}
                                         />
+
+                                        {isHovered && (
+                                            <g>
+                                                <rect
+                                                    x={pt.x - 42}
+                                                    y={pt.y - 32}
+                                                    width="84"
+                                                    height="22"
+                                                    rx="4"
+                                                    fill="#0F172A"
+                                                />
+                                                <text
+                                                    x={pt.x}
+                                                    y={pt.y - 18}
+                                                    textAnchor="middle"
+                                                    fill="#FFFFFF"
+                                                    fontSize="10"
+                                                    fontWeight="700"
+                                                >
+                                                    ₹{pt.val.toLocaleString('en-IN')}
+                                                </text>
+                                            </g>
+                                        )}
                                     </g>
                                 );
                             })}
-
-                            {/* Hover Tooltip */}
-                            {hoveredPoint && (
-                                <g transform={`translate(${hoveredPoint.x}, ${hoveredPoint.y - 45})`}>
-                                    <rect x="-50" y="0" width="100" height="34" rx="6" fill="#182e22" />
-                                    <text x="0" y="14" textAnchor="middle" fill="#c2a13f" fontSize="10" fontWeight="600">
-                                        {hoveredPoint.label}
-                                    </text>
-                                    <text x="0" y="27" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="700">
-                                        ₹{hoveredPoint.val.toLocaleString('en-IN')}
-                                    </text>
-                                </g>
-                            )}
                         </svg>
                     </div>
                 )}

@@ -20,12 +20,12 @@ export default function OrderTimelineChart() {
     }, [period]);
 
     // Dimensions for SVG container
-    const width = 800;
-    const height = 260;
-    const paddingLeft = 50;
-    const paddingRight = 30;
-    const paddingTop = 30;
-    const paddingBottom = 40;
+    const width = 600;
+    const height = 230;
+    const paddingLeft = 45;
+    const paddingRight = 24;
+    const paddingTop = 24;
+    const paddingBottom = 34;
 
     const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
@@ -61,16 +61,16 @@ export default function OrderTimelineChart() {
         ? `${linePath} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`
         : '';
 
-    // Horizontal Y-axis grid lines (4 ticks)
-    const yTicks = [0, 0.33, 0.66, 1].map(ratio => Math.round(maxVal * ratio));
+    // Horizontal Y-axis grid lines (3 ticks)
+    const yTicks = [0, 0.5, 1].map(ratio => Math.round(maxVal * ratio));
 
     return (
-        <div className="admin-card admin-chart-card primary-chart">
+        <div className="admin-card admin-chart-card">
             <div className="admin-card-header">
                 <div>
                     <h3 className="admin-card-title">Order Timeline</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                        Order volume over time across selected historical periods
+                    <p style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)', margin: '1px 0 0 0' }}>
+                        Historical order volumes
                     </p>
                 </div>
 
@@ -95,8 +95,8 @@ export default function OrderTimelineChart() {
                         <svg viewBox={`0 0 ${width} ${height}`} className="admin-chart-svg">
                             <defs>
                                 <linearGradient id="orderTimelineGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#1b3b2b" stopOpacity="0.25" />
-                                    <stop offset="100%" stopColor="#1b3b2b" stopOpacity="0.01" />
+                                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.00" />
                                 </linearGradient>
                             </defs>
 
@@ -110,16 +110,16 @@ export default function OrderTimelineChart() {
                                             y1={y}
                                             x2={width - paddingRight}
                                             y2={y}
-                                            stroke="rgba(27, 59, 43, 0.08)"
-                                            strokeDasharray="4,4"
+                                            stroke="var(--admin-border-color)"
+                                            strokeDasharray="3,3"
                                         />
                                         <text
-                                            x={paddingLeft - 10}
-                                            y={y + 4}
+                                            x={paddingLeft - 8}
+                                            y={y + 3}
                                             textAnchor="end"
-                                            fill="var(--color-text-muted)"
-                                            fontSize="11"
-                                            fontFamily="var(--font-sans)"
+                                            fill="var(--admin-text-muted)"
+                                            fontSize="10"
+                                            fontWeight="600"
                                         >
                                             {tick}
                                         </text>
@@ -129,7 +129,7 @@ export default function OrderTimelineChart() {
 
                             {/* Area & Line */}
                             <path d={areaPath} fill="url(#orderTimelineGradient)" />
-                            <path d={linePath} fill="none" stroke="#1b3b2b" strokeWidth="3" strokeLinecap="round" />
+                            <path d={linePath} fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" />
 
                             {/* Data Points & X Labels */}
                             {points.map((pt, idx) => {
@@ -139,12 +139,11 @@ export default function OrderTimelineChart() {
                                         {/* X-axis Label */}
                                         <text
                                             x={pt.x}
-                                            y={height - 12}
+                                            y={height - 10}
                                             textAnchor="middle"
-                                            fill="var(--color-text-muted)"
-                                            fontSize="12"
-                                            fontWeight={isHovered ? '700' : '500'}
-                                            fontFamily="var(--font-sans)"
+                                            fill="var(--admin-text-muted)"
+                                            fontSize="10"
+                                            fontWeight="600"
                                         >
                                             {pt.label}
                                         </text>
@@ -153,36 +152,39 @@ export default function OrderTimelineChart() {
                                         <circle
                                             cx={pt.x}
                                             cy={pt.y}
-                                            r={isHovered ? '6' : '4'}
-                                            fill="#ffffff"
-                                            stroke="#1b3b2b"
-                                            strokeWidth={isHovered ? '3' : '2'}
-                                            style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
+                                            r={isHovered ? 5 : 3.5}
+                                            fill={isHovered ? '#10B981' : '#FFFFFF'}
+                                            stroke="#10B981"
+                                            strokeWidth={isHovered ? 2.5 : 2}
+                                            style={{ transition: 'all 0.15s ease', cursor: 'pointer' }}
                                         />
+
+                                        {/* Tooltip Hover Overlay */}
+                                        {isHovered && (
+                                            <g>
+                                                <rect
+                                                    x={pt.x - 36}
+                                                    y={pt.y - 32}
+                                                    width="72"
+                                                    height="22"
+                                                    rx="4"
+                                                    fill="#0F172A"
+                                                />
+                                                <text
+                                                    x={pt.x}
+                                                    y={pt.y - 18}
+                                                    textAnchor="middle"
+                                                    fill="#FFFFFF"
+                                                    fontSize="10"
+                                                    fontWeight="700"
+                                                >
+                                                    {pt.val} orders
+                                                </text>
+                                            </g>
+                                        )}
                                     </g>
                                 );
                             })}
-
-                            {/* Hover Tooltip Overlay */}
-                            {hoveredPoint && (
-                                <g transform={`translate(${hoveredPoint.x}, ${hoveredPoint.y - 45})`}>
-                                    <rect
-                                        x="-45"
-                                        y="0"
-                                        width="90"
-                                        height="34"
-                                        rx="6"
-                                        fill="#1b3b2b"
-                                        boxShadow="0 4px 12px rgba(0,0,0,0.15)"
-                                    />
-                                    <text x="0" y="14" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="500">
-                                        {hoveredPoint.label}
-                                    </text>
-                                    <text x="0" y="27" textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="700">
-                                        {hoveredPoint.val} Orders
-                                    </text>
-                                </g>
-                            )}
                         </svg>
                     </div>
                 )}
