@@ -136,6 +136,10 @@ export default function ProductCard({
                     src={displayImage}
                     alt={name || 'Product'}
                     className="tb-product-img"
+                    loading="lazy"
+                    decoding="async"
+                    width="300"
+                    height="300"
                     style={imageStyle}
                     onError={(e) => {
                         e.target.src = '/mangalam_logo.png';

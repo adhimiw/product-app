@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
@@ -6,12 +6,7 @@ import AuthModal from './components/AuthModal';
 import OrganicBackgroundOverlay from './components/OrganicBackgroundOverlay';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
-import ProductDetail from './pages/ProductDetail';
-import Science from './pages/Science';
-import About from './pages/About';
-import UserProfile from './pages/UserProfile';
 import Toast from './components/Toast';
-import AdminRoot from './admin/AdminRoot';
 import { 
     fetchProductsApi,
     fetchCartApi,
@@ -22,6 +17,18 @@ import {
     fetchFavoritesApi,
     toggleFavoriteApi
 } from './services/api';
+
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Science = lazy(() => import('./pages/Science'));
+const About = lazy(() => import('./pages/About'));
+const UserProfile = lazy(() => import('./pages/UserProfile'));
+const AdminRoot = lazy(() => import('./admin/AdminRoot'));
+
+const PageLoader = () => (
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(27, 59, 43, 0.1)', borderTopColor: '#1b3b2b', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+    </div>
+);
 
 const parseRouteFromUrl = () => {
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
@@ -388,9 +395,11 @@ export default function App() {
     // Dedicated standalone view for Admin Panel
     if (page === 'admin') {
         return (
-            <AdminRoot
-                onGoToStore={() => setPage('home')}
-            />
+            <Suspense fallback={<PageLoader />}>
+                <AdminRoot
+                    onGoToStore={() => setPage('home')}
+                />
+            </Suspense>
         );
     }
 
@@ -440,35 +449,43 @@ export default function App() {
             )}
 
             {page === 'product' && (
-                <ProductDetail
-                    productId={activeProductId}
-                    products={products}
-                    onAddToCart={handleAddToCart}
-                    onBack={() => setPage('shop')}
-                    isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
-                    onToggleFavorite={handleToggleFavorite}
-                />
+                <Suspense fallback={<PageLoader />}>
+                    <ProductDetail
+                        productId={activeProductId}
+                        products={products}
+                        onAddToCart={handleAddToCart}
+                        onBack={() => setPage('shop')}
+                        isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
+                        onToggleFavorite={handleToggleFavorite}
+                    />
+                </Suspense>
             )}
 
             {page === 'science' && (
-                <Science setPage={setPage} />
+                <Suspense fallback={<PageLoader />}>
+                    <Science setPage={setPage} />
+                </Suspense>
             )}
 
             {page === 'about' && (
-                <About setPage={setPage} />
+                <Suspense fallback={<PageLoader />}>
+                    <About setPage={setPage} />
+                </Suspense>
             )}
 
             {page === 'profile' && (
-                <UserProfile
-                    user={user}
-                    onLogout={handleLogout}
-                    onUpdateUser={(updatedUserData) => {
-                        setUser(updatedUserData);
-                        localStorage.setItem('mangalam_user', JSON.stringify(updatedUserData));
-                    }}
-                    showToast={showToast}
-                    setPage={setPage}
-                />
+                <Suspense fallback={<PageLoader />}>
+                    <UserProfile
+                        user={user}
+                        onLogout={handleLogout}
+                        onUpdateUser={(updatedUserData) => {
+                            setUser(updatedUserData);
+                            localStorage.setItem('mangalam_user', JSON.stringify(updatedUserData));
+                        }}
+                        showToast={showToast}
+                        setPage={setPage}
+                    />
+                </Suspense>
             )}
 
             <CartDrawer
