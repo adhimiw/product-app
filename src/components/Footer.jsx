@@ -69,7 +69,6 @@ export default function Footer({ setPage }) {
                                 <li><button onClick={() => setPage('shop')}>{t('navProducts')}</button></li>
                                 <li><button onClick={() => setPage('science')}>{t('navWhySprouted')}</button></li>
                                 <li><button onClick={() => setPage('about')}>{t('navOurStory')}</button></li>
-                                <li><button onClick={() => setPage('admin')}>Admin Portal</button></li>
                             </ul>
                         </div>
 
