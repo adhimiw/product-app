@@ -14,6 +14,7 @@ import {
     ShoppingBag
 } from 'lucide-react';
 import { getBadgeLabel } from '../services/adminProductService';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 export default function ProductDetailsModal({ product, onClose, onEdit }) {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -310,7 +311,7 @@ export default function ProductDetailsModal({ product, onClose, onEdit }) {
                                     maxHeight: '140px',
                                     overflowY: 'auto'
                                 }}
-                                dangerouslySetInnerHTML={{ __html: product.description }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }}
                             />
                         </div>
                     )}
