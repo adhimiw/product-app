@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import mangalamLogo from '../assets/mangalam_logo.png';
 
 export default function Footer({ setPage }) {
     const { t } = useLanguage();
@@ -15,33 +16,45 @@ export default function Footer({ setPage }) {
     };
 
     return (
-        <footer className="main-footer-wavy">
-            
-            {/* Top Organic Wave Divider & Mascot */}
-            <div className="footer-wave-container">
-                <svg className="footer-wave-svg" viewBox="0 0 1440 120" preserveAspectRatio="none">
-                    <path d="M0,40 C320,90 480,10 720,50 C960,90 1120,20 1440,60 L1440,120 L0,120 Z" fill="#f7f5ea"></path>
-                </svg>
-
-                {/* Sprout Grain Mascot illustration popping over center wave curve */}
-                <div className="footer-mascot-wrapper">
-                    <div className="sprout-mascot-card">
-                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M42,70 C24,66 22,44 36,32 C27,42 29,62 42,70 Z" fill="#2c7844" />
-                            <path d="M32,74 C10,65 14,38 28,24 C16,36 20,60 32,74 Z" fill="#1b5a2f" />
-                            <path d="M58,70 C76,66 78,44 64,32 C73,42 71,62 58,70 Z" fill="#2c7844" />
-                            <path d="M68,74 C90,65 86,38 72,24 C84,36 80,60 68,74 Z" fill="#1b5a2f" />
-                            <path d="M50,18 C46,24 46,32 50,38 C54,32 54,24 50,18 Z" fill="#e8ab10" />
-                            <path d="M48,32 C41,34 37,41 41,48 C46,47 48,41 48,32 Z" fill="#f4b905" />
-                            <path d="M52,32 C59,34 63,41 59,48 C54,47 52,41 52,32 Z" fill="#f4b905" />
-                            <path d="M49,70 L51,70 L51,78 L49,78 Z" fill="#1b5a2f" />
-                        </svg>
+        <footer className="footer">
+            {/* Top Brand Badges */}
+            <div className="footer-badges-bar">
+                <div className="container">
+                    <div className="footer-badges-grid">
+                        <div className="footer-badge-item">
+                            <div className="footer-badge-icon">🌿</div>
+                            <div className="footer-badge-text">
+                                <h4>{t('badge1Title')}</h4>
+                                <p>{t('badge1Desc')}</p>
+                            </div>
+                        </div>
+                        <div className="footer-badge-item">
+                            <div className="footer-badge-icon">🌾</div>
+                            <div className="footer-badge-text">
+                                <h4>{t('badge2Title')}</h4>
+                                <p>{t('badge2Desc')}</p>
+                            </div>
+                        </div>
+                        <div className="footer-badge-item">
+                            <div className="footer-badge-icon">🔬</div>
+                            <div className="footer-badge-text">
+                                <h4>{t('badge3Title')}</h4>
+                                <p>{t('badge3Desc')}</p>
+                            </div>
+                        </div>
+                        <div className="footer-badge-item">
+                            <div className="footer-badge-icon">🚚</div>
+                            <div className="footer-badge-text">
+                                <h4>{t('badge4Title')}</h4>
+                                <p>{t('badge4Desc')}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Footer Main Content */}
-            <div className="footer-body">
+            {/* Main Footer Links */}
+            <div className="footer-main">
                 <div className="container">
                     <div className="footer-4col-grid">
                         
@@ -51,7 +64,7 @@ export default function Footer({ setPage }) {
                                 onClick={() => setPage('home')} 
                                 className="footer-logo-btn"
                             >
-                                <img src="/mangalam_logo.png" alt="Mangalam Healthy Foods Logo" style={{ height: '48px', mixBlendMode: 'multiply' }} />
+                                <img src={mangalamLogo} alt="Mangalam Healthy Foods Logo" style={{ height: '48px', mixBlendMode: 'multiply' }} />
                             </button>
                             <p className="footer-desc" style={{ marginTop: '16px', fontSize: '0.88rem', color: '#646a66', lineHeight: '1.5' }}>
                                 {t('footerSlogan')}

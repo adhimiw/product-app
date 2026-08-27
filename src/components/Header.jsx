@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import mangalamLogo from '../assets/mangalam_logo.png';
 
 export default function Header({ page, setPage, products = [], cartCount, onCartOpen, onProductView, user, onAuthOpen, onLogout, favoriteCount = 0, onFavoritesOpen }) {
     const { lang, toggleLanguage, t } = useLanguage();
@@ -121,7 +122,7 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
                                             onClick={() => handleProductSelect(prod.id)}
                                         >
                                             <img 
-                                                src={prod.image || (Array.isArray(prod.images) && prod.images[0]) || '/mangalam_logo.png'} 
+                                                src={prod.image || (Array.isArray(prod.images) && prod.images[0]) || mangalamLogo} 
                                                 alt={prod.name || 'Product'} 
                                                 className="search-result-thumb" 
                                             />
@@ -147,7 +148,7 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
                         className="header-logo-centered"
                         aria-label="Mangalam Healthy Foods Home"
                     >
-                        <img src="/mangalam_logo.png" alt="Mangalam Healthy Foods Logo" />
+                        <img src={mangalamLogo} alt="Mangalam Healthy Foods Logo" />
                     </button>
 
                     {/* Right: User Account & Cart Icons */}

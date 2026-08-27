@@ -1,4 +1,5 @@
 import React from 'react';
+import mangalamLogo from '../../assets/mangalam_logo.png';
 
 export default function AdminSidebar({
     activeTab,
@@ -76,7 +77,7 @@ export default function AdminSidebar({
             <div className="admin-sidebar-header">
                 <div className="admin-sidebar-brand">
                     <img 
-                        src="/mangalam_logo.png" 
+                        src={mangalamLogo} 
                         alt="Mangalam Healthy Foods" 
                         className="admin-brand-full-logo" 
                     />
