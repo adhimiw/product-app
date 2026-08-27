@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchProductsApi } from '../services/api';
-import { sanitizeHtml } from '../utils/sanitizeHtml';
 
 export default function ProductDetail({ 
     productId, 
@@ -234,7 +233,7 @@ export default function ProductDetail({
 
                         {/* Lead Description Paragraph */}
                         {typeof product.description === 'string' && (product.description.includes('<') || product.description.includes('>')) ? (
-                            <div className="pdp-novelty-desc" dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }} />
+                            <div className="pdp-novelty-desc" dangerouslySetInnerHTML={{ __html: product.description }} />
                         ) : (
                             <p className="pdp-novelty-desc">
                                 {product.description}
@@ -348,7 +347,7 @@ export default function ProductDetail({
                                     <div className="pdp-accordion-body">
                                         <div className="how-to-use-box">
                                             {product.howToUse ? (
-                                                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.howToUse) }} />
+                                                <div dangerouslySetInnerHTML={{ __html: product.howToUse }} />
                                             ) : (
                                                 <p>Dissolve 2 tablespoons in 200ml clean water without lumps. Boil on medium flame for 5-6 minutes. Add jaggery or salt to taste. Serve warm with milk.</p>
                                             )}
@@ -370,7 +369,7 @@ export default function ProductDetail({
                                 {openAccordion.benefits && (
                                     <div className="pdp-accordion-body">
                                         {product.benefits ? (
-                                            <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.benefits) }} />
+                                            <div dangerouslySetInnerHTML={{ __html: product.benefits }} />
                                         ) : (
                                             <p>100% Soak-sprouted millets bio-activate maximum nutrient absorption.</p>
                                         )}
@@ -391,7 +390,7 @@ export default function ProductDetail({
                                 {openAccordion.ingredients && (
                                     <div className="pdp-accordion-body">
                                         {product.ingredients ? (
-                                            <div className="pdp-ingredients-text" dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.ingredients) }} />
+                                            <div className="pdp-ingredients-text" dangerouslySetInnerHTML={{ __html: product.ingredients }} />
                                         ) : (
                                             <p className="pdp-ingredients-text">
                                                 Pearl Millet (Kambu), Finger Millet (Ragi), Sorghum (Cholam), Bengal Gram, Black Gram, Green Gram, Wheat, Sprouted Roasted Gram, Organic Green Cardamom.

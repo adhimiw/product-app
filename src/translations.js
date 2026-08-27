@@ -29,14 +29,6 @@ export const translations = {
         badgeNoChemicals: "No Added Sugar / Preservatives",
         badgeFreeShipping: "Free Shipping over ₹999 / $40",
         badgeCertified: "FSSAI & UDYAM Certified",
-        badge1Title: "100% Soak-Sprouted",
-        badge1Desc: "Bio-activated grains for 3x nutrient absorption",
-        badge2Title: "No Chemicals or Sugar",
-        badge2Desc: "Zero preservatives, zero artificial additives",
-        badge3Title: "Lab Tested Purity",
-        badge3Desc: "FSSAI & UDYAM certified Sethiyathope facility",
-        badge4Title: "Express All-India Delivery",
-        badge4Desc: "Free doorstep delivery on orders over ₹999",
 
         // About Section 1
         aboutTag: "AMUTHAM SPROUTED HEALTH MIX – OUR JOURNEY",
@@ -150,14 +142,6 @@ export const translations = {
         badgeNoChemicals: "இரசாயனம் & பிரசர்வேடிவ் அற்றது",
         badgeFreeShipping: "₹999 மேல் இலவச டெலிவரி",
         badgeCertified: "FSSAI & UDYAM சான்றிதழ் பெற்றது",
-        badge1Title: "100% முளைகட்டிய தானியங்கள்",
-        badge1Desc: "3 மடங்கு ஊட்டச்சத்து உறிஞ்சும் திறன் கொண்டது",
-        badge2Title: "இரசாயனம் & சர்க்கரை அற்றது",
-        badge2Desc: "பாதுகாப்பிற்கான பிரசர்வேடிவ்கள் எதுவும் இல்லை",
-        badge3Title: "சான்றளிக்கப்பட்ட தரம்",
-        badge3Desc: "FSSAI & UDYAM அங்கீகாரம் பெற்ற தயாரிப்பு",
-        badge4Title: "அதிவேக இந்தியா முழுமைக்கும் டெலிவரி",
-        badge4Desc: "₹999 மேல் ஆர்டர்களுக்கு இலவச டெலிவரி",
 
         // About Section 1
         aboutTag: "அமுதம் முளைகட்டிய சத்து மாவு – எங்கள் பயணம்",

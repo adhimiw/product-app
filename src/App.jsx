@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
@@ -6,13 +6,12 @@ import AuthModal from './components/AuthModal';
 import OrganicBackgroundOverlay from './components/OrganicBackgroundOverlay';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
+import ProductDetail from './pages/ProductDetail';
+import Science from './pages/Science';
+import About from './pages/About';
+import UserProfile from './pages/UserProfile';
 import Toast from './components/Toast';
-
-const ProductDetail = lazy(() => import('./pages/ProductDetail'));
-const Science = lazy(() => import('./pages/Science'));
-const About = lazy(() => import('./pages/About'));
-const UserProfile = lazy(() => import('./pages/UserProfile'));
-const AdminRoot = lazy(() => import('./admin/AdminRoot'));
+import AdminRoot from './admin/AdminRoot';
 import { 
     fetchProductsApi,
     fetchCartApi,
@@ -389,11 +388,9 @@ export default function App() {
     // Dedicated standalone view for Admin Panel
     if (page === 'admin') {
         return (
-            <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0F172A', color: '#10B981' }}>Loading Admin Console...</div>}>
-                <AdminRoot
-                    onGoToStore={() => setPage('home')}
-                />
-            </Suspense>
+            <AdminRoot
+                onGoToStore={() => setPage('home')}
+            />
         );
     }
 
@@ -415,66 +412,64 @@ export default function App() {
                 onLogout={handleLogout}
             />
 
-            {/* Page Router with Code-Split Suspense Fallback */}
-            <Suspense fallback={<div style={{ minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-green)' }}>Loading...</div>}>
-                {page === 'home' && (
-                    <Home
-                        products={products}
-                        loadingProducts={loadingProducts}
-                        setPage={setPage}
-                        onProductView={handleProductView}
-                        onAddToCart={handleAddToCart}
-                        onSelectCategory={handleSelectCategory}
-                        favoriteProductIds={favoriteProductIds}
-                        onToggleFavorite={handleToggleFavorite}
-                    />
-                )}
+            {/* Page Router */}
+            {page === 'home' && (
+                <Home
+                    products={products}
+                    loadingProducts={loadingProducts}
+                    setPage={setPage}
+                    onProductView={handleProductView}
+                    onAddToCart={handleAddToCart}
+                    onSelectCategory={handleSelectCategory}
+                    favoriteProductIds={favoriteProductIds}
+                    onToggleFavorite={handleToggleFavorite}
+                />
+            )}
 
-                {page === 'shop' && (
-                    <Shop
-                        products={products}
-                        loadingProducts={loadingProducts}
-                        onProductView={handleProductView}
-                        onAddToCart={handleAddToCart}
-                        selectedCategory={selectedCategory}
-                        setSelectedCategory={setSelectedCategory}
-                        favoriteProductIds={favoriteProductIds}
-                        onToggleFavorite={handleToggleFavorite}
-                    />
-                )}
+            {page === 'shop' && (
+                <Shop
+                    products={products}
+                    loadingProducts={loadingProducts}
+                    onProductView={handleProductView}
+                    onAddToCart={handleAddToCart}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                    favoriteProductIds={favoriteProductIds}
+                    onToggleFavorite={handleToggleFavorite}
+                />
+            )}
 
-                {page === 'product' && (
-                    <ProductDetail
-                        productId={activeProductId}
-                        products={products}
-                        onAddToCart={handleAddToCart}
-                        onBack={() => setPage('shop')}
-                        isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
-                        onToggleFavorite={handleToggleFavorite}
-                    />
-                )}
+            {page === 'product' && (
+                <ProductDetail
+                    productId={activeProductId}
+                    products={products}
+                    onAddToCart={handleAddToCart}
+                    onBack={() => setPage('shop')}
+                    isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
+                    onToggleFavorite={handleToggleFavorite}
+                />
+            )}
 
-                {page === 'science' && (
-                    <Science setPage={setPage} />
-                )}
+            {page === 'science' && (
+                <Science setPage={setPage} />
+            )}
 
-                {page === 'about' && (
-                    <About setPage={setPage} />
-                )}
+            {page === 'about' && (
+                <About setPage={setPage} />
+            )}
 
-                {page === 'profile' && (
-                    <UserProfile
-                        user={user}
-                        onLogout={handleLogout}
-                        onUpdateUser={(updatedUserData) => {
-                            setUser(updatedUserData);
-                            localStorage.setItem('mangalam_user', JSON.stringify(updatedUserData));
-                        }}
-                        showToast={showToast}
-                        setPage={setPage}
-                    />
-                )}
-            </Suspense>
+            {page === 'profile' && (
+                <UserProfile
+                    user={user}
+                    onLogout={handleLogout}
+                    onUpdateUser={(updatedUserData) => {
+                        setUser(updatedUserData);
+                        localStorage.setItem('mangalam_user', JSON.stringify(updatedUserData));
+                    }}
+                    showToast={showToast}
+                    setPage={setPage}
+                />
+            )}
 
             <CartDrawer
                 isOpen={isCartOpen}

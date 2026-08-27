@@ -3,10 +3,6 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
 import { LanguageProvider } from './context/LanguageContext.jsx';
-import { WebMcpService } from './services/webMcpService.js';
-
-// Initialize WebMCP tools for AI agent browser actuation
-WebMcpService.registerTools().catch(console.warn);
 
 class ErrorBoundary extends Component {
   constructor(props) {
