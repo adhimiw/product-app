@@ -69,6 +69,11 @@ Route::apiResource('product', ProductController::class);
 Route::apiResource('products', ProductController::class);
 
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\Admin\BrandingSettingController as AdminBrandingSettingController;
+use App\Http\Controllers\Api\BrandingController;
+
+// Public Branding Configuration API
+Route::get('/branding', [BrandingController::class, 'index']);
 
 // Admin routes
 Route::prefix('admin')->group(function () {
@@ -91,6 +96,14 @@ Route::prefix('admin')->group(function () {
     Route::put('users/{id}', [AdminUserController::class, 'update']);
     Route::post('users/{id}/toggle-block', [AdminUserController::class, 'toggleBlock']);
     Route::delete('users/{id}', [AdminUserController::class, 'destroy']);
+
+    // Admin Branding & Logo Settings routes
+    Route::prefix('settings')->group(function () {
+        Route::get('branding', [AdminBrandingSettingController::class, 'index']);
+        Route::post('branding', [AdminBrandingSettingController::class, 'update']);
+        Route::delete('branding/{key}', [AdminBrandingSettingController::class, 'destroy']);
+        Route::post('branding/reset', [AdminBrandingSettingController::class, 'reset']);
+    });
 });
 
 // V1 API routes

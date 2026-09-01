@@ -260,15 +260,15 @@ export default function Home({
             </section>
 
             {/* Section 2: Product Showcase (Official API Product Cards) */}
-            <section className="rituals-section" id="our-products" style={{ padding: '80px 0', background: 'linear-gradient(180deg, #e4efe3 0%, #d8ebd6 100%)' }}>
+            <section className="rituals-section" id="our-products" style={{ padding: '45px 0', background: 'linear-gradient(180deg, #e4efe3 0%, #d8ebd6 100%)' }}>
                 <div className="container">
-                    <div className="section-header">
+                    <div className="section-header" style={{ marginBottom: '28px' }}>
                         <span className="section-subtitle">{t('productSectionSub')}</span>
-                        <h2 className="section-title">{t('productSectionTitle')}</h2>
-                        <p className="section-description">{t('productSectionDesc')}</p>
+                        <h2 className="section-title" style={{ fontSize: '2.1rem', marginBottom: '10px' }}>{t('productSectionTitle')}</h2>
+                        <p className="section-description" style={{ fontSize: '0.95rem' }}>{t('productSectionDesc')}</p>
                     </div>
 
-                    <div className="shop-grid-4col" style={{ marginTop: '40px' }}>
+                    <div className="shop-grid-4col" style={{ marginTop: '20px' }}>
                         {loadingProducts ? (
                             <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
                                 Loading products from backend server...

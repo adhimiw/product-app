@@ -274,7 +274,6 @@ export default function AdminCategories() {
             <PageHeader
                 breadcrumbs={['Admin', 'Catalog', 'Categories']}
                 title="Categories Management"
-                description="Organize your store taxonomy, upload media, and manage visibility across the storefront."
                 actions={
                     <button
                         type="button"

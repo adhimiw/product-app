@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useBranding } from '../context/BrandingContext';
 import { registerApi, loginApi } from '../services/api';
 
 export default function AuthModal({ isOpen, onClose, user, onLoginSuccess, onLogout }) {
     const { t } = useLanguage();
+    const { branding } = useBranding();
     const [isRegistering, setIsRegistering] = useState(false);
 
     // Form inputs
@@ -212,8 +214,13 @@ export default function AuthModal({ isOpen, onClose, user, onLoginSuccess, onLog
                 ) : (
                     /* Login / Register Form View */
                     <div className="auth-form-body">
-                        <div className="auth-header-icon">
-                            <span>🌱</span>
+                        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                            <img
+                                src={branding?.logo_full || '/mangalam_logo.png'}
+                                alt={branding?.site_title || 'Mangalam Healthy Foods'}
+                                style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+                                onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
+                            />
                         </div>
                         
                         <h2 className="auth-modal-title">

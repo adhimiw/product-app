@@ -40,29 +40,50 @@ export default function AdminDashboard({ onNavigateToCategories, onNavigateToOrd
     const [recentOrders, setRecentOrders] = useState([]);
     const [loadingRecent, setLoadingRecent] = useState(true);
 
-    const loadDashboardData = () => {
-        adminOrderService.getOrderStats().then(statsRes => {
-            if (statsRes.success) {
-                setStats(statsRes.stats);
+    const loadDashboardData = async () => {
+        setLoadingRecent(true);
+        try {
+            const [orderRes, catRes, prodRes] = await Promise.all([
+                adminOrderService.getOrders({ status: 'All' }),
+                adminCategoryService.getCategories(),
+                adminProductService.getProducts()
+            ]);
+
+            if (orderRes && orderRes.success && Array.isArray(orderRes.data)) {
+                const orders = orderRes.data;
+                const newStats = {
+                    totalOrders: orders.length,
+                    pendingOrders: 0,
+                    processingOrders: 0,
+                    completedOrders: 0,
+                    cancelledOrders: 0,
+                    totalRevenue: 0
+                };
+                orders.forEach(order => {
+                    const st = (order.orderStatus || '').toLowerCase();
+                    if (st === 'pending') newStats.pendingOrders += 1;
+                    else if (st === 'processing' || st === 'confirmed') newStats.processingOrders += 1;
+                    else if (st === 'delivered' || st === 'completed') {
+                        newStats.completedOrders += 1;
+                        newStats.totalRevenue += Number(order.totalAmount || 0);
+                    } else if (st === 'cancelled') newStats.cancelledOrders += 1;
+                });
+                setStats(newStats);
+                setRecentOrders(orders.slice(0, 5));
             }
-        });
-        adminCategoryService.getCategories().then(catRes => {
-            if (catRes.success) {
+
+            if (catRes && catRes.success && Array.isArray(catRes.data)) {
                 setCategoriesCount(catRes.data.length);
             }
-        });
-        adminProductService.getProducts().then(prodRes => {
-            if (prodRes.success) {
+
+            if (prodRes && prodRes.success && Array.isArray(prodRes.data)) {
                 setProductsCount(prodRes.data.length);
             }
-        });
-        setLoadingRecent(true);
-        adminOrderService.getOrders({ limit: 5 }).then(orderRes => {
-            if (orderRes.success) {
-                setRecentOrders((orderRes.data || []).slice(0, 5));
-            }
+        } catch (err) {
+            console.error('Error loading dashboard data:', err);
+        } finally {
             setLoadingRecent(false);
-        }).catch(() => setLoadingRecent(false));
+        }
     };
 
     useEffect(() => {

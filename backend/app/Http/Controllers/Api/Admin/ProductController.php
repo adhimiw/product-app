@@ -7,21 +7,32 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductPackageSize;
+use App\Services\ProductImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    protected ProductImageService $imageService;
+
+    public function __construct(ProductImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     /**
-     * Display a listing of products.
+     * Display a listing of products with optimized eager loading.
      */
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Product::with(['category', 'packageSizes']);
+            $query = Product::with([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ]);
 
             if ($request->has('status') && $request->status !== null && $request->status !== '') {
                 $query->where('status', (int) $request->status);
@@ -32,10 +43,9 @@ class ProductController extends Controller
             }
 
             if ($request->filled('search')) {
-                $search = $request->search;
+                $search = trim($request->search);
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
                       ->orWhere('category', 'like', "%{$search}%");
                 });
             }
@@ -47,7 +57,7 @@ class ProductController extends Controller
                 'message' => 'Products retrieved successfully',
                 'data'    => ProductResource::collection($products),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to fetch products: ' . $e->getMessage(),
@@ -57,84 +67,66 @@ class ProductController extends Controller
     }
 
     /**
-     * Store a newly created product in storage.
+     * Store a newly created product in storage with atomic transaction and rollback guard.
      */
     public function store(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-            ]);
+            $product = DB::transaction(function () use ($request) {
+                // 1. Resolve Category in 1 fast query
+                [$categoryId, $categoryName] = $this->resolveCategory($request);
 
-            return DB::transaction(function () use ($request) {
-                // Category resolution
-                $categoryId = $request->filled('category_id') ? (int) $request->category_id : null;
-                $categoryName = $request->input('category');
-
-                $catObj = null;
-                if ($categoryId) {
-                    $catObj = Category::find($categoryId);
-                }
-                if (!$catObj && !empty($categoryName)) {
-                    $catObj = Category::where('name', $categoryName)->first();
-                }
-                if (!$catObj && !empty($categoryName)) {
-                    $catObj = Category::create([
-                        'name'   => $categoryName,
-                        'slug'   => \Illuminate\Support\Str::slug($categoryName),
-                        'status' => 1,
-                    ]);
-                }
-
-                if ($catObj) {
-                    $categoryId = $catObj->id;
-                    $categoryName = $catObj->name;
-                } else {
-                    $categoryId = null;
-                }
-
-                // Process main product images
+                // 2. Process & Compress Main Images to WebP
                 $mainImages = $this->processMainImages($request);
 
-                // Process tags
+                // 3. Process Tags Array
                 $tags = $this->parseArrayInput($request->input('tags'));
 
+                // 4. Create Product Record
                 $product = Product::create([
                     'name'           => $request->name,
+                    'slug'           => Str::slug($request->name),
                     'category_id'    => $categoryId,
                     'category'       => $categoryName,
-                    'description'    => $request->description,
-                    'actual_price'   => $request->input('actual_price', 0),
-                    'discount_type'  => $request->input('discount_type', 0),
-                    'discount_value' => $request->input('discount_value', 0),
-                    'discount'       => $request->discount,
-                    'status'         => $request->input('status', 1),
-                    'stock'          => $request->input('stock', 0),
-                    'how_to_use'     => $request->how_to_use,
-                    'benefits'       => $request->benefits,
-                    'ingredients'    => $request->ingredients,
+                    'description'    => $request->input('description'),
+                    'actual_price'   => (float) $request->input('actual_price', 0),
+                    'discount_type'  => (int) $request->input('discount_type', 0),
+                    'discount_value' => (float) $request->input('discount_value', 0),
+                    'discount'       => $request->input('discount'),
+                    'status'         => (int) $request->input('status', 1),
+                    'stock'          => (int) $request->input('stock', 0),
+                    'how_to_use'     => $request->input('how_to_use'),
+                    'benefits'       => $request->input('benefits'),
+                    'ingredients'    => $request->input('ingredients'),
                     'tags'           => $tags,
                     'images'         => $mainImages,
                 ]);
 
-                // Process package sizes
-                $this->savePackageSizes($product, $request);
+                // 5. Bulk Insert Package Size Variants
+                $this->savePackageSizesBulk($product->id, $request);
 
-                $product->load(['category', 'packageSizes']);
-
-                return response()->json([
-                    'status'  => true,
-                    'message' => 'Product created successfully',
-                    'data'    => new ProductResource($product),
-                ], 201);
+                return $product;
             });
-        } catch (\Illuminate\Validation\ValidationException $ve) {
+
+            // Eager load relationships after transaction completes
+            $product->load([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ]);
+
             return response()->json([
-                'status'  => false,
-                'message' => 'Validation error',
-                'errors'  => $ve->errors(),
-            ], 422);
-        } catch (\Exception $e) {
+                'status'  => true,
+                'message' => 'Product created successfully',
+                'data'    => new ProductResource($product),
+            ], 201);
+        } catch (\Throwable $e) {
+            // Rollback all files written to disk if anything failed
+            $this->imageService->rollback();
+
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to create product: ' . $e->getMessage(),
@@ -149,7 +141,10 @@ class ProductController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $product = Product::with(['category', 'packageSizes'])->find($id);
+            $product = Product::with([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ])->find($id);
 
             if (!$product) {
                 return response()->json([
@@ -164,7 +159,7 @@ class ProductController extends Controller
                 'message' => 'Product retrieved successfully',
                 'data'    => new ProductResource($product),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to fetch product: ' . $e->getMessage(),
@@ -174,67 +169,52 @@ class ProductController extends Controller
     }
 
     /**
-     * Update the specified product in storage.
+     * Update the specified product in storage with diff-based image cleanup and bulk operations.
      */
     public function update(Request $request, $id): JsonResponse
     {
+        $product = Product::find($id);
+
+        if (!$product) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Product not found',
+                'data'    => null,
+            ], 404);
+        }
+
+        $oldImages = is_array($product->images) ? $product->images : [];
+        $filesToDeleteAfterCommit = [];
+
         try {
-            $product = Product::find($id);
+            DB::transaction(function () use ($request, $product, $oldImages, &$filesToDeleteAfterCommit) {
+                // 1. Resolve Category
+                [$categoryId, $categoryName] = $this->resolveCategory($request, $product);
 
-            if (!$product) {
-                return response()->json([
-                    'status'  => false,
-                    'message' => 'Product not found',
-                    'data'    => null,
-                ], 404);
-            }
+                // 2. Process & Compress Images
+                $mainImages = $this->processMainImages($request, $oldImages);
 
-            return DB::transaction(function () use ($request, $product) {
-                // Category resolution
-                $categoryId = $request->has('category_id') ? (int) $request->category_id : $product->category_id;
-                $categoryName = $request->input('category', $product->category);
+                // Determine deleted old images for cleanup
+                $filesToDeleteAfterCommit = array_diff($oldImages, $mainImages);
 
-                $catObj = null;
-                if ($categoryId) {
-                    $catObj = Category::find($categoryId);
-                }
-                if (!$catObj && !empty($categoryName)) {
-                    $catObj = Category::where('name', $categoryName)->first();
-                }
-                if (!$catObj && !empty($categoryName)) {
-                    $catObj = Category::create([
-                        'name'   => $categoryName,
-                        'slug'   => \Illuminate\Support\Str::slug($categoryName),
-                        'status' => 1,
-                    ]);
-                }
-
-                if ($catObj) {
-                    $categoryId = $catObj->id;
-                    $categoryName = $catObj->name;
-                } else {
-                    $categoryId = null;
-                }
-
-                // Process main product images
-                $mainImages = $this->processMainImages($request, $product->images ?? []);
-
-                // Process tags
+                // 3. Process Tags
                 $tags = $request->has('tags')
                     ? $this->parseArrayInput($request->input('tags'))
                     : $product->tags;
 
+                // 4. Update Product Record
                 $product->update([
                     'name'           => $request->input('name', $product->name),
+                    'slug'           => $request->filled('name') ? Str::slug($request->name) : $product->slug,
                     'category_id'    => $categoryId,
                     'category'       => $categoryName,
                     'description'    => $request->input('description', $product->description),
-                    'actual_price'   => $request->input('actual_price', $product->actual_price),
-                    'discount_type'  => $request->input('discount_type', $product->discount_type),
-                    'discount_value' => $request->input('discount_value', $product->discount_value),
+                    'actual_price'   => (float) $request->input('actual_price', $product->actual_price),
+                    'discount_type'  => (int) $request->input('discount_type', $product->discount_type),
+                    'discount_value' => (float) $request->input('discount_value', $product->discount_value),
                     'discount'       => $request->input('discount', $product->discount),
-                    'status'         => $request->input('status', $product->status),
-                    'stock'          => $request->input('stock', $product->stock),
+                    'status'         => (int) $request->input('status', $product->status),
+                    'stock'          => (int) $request->input('stock', $product->stock),
                     'how_to_use'     => $request->input('how_to_use', $product->how_to_use),
                     'benefits'       => $request->input('benefits', $product->benefits),
                     'ingredients'    => $request->input('ingredients', $product->ingredients),
@@ -242,27 +222,32 @@ class ProductController extends Controller
                     'images'         => $mainImages,
                 ]);
 
-                // Update package sizes if provided
+                // 5. Update package sizes if present in payload
                 if ($request->has('package_sizes')) {
                     $product->packageSizes()->delete();
-                    $this->savePackageSizes($product, $request);
+                    $this->savePackageSizesBulk($product->id, $request);
                 }
-
-                $product->load(['category', 'packageSizes']);
-
-                return response()->json([
-                    'status'  => true,
-                    'message' => 'Product updated successfully',
-                    'data'    => new ProductResource($product),
-                ], 200);
             });
-        } catch (\Illuminate\Validation\ValidationException $ve) {
+
+            // Clean up removed old images after successful commit
+            if (!empty($filesToDeleteAfterCommit)) {
+                $this->imageService->deleteFiles($filesToDeleteAfterCommit);
+            }
+
+            // Eager load fresh relations
+            $product->load([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ]);
+
             return response()->json([
-                'status'  => false,
-                'message' => 'Validation error',
-                'errors'  => $ve->errors(),
-            ], 422);
-        } catch (\Exception $e) {
+                'status'  => true,
+                'message' => 'Product updated successfully',
+                'data'    => new ProductResource($product),
+            ], 200);
+        } catch (\Throwable $e) {
+            $this->imageService->rollback();
+
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to update product: ' . $e->getMessage(),
@@ -272,7 +257,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Remove the specified product from storage.
+     * Mark product status as inactive or delete.
      */
     public function destroy($id): JsonResponse
     {
@@ -287,7 +272,6 @@ class ProductController extends Controller
                 ], 404);
             }
 
-            // Soft delete by updating status = 0 or hard delete
             $product->status = 0;
             $product->save();
 
@@ -296,7 +280,7 @@ class ProductController extends Controller
                 'message' => 'Product marked as inactive (status = 0)',
                 'data'    => new ProductResource($product),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to delete product: ' . $e->getMessage(),
@@ -306,12 +290,36 @@ class ProductController extends Controller
     }
 
     /**
-     * Process main product images from input and file uploads.
+     * Efficient Category Resolution: Returns [$categoryId, $categoryName].
+     */
+    private function resolveCategory(Request $request, ?Product $existingProduct = null): array
+    {
+        $categoryId = $request->filled('category_id') ? (int) $request->category_id : ($existingProduct ? $existingProduct->category_id : null);
+        $categoryName = $request->input('category', $existingProduct ? $existingProduct->category : null);
+
+        if ($categoryId && empty($categoryName)) {
+            $cat = Category::find($categoryId);
+            if ($cat) $categoryName = $cat->name;
+        } elseif (!$categoryId && !empty($categoryName)) {
+            $cat = Category::firstOrCreate(
+                ['name' => $categoryName],
+                ['slug' => Str::slug($categoryName), 'status' => 1]
+            );
+            $categoryId = $cat->id;
+            $categoryName = $cat->name;
+        }
+
+        return [$categoryId, $categoryName];
+    }
+
+    /**
+     * Process main product images with high-performance WebP compression.
      */
     private function processMainImages(Request $request, array $existingImages = []): array
     {
         $images = [];
 
+        // Retain existing image URLs
         if ($request->has('existing_images')) {
             $existing = $request->input('existing_images');
             if (is_array($existing)) {
@@ -319,10 +327,11 @@ class ProductController extends Controller
             } elseif (is_string($existing)) {
                 $images[] = $existing;
             }
-        } elseif ($request->isMethod('put') || $request->isMethod('patch')) {
+        } elseif (($request->isMethod('put') || $request->isMethod('patch') || $request->input('_method') === 'PUT') && !$request->hasFile('images')) {
             $images = $existingImages;
         }
 
+        // Process newly uploaded binary files
         if ($request->hasFile('images')) {
             $files = $request->file('images');
             if (!is_array($files)) {
@@ -331,24 +340,26 @@ class ProductController extends Controller
 
             foreach ($files as $file) {
                 if ($file instanceof UploadedFile && $file->isValid()) {
-                    $path = $file->store('products', 'public');
-                    $images[] = asset(Storage::url($path));
+                    $images[] = $this->imageService->optimizeAndStore($file, 'products');
                 }
             }
         }
 
-        return array_values(array_unique($images));
+        return array_values(array_unique(array_filter($images)));
     }
 
     /**
-     * Save package size variants for a product.
+     * Bulk insert package size variants in a single optimized query.
      */
-    private function savePackageSizes(Product $product, Request $request): void
+    private function savePackageSizesBulk(int $productId, Request $request): void
     {
         $packageSizes = $request->input('package_sizes');
-        if (!is_array($packageSizes)) {
+        if (!is_array($packageSizes) || empty($packageSizes)) {
             return;
         }
+
+        $now = now();
+        $records = [];
 
         foreach ($packageSizes as $index => $pkgData) {
             if (!is_array($pkgData)) {
@@ -367,46 +378,48 @@ class ProductController extends Controller
                 }
             }
 
-            // Uploaded variant images inside $pkgData
+            // Uploaded variant image files inside pkgData
             if (isset($pkgData['variant_images'])) {
                 $vFiles = $pkgData['variant_images'];
-                if (!is_array($vFiles)) {
-                    $vFiles = [$vFiles];
-                }
+                if (!is_array($vFiles)) $vFiles = [$vFiles];
+
                 foreach ($vFiles as $vFile) {
                     if ($vFile instanceof UploadedFile && $vFile->isValid()) {
-                        $path = $vFile->store('products/variants', 'public');
-                        $variantImages[] = asset(Storage::url($path));
+                        $variantImages[] = $this->imageService->optimizeAndStore($vFile, 'products/variants');
                     }
                 }
             }
 
-            // Uploaded variant images via $request->file("package_sizes.{$index}.variant_images")
+            // Uploaded variant image files via dot-notation
             if ($request->hasFile("package_sizes.{$index}.variant_images")) {
                 $reqFiles = $request->file("package_sizes.{$index}.variant_images");
-                if (!is_array($reqFiles)) {
-                    $reqFiles = [$reqFiles];
-                }
+                if (!is_array($reqFiles)) $reqFiles = [$reqFiles];
+
                 foreach ($reqFiles as $reqFile) {
                     if ($reqFile instanceof UploadedFile && $reqFile->isValid()) {
-                        $path = $reqFile->store('products/variants', 'public');
-                        $variantImages[] = asset(Storage::url($path));
+                        $variantImages[] = $this->imageService->optimizeAndStore($reqFile, 'products/variants');
                     }
                 }
             }
 
-            ProductPackageSize::create([
-                'product_id'     => $product->id,
-                'size_key'       => $pkgData['id'] ?? ('pkg-' . uniqid()),
-                'size_number'    => (isset($pkgData['size_number']) && $pkgData['size_number'] !== '') ? $pkgData['size_number'] : 0,
+            $records[] = [
+                'product_id'     => $productId,
+                'size_key'       => $pkgData['id'] ?? ('pkg-' . Str::random(8)),
+                'size_number'    => (float) ($pkgData['size_number'] ?? 0),
                 'size_unit'      => !empty($pkgData['size_unit']) ? $pkgData['size_unit'] : 'g',
-                'variant_price'  => (isset($pkgData['variant_price']) && $pkgData['variant_price'] !== '') ? $pkgData['variant_price'] : 0,
-                'variant_badge'  => (isset($pkgData['variant_badge']) && $pkgData['variant_badge'] !== '') ? $pkgData['variant_badge'] : 0,
-                'discount_type'  => (isset($pkgData['discount_type']) && $pkgData['discount_type'] !== '') ? $pkgData['discount_type'] : 1,
-                'discount_value' => (isset($pkgData['discount_value']) && $pkgData['discount_value'] !== '') ? $pkgData['discount_value'] : 0,
-                'stock'          => (isset($pkgData['stock']) && $pkgData['stock'] !== '') ? $pkgData['stock'] : 0,
-                'images'         => array_values(array_unique($variantImages)),
-            ]);
+                'variant_price'  => (float) ($pkgData['variant_price'] ?? 0),
+                'variant_badge'  => (int) ($pkgData['variant_badge'] ?? 0),
+                'discount_type'  => (int) ($pkgData['discount_type'] ?? 1),
+                'discount_value' => (float) ($pkgData['discount_value'] ?? 0),
+                'stock'          => (int) ($pkgData['stock'] ?? 0),
+                'images'         => json_encode(array_values(array_unique(array_filter($variantImages)))),
+                'created_at'     => $now,
+                'updated_at'     => $now,
+            ];
+        }
+
+        if (!empty($records)) {
+            ProductPackageSize::insert($records);
         }
     }
 
@@ -420,15 +433,15 @@ class ProductController extends Controller
         }
 
         if (is_array($input)) {
-            return array_values($input);
+            return array_values(array_filter($input));
         }
 
         if (is_string($input)) {
             $decoded = json_decode($input, true);
             if (is_array($decoded)) {
-                return $decoded;
+                return array_values(array_filter($decoded));
             }
-            return array_map('trim', explode(',', $input));
+            return array_values(array_filter(array_map('trim', explode(',', $input))));
         }
 
         return [];

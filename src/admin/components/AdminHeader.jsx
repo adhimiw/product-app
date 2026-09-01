@@ -8,31 +8,6 @@ export default function AdminHeader({
     theme,
     onToggleTheme
 }) {
-    const titleMap = {
-        dashboard: {
-            title: 'Overview Dashboard',
-            subtitle: 'Real-time sales performance, revenue timeline, and recent orders'
-        },
-        categories: {
-            title: 'Categories Management',
-            subtitle: 'Organize store taxonomy, upload media, and manage active status'
-        },
-        products: {
-            title: 'Products Management',
-            subtitle: 'Manage catalog inventory, variants, pricing, discounts, and binary media'
-        },
-        orders: {
-            title: 'Orders Management',
-            subtitle: 'Track dispatch status, filter customer orders, and update statuses'
-        },
-        users: {
-            title: 'User Management',
-            subtitle: 'Manage registered customer accounts (Role 2) and vendor partners (Role 3)'
-        }
-    };
-
-    const currentMeta = titleMap[activeTab] || titleMap.dashboard;
-
     return (
         <header className="admin-topbar">
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -48,10 +23,6 @@ export default function AdminHeader({
                         <line x1="3" y1="18" x2="21" y2="18"/>
                     </svg>
                 </button>
-                <div className="admin-page-title-group">
-                    <h1>{currentMeta.title}</h1>
-                    <p>{currentMeta.subtitle}</p>
-                </div>
             </div>
 
             <div className="admin-topbar-actions">

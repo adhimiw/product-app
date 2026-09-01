@@ -34,7 +34,10 @@ const parseRouteFromUrl = () => {
     const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
     
     if (pathname.startsWith('/admin')) {
-        return { page: 'admin', param: null };
+        const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
+        const validAdminTabs = ['dashboard', 'categories', 'products', 'orders', 'users'];
+        const adminTab = validAdminTabs.includes(sub) ? sub : 'dashboard';
+        return { page: 'admin', param: adminTab };
     }
     if (pathname.startsWith('/product/')) {
         const param = pathname.replace('/product/', '').trim();
@@ -58,9 +61,10 @@ const parseRouteFromUrl = () => {
 export default function App() {
     const initialRoute = parseRouteFromUrl();
     const [page, setPageState] = useState(initialRoute.page);
+    const [adminSubTab, setAdminSubTab] = useState(initialRoute.page === 'admin' ? initialRoute.param : 'dashboard');
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(true);
-    const [activeProductId, setActiveProductId] = useState(initialRoute.param);
+    const [activeProductId, setActiveProductId] = useState(initialRoute.page === 'product' ? initialRoute.param : null);
     const [selectedCategory, setSelectedCategory] = useState('All Products');
     const [cart, setCart] = useState(() => {
         try {
@@ -89,11 +93,14 @@ export default function App() {
         } catch (e) {}
     }, [cart]);
 
+    // Only load storefront products, cart, and favorites when visiting storefront (NOT in admin)
     useEffect(() => {
-        loadProducts();
-        loadCart();
-        loadFavorites();
-    }, []);
+        if (page !== 'admin') {
+            loadProducts();
+            loadCart();
+            loadFavorites();
+        }
+    }, [page]);
 
     const loadProducts = async () => {
         setLoadingProducts(true);
@@ -199,7 +206,9 @@ export default function App() {
         const handlePopState = () => {
             const route = parseRouteFromUrl();
             setPageState(route.page);
-            if (route.param) {
+            if (route.page === 'admin') {
+                setAdminSubTab(route.param || 'dashboard');
+            } else if (route.param) {
                 setActiveProductId(route.param);
             }
         };
@@ -211,7 +220,10 @@ export default function App() {
     // Scroll to top on page change & update URL history with clean separate URLs
     const setPage = (newPage, param = null) => {
         setPageState(newPage);
-        if (param !== null) {
+        if (newPage === 'admin') {
+            const tab = param || adminSubTab || 'dashboard';
+            setAdminSubTab(tab);
+        } else if (param !== null) {
             setActiveProductId(param);
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -225,7 +237,10 @@ export default function App() {
         else if (newPage === 'science') targetUrl = '/why-sprouted';
         else if (newPage === 'about') targetUrl = '/our-story';
         else if (newPage === 'profile') targetUrl = '/profile';
-        else if (newPage === 'admin') targetUrl = '/admin';
+        else if (newPage === 'admin') {
+            const tab = param || adminSubTab || 'dashboard';
+            targetUrl = tab === 'dashboard' ? '/admin/dashboard' : `/admin/${tab}`;
+        }
 
         if (window.location.pathname !== targetUrl) {
             window.history.pushState({ page: newPage, param }, '', targetUrl);
@@ -397,6 +412,7 @@ export default function App() {
         return (
             <Suspense fallback={<PageLoader />}>
                 <AdminRoot
+                    initialTab={adminSubTab}
                     onGoToStore={() => setPage('home')}
                 />
             </Suspense>

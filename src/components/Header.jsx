@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useBranding } from '../context/BrandingContext';
 
 export default function Header({ page, setPage, products = [], cartCount, onCartOpen, onProductView, user, onAuthOpen, onLogout, favoriteCount = 0, onFavoritesOpen }) {
     const { lang, toggleLanguage, t } = useLanguage();
+    const { branding } = useBranding();
     const [scrolled, setScrolled] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
     const searchContainerRef = useRef(null);
     const userMenuRef = useRef(null);
 
@@ -22,7 +25,7 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Close search dropdown & user dropdown on click outside
+    // Close search dropdown & user menu on click outside
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
@@ -145,9 +148,13 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
                     <button 
                         onClick={() => setPage('home')} 
                         className="header-logo-centered"
-                        aria-label="Mangalam Healthy Foods Home"
+                        aria-label={`${branding?.site_title || 'Mangalam Healthy Foods'} Home`}
                     >
-                        <img src="/mangalam_logo.png" alt="Mangalam Healthy Foods Logo" />
+                        <img 
+                            src={branding?.logo_full || '/mangalam_logo.png'} 
+                            alt={`${branding?.site_title || 'Mangalam Healthy Foods'} Logo`} 
+                            onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
+                        />
                     </button>
 
                     {/* Right: User Account & Cart Icons */}
@@ -254,31 +261,56 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
                 </div>
             </div>
 
-            {/* Bottom Row: Main Navigation Links Bar */}
+            {/* Bottom Row: Header Navigation Links Bar */}
             <nav className="header-bottom-nav">
                 <div className="container bottom-nav-container">
+                    {/* 1. OUR PRODUCTS */}
                     <button 
                         onClick={() => setPage('shop')} 
-                        className={`target-nav-link ${page === 'shop' ? 'active' : ''}`}
+                        className={`nav-link-with-icon ${page === 'shop' ? 'active' : ''}`}
+                        title="Shop All Mangalam Heritage Products"
                     >
-                        {t('navProducts')}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                        <span>Our Products</span>
                     </button>
 
+                    {/* 2. JOIN COLLECTIVE Ticket Badge */}
                     <button 
-                        onClick={() => setPage('science')} 
-                        className={`target-nav-link ${page === 'science' ? 'active' : ''}`}
+                        onClick={() => {
+                            if (user) {
+                                setPage('profile');
+                            } else {
+                                onAuthOpen();
+                            }
+                        }} 
+                        className="nav-collective-group"
+                        title="Join Mangalam Heritage Collective"
                     >
-                        {t('navWhySprouted')}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <span className="nav-join-text">Join</span>
+                        <span className="collective-ticket-badge">
+                            <span className="collective-badge-icon">%</span>
+                            Collective
+                        </span>
                     </button>
 
+                    {/* 3. CORPORATE GIFTING with Gift Icon */}
                     <button 
                         onClick={() => setPage('about')} 
-                        className={`target-nav-link ${page === 'about' ? 'active' : ''}`}
+                        className="nav-link-with-icon nav-link-gifting"
+                        title="Custom Corporate Hampers & Festive Gifting"
                     >
-                        {t('navOurStory')}
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 12 20 22 4 22 4 12" />
+                            <rect x="2" y="7" width="20" height="5" />
+                            <line x1="12" y1="22" x2="12" y2="7" />
+                            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                        </svg>
+                        <span>Corporate Gifting</span>
                     </button>
                 </div>
             </nav>

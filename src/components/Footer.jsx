@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useBranding } from '../context/BrandingContext';
 
 export default function Footer({ setPage }) {
     const { t } = useLanguage();
+    const { branding } = useBranding();
+
+    const footerLogo = branding?.logo_dark || branding?.logo_full || '/mangalam_logo.png';
+    const footerCopyright = branding?.footer_text || t('copyrightText');
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
 
@@ -51,7 +56,7 @@ export default function Footer({ setPage }) {
                                 onClick={() => setPage('home')} 
                                 className="footer-logo-btn"
                             >
-                                <img src="/mangalam_logo.png" alt="Mangalam Healthy Foods Logo" style={{ height: '48px', mixBlendMode: 'multiply' }} />
+                                <img src={footerLogo} alt={`${branding?.site_title || 'Mangalam Healthy Foods'} Logo`} style={{ height: '48px', mixBlendMode: 'multiply' }} onError={(e) => { e.target.src = '/mangalam_logo.png'; }} />
                             </button>
                             <p className="footer-desc" style={{ marginTop: '16px', fontSize: '0.88rem', color: '#646a66', lineHeight: '1.5' }}>
                                 {t('footerSlogan')}

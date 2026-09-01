@@ -6,13 +6,14 @@ import AdminOrders from './pages/AdminOrders';
 import AdminCategories from './pages/AdminCategories';
 import AdminProducts from './pages/AdminProducts';
 import AdminUsers from './pages/AdminUsers';
+import AdminBrandingSettings from './pages/AdminBrandingSettings';
 import AdminLayout from './components/AdminLayout';
 import { adminAuthService } from './services/adminAuthService';
 import { adminOrderService } from './services/adminOrderService';
 import { adminCategoryService } from './services/adminCategoryService';
 import { adminProductService } from './services/adminProductService';
 
-export default function AdminRoot({ onGoToStore }) {
+export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
     const [user, setUser] = useState(() => {
         const session = adminAuthService.getCurrentSession();
         return session?.user || null;
@@ -21,7 +22,13 @@ export default function AdminRoot({ onGoToStore }) {
         const session = adminAuthService.getCurrentSession();
         return Boolean(session && session.user);
     });
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const [activeTab, setActiveTab] = useState(() => {
+        const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+        const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
+        const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings'];
+        if (valid.includes(sub)) return sub;
+        return initialTab || 'dashboard';
+    });
     const [key, setKey] = useState(0); // Force re-render on data reset
 
     useEffect(() => {
@@ -34,6 +41,37 @@ export default function AdminRoot({ onGoToStore }) {
             setIsAuthenticated(false);
         }
     }, []);
+
+    // Sync with external route changes
+    useEffect(() => {
+        if (initialTab && initialTab !== activeTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
+
+    // Handle browser back/forward buttons inside admin
+    useEffect(() => {
+        const handleAdminPopState = () => {
+            const pathname = window.location.pathname;
+            if (pathname.startsWith('/admin')) {
+                const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
+                const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings'];
+                const targetTab = valid.includes(sub) ? sub : 'dashboard';
+                setActiveTab(targetTab);
+            }
+        };
+
+        window.addEventListener('popstate', handleAdminPopState);
+        return () => window.removeEventListener('popstate', handleAdminPopState);
+    }, []);
+
+    const handleTabChange = (newTab) => {
+        setActiveTab(newTab);
+        const targetUrl = newTab === 'dashboard' ? '/admin/dashboard' : `/admin/${newTab}`;
+        if (window.location.pathname !== targetUrl) {
+            window.history.pushState({ page: 'admin', param: newTab }, '', targetUrl);
+        }
+    };
 
     const handleLogin = async (email, password) => {
         const res = await adminAuthService.login(email, password);
@@ -71,7 +109,7 @@ export default function AdminRoot({ onGoToStore }) {
         <div className="admin-root" key={key}>
             <AdminLayout
                 activeTab={activeTab}
-                setActiveTab={setActiveTab}
+                setActiveTab={handleTabChange}
                 user={user}
                 onLogout={handleLogout}
                 onGoToStore={onGoToStore}
@@ -79,9 +117,9 @@ export default function AdminRoot({ onGoToStore }) {
             >
                 {activeTab === 'dashboard' && (
                     <AdminDashboard
-                        onNavigateToOrders={() => setActiveTab('orders')}
-                        onNavigateToCategories={() => setActiveTab('categories')}
-                        onNavigateToProducts={() => setActiveTab('products')}
+                        onNavigateToOrders={() => handleTabChange('orders')}
+                        onNavigateToCategories={() => handleTabChange('categories')}
+                        onNavigateToProducts={() => handleTabChange('products')}
                     />
                 )}
                 {activeTab === 'categories' && (
@@ -95,6 +133,9 @@ export default function AdminRoot({ onGoToStore }) {
                 )}
                 {activeTab === 'users' && (
                     <AdminUsers />
+                )}
+                {activeTab === 'settings' && (
+                    <AdminBrandingSettings />
                 )}
             </AdminLayout>
         </div>

@@ -11,22 +11,24 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     /**
-     * Display a listing of active products.
+     * Display a listing of active products with lean eager loading.
      */
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Product::with(['category', 'packageSizes'])->where('status', 1);
+            $query = Product::with([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ])->where('status', 1);
 
             if ($request->filled('category_id')) {
                 $query->where('category_id', (int) $request->category_id);
             }
 
             if ($request->filled('search')) {
-                $search = $request->search;
+                $search = trim($request->search);
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
                       ->orWhere('category', 'like', "%{$search}%");
                 });
             }
@@ -38,7 +40,7 @@ class ProductController extends Controller
                 'message' => 'Products retrieved successfully',
                 'data'    => ProductResource::collection($products),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to fetch products: ' . $e->getMessage(),
@@ -48,21 +50,21 @@ class ProductController extends Controller
     }
 
     /**
-     * Display the specified product.
+     * Display the specified product with selective projection.
      */
     public function show($id): JsonResponse
     {
         try {
-            $product = Product::with(['category', 'packageSizes'])
-                ->where('status', 1)
-                ->where(function ($q) use ($id) {
-                    if (is_numeric($id)) {
-                        $q->where('id', $id)->orWhere('slug', $id);
-                    } else {
-                        $q->where('slug', $id);
-                    }
-                })
-                ->first();
+            $query = Product::with([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ])->where('status', 1);
+
+            if (is_numeric($id)) {
+                $product = $query->where('id', (int) $id)->first();
+            } else {
+                $product = $query->where('slug', $id)->first();
+            }
 
             if (!$product) {
                 return response()->json([
@@ -77,7 +79,7 @@ class ProductController extends Controller
                 'message' => 'Product retrieved successfully',
                 'data'    => new ProductResource($product),
             ], 200);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to fetch product: ' . $e->getMessage(),

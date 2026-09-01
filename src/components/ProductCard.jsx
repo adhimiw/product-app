@@ -80,17 +80,14 @@ export default function ProductCard({
     return (
         <div className="two-brothers-product-card">
 
-            {/* Top Image Container with Grain Texture Backdrop */}
+            {/* Top Image Container - Full Edge-to-Edge Product Image */}
             <div
                 className="tb-card-image-wrap"
                 onClick={() => onProductView && onProductView(id)}
             >
-                {/* Grain texture backdrop */}
-                <div className="tb-grain-backdrop"></div>
-
                 {/* Floating Badge Pill in Top Right or Standalone Heart */}
                 {badge ? (
-                    <div className={`tb-badge-pill ${badgeType === 'orange' ? 'trending' : 'bestseller'}`}>
+                    <div className={`tb-badge-pill ${badgeType === 'orange' || badge === 'Trending' ? 'trending' : badge === 'New Launch' ? 'newlaunch' : 'bestseller'}`}>
                         <span>{badge}</span>
                         <span className="tb-badge-divider">|</span>
                         <button
@@ -99,7 +96,15 @@ export default function ProductCard({
                             onClick={handleHeartClick}
                             aria-label="Wishlist"
                         >
-                            {isLiked ? '♥' : '♡'}
+                            {isLiked ? (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" strokeWidth="2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                            ) : (
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.2">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                </svg>
+                            )}
                         </button>
                     </div>
                 ) : (
@@ -112,34 +117,39 @@ export default function ProductCard({
                             position: 'absolute',
                             top: '10px',
                             right: '10px',
-                            background: 'rgba(255, 255, 255, 0.9)',
+                            background: 'rgba(255, 255, 255, 0.92)',
                             border: 'none',
                             borderRadius: '50%',
-                            width: '30px',
-                            height: '30px',
+                            width: '32px',
+                            height: '32px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '17px',
-                            color: isLiked ? '#ef4444' : '#64748b',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                            color: isLiked ? '#ef4444' : '#4b5563',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
                             cursor: 'pointer',
                             zIndex: 3
                         }}
                     >
-                        {isLiked ? '♥' : '♡'}
+                        {isLiked ? (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                        ) : (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                        )}
                     </button>
                 )}
 
-                {/* Product Packaging Image */}
+                {/* Product Packaging Image - Edge to Edge */}
                 <img
                     src={displayImage}
                     alt={name || 'Product'}
                     className="tb-product-img"
                     loading="lazy"
                     decoding="async"
-                    width="300"
-                    height="300"
                     style={imageStyle}
                     onError={(e) => {
                         e.target.src = '/mangalam_logo.png';
@@ -223,7 +233,7 @@ export default function ProductCard({
                         }
                     }}
                 >
-                    {t('addToBagBtn') || 'Add to Bag'}
+                    ADD TO CART
                 </button>
 
             </div>

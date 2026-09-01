@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useBranding } from '../../context/BrandingContext';
 
 export default function AdminLogin({ onLoginSuccess }) {
+    const { branding } = useBranding();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -204,6 +206,14 @@ export default function AdminLogin({ onLoginSuccess }) {
             {/* Right Side: Clean, Center-Aligned Admin Sign In Form */}
             <div className="admin-split-right-pane">
                 <div className="admin-auth-form-box">
+                    <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                        <img
+                            src={branding?.logo_full || '/mangalam_logo.png'}
+                            alt={branding?.site_title || 'Mangalam Healthy Foods'}
+                            style={{ height: '46px', width: 'auto', objectFit: 'contain' }}
+                            onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
+                        />
+                    </div>
                     <div className="admin-auth-headings">
                         <h1 className="admin-auth-main-title">Sign In</h1>
                         <p className="admin-auth-main-sub">

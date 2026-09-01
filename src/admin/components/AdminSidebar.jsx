@@ -1,4 +1,5 @@
 import React from 'react';
+import { useBranding } from '../../context/BrandingContext';
 
 export default function AdminSidebar({
     activeTab,
@@ -9,6 +10,8 @@ export default function AdminSidebar({
     isCollapsed,
     onToggleCollapse
 }) {
+    const { branding } = useBranding();
+
     const navItems = [
         {
             id: 'dashboard',
@@ -67,8 +70,22 @@ export default function AdminSidebar({
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
             )
+        },
+        {
+            id: 'settings',
+            label: 'Logo & Branding',
+            icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            )
         }
     ];
+
+    const currentLogo = isCollapsed 
+        ? (branding?.logo_small || branding?.logo_full || '/mangalam_logo.png')
+        : (branding?.logo_full || '/mangalam_logo.png');
 
     return (
         <aside className={`admin-sidebar ${isOpen ? 'mobile-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
@@ -76,9 +93,10 @@ export default function AdminSidebar({
             <div className="admin-sidebar-header">
                 <div className="admin-sidebar-brand">
                     <img 
-                        src="/mangalam_logo.png" 
-                        alt="Mangalam Healthy Foods" 
-                        className="admin-brand-full-logo" 
+                        src={currentLogo} 
+                        alt={branding?.site_title || 'Mangalam Healthy Foods'} 
+                        className={isCollapsed ? "admin-brand-small-logo" : "admin-brand-full-logo"} 
+                        onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
                     />
                 </div>
 
