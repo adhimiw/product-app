@@ -7,6 +7,7 @@ import AdminCategories from './pages/AdminCategories';
 import AdminProducts from './pages/AdminProducts';
 import AdminUsers from './pages/AdminUsers';
 import AdminBrandingSettings from './pages/AdminBrandingSettings';
+import AdminWhatsApp from './pages/AdminWhatsApp';
 import AdminLayout from './components/AdminLayout';
 import { adminAuthService } from './services/adminAuthService';
 import { adminOrderService } from './services/adminOrderService';
@@ -25,7 +26,7 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
     const [activeTab, setActiveTab] = useState(() => {
         const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
         const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
-        const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings'];
+        const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
         if (valid.includes(sub)) return sub;
         return initialTab || 'dashboard';
     });
@@ -55,7 +56,7 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
             const pathname = window.location.pathname;
             if (pathname.startsWith('/admin')) {
                 const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
-                const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings'];
+                const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
                 const targetTab = valid.includes(sub) ? sub : 'dashboard';
                 setActiveTab(targetTab);
             }
@@ -88,15 +89,6 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
         setIsAuthenticated(false);
     };
 
-    const handleResetData = async () => {
-        if (window.confirm('Reset all mock orders, categories, and products data back to default initial state?')) {
-            await adminOrderService.resetData();
-            adminCategoryService.resetData();
-            adminProductService.resetData();
-            setKey(prev => prev + 1); // re-mount current view to fetch fresh reset data
-        }
-    };
-
     if (!isAuthenticated) {
         return (
             <div className="admin-root">
@@ -113,7 +105,6 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
                 user={user}
                 onLogout={handleLogout}
                 onGoToStore={onGoToStore}
-                onResetData={handleResetData}
             >
                 {activeTab === 'dashboard' && (
                     <AdminDashboard
@@ -136,6 +127,9 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
                 )}
                 {activeTab === 'settings' && (
                     <AdminBrandingSettings />
+                )}
+                {activeTab === 'whatsapp' && (
+                    <AdminWhatsApp />
                 )}
             </AdminLayout>
         </div>

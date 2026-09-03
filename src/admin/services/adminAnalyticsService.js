@@ -1,20 +1,16 @@
 /**
- * Admin Analytics Service
- * Provides mock data for dashboard charts based on selected time ranges:
- * - '7D'  (Last 7 Days)
- * - '30D' (Last 30 Days)
- * - '3M'  (Last 3 Months)
- * - '6M'  (Last 6 Months)
- * - '1Y'  (Last 1 Year)
- * 
- * Ready for future Laravel REST API Integration:
+ * Admin Analytics Service - 100% Dynamic Real-Time Analytics
+ * Integrates directly with Laravel REST API endpoints:
  * - GET /api/admin/analytics/timeline?period={7D|30D|3M|6M|1Y}
+ * - GET /api/admin/analytics/revenue?period={7D|30D|3M|6M|1Y}
  * - GET /api/admin/analytics/status-distribution
  * - GET /api/admin/analytics/performance?period={7D|30D|3M|6M|1Y}
- * - GET /api/admin/analytics/revenue?period={7D|30D|3M|6M|1Y}
  */
 
 import { ORDER_STATUSES, STATUS_CONFIG } from '../constants/orderStatuses';
+import { adminOrderService } from './adminOrderService';
+
+const API_BASE = '/api/admin/analytics';
 
 export const TIME_PERIODS = [
     { id: '7D', label: '7 Days' },
@@ -24,82 +20,121 @@ export const TIME_PERIODS = [
     { id: '1Y', label: '1 Year' }
 ];
 
+function getHeaders() {
+    let token = null;
+    try {
+        const session = JSON.parse(localStorage.getItem('mangalam_admin_session') || '{}');
+        token = session.token || null;
+    } catch (e) {
+        token = null;
+    }
+
+    const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
 export const adminAnalyticsService = {
     /**
      * Get Order Timeline data for line/area chart.
      * @param {string} period '7D' | '30D' | '3M' | '6M' | '1Y'
-     * @returns {Promise<{success: boolean, data: Array<{label: string, orders: number}>}>}
      */
     async getOrderTimeline(period = '30D') {
-        await new Promise(resolve => setTimeout(resolve, 150));
-
-        let data = [];
-        if (period === '7D') {
-            data = [
-                { label: 'Mon', orders: 14 },
-                { label: 'Tue', orders: 22 },
-                { label: 'Wed', orders: 18 },
-                { label: 'Thu', orders: 29 },
-                { label: 'Fri', orders: 35 },
-                { label: 'Sat', orders: 42 },
-                { label: 'Sun', orders: 38 }
-            ];
-        } else if (period === '30D') {
-            data = [
-                { label: 'Week 1', orders: 112 },
-                { label: 'Week 2', orders: 145 },
-                { label: 'Week 3', orders: 188 },
-                { label: 'Week 4', orders: 210 }
-            ];
-        } else if (period === '3M') {
-            data = [
-                { label: 'Jun', orders: 480 },
-                { label: 'Jul', orders: 620 },
-                { label: 'Aug', orders: 755 }
-            ];
-        } else if (period === '6M') {
-            data = [
-                { label: 'Mar', orders: 320 },
-                { label: 'Apr', orders: 390 },
-                { label: 'May', orders: 430 },
-                { label: 'Jun', orders: 480 },
-                { label: 'Jul', orders: 620 },
-                { label: 'Aug', orders: 755 }
-            ];
-        } else if (period === '1Y') {
-            data = [
-                { label: 'Sep', orders: 240 },
-                { label: 'Oct', orders: 280 },
-                { label: 'Nov', orders: 310 },
-                { label: 'Dec', orders: 450 },
-                { label: 'Jan', orders: 380 },
-                { label: 'Feb', orders: 290 },
-                { label: 'Mar', orders: 320 },
-                { label: 'Apr', orders: 390 },
-                { label: 'May', orders: 430 },
-                { label: 'Jun', orders: 480 },
-                { label: 'Jul', orders: 620 },
-                { label: 'Aug', orders: 755 }
-            ];
+        try {
+            const res = await fetch(`${API_BASE}/timeline?period=${period}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    return { success: true, data: data.data };
+                }
+            }
+        } catch (e) {
+            console.warn('Analytics API timeline fallback to local orders computation', e);
         }
 
-        return { success: true, data };
+        // Dynamic Client-side Fallback Computation from Real Orders
+        const ordersRes = await adminOrderService.getOrders({ status: 'All' });
+        const orders = ordersRes.data || [];
+        const computed = this._computeTimelineFromOrders(orders, period);
+        return { success: true, data: computed.orders };
+    },
+
+    /**
+     * Get Revenue Trajectory timeline.
+     * @param {string} period '7D' | '30D' | '3M' | '6M' | '1Y'
+     */
+    async getRevenueTimeline(period = '30D') {
+        try {
+            const res = await fetch(`${API_BASE}/revenue?period=${period}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    return { success: true, data: data.data };
+                }
+            }
+        } catch (e) {
+            console.warn('Analytics API revenue fallback to local orders computation', e);
+        }
+
+        // Dynamic Client-side Fallback Computation from Real Orders
+        const ordersRes = await adminOrderService.getOrders({ status: 'All' });
+        const orders = ordersRes.data || [];
+        const computed = this._computeTimelineFromOrders(orders, period);
+        return { success: true, data: computed.revenue };
     },
 
     /**
      * Get Orders by Status distribution for donut/pie chart.
-     * @returns {Promise<{success: boolean, data: Array<{status: string, label: string, count: number, percentage: number, color: string}>}>}
      */
     async getOrdersByStatus() {
-        await new Promise(resolve => setTimeout(resolve, 120));
+        try {
+            const res = await fetch(`${API_BASE}/status-distribution`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    return { success: true, total: data.total, data: data.data };
+                }
+            }
+        } catch (e) {
+            console.warn('Analytics API status-distribution fallback to local orders computation', e);
+        }
+
+        // Dynamic Client-side Fallback Computation from Real Orders
+        const ordersRes = await adminOrderService.getOrders({ status: 'All' });
+        const orders = ordersRes.data || [];
 
         const counts = {
-            [ORDER_STATUSES.PENDING]: 12,
-            [ORDER_STATUSES.PROCESSING]: 24,
-            [ORDER_STATUSES.SHIPPED]: 38,
-            [ORDER_STATUSES.DELIVERED]: 165,
-            [ORDER_STATUSES.CANCELLED]: 8
+            [ORDER_STATUSES.PENDING]: 0,
+            [ORDER_STATUSES.PROCESSING]: 0,
+            [ORDER_STATUSES.SHIPPED]: 0,
+            [ORDER_STATUSES.DELIVERED]: 0,
+            [ORDER_STATUSES.CANCELLED]: 0
         };
+
+        orders.forEach(o => {
+            const st = (o.orderStatus || o.status || 'Pending').toLowerCase();
+            if (st === 'pending') counts[ORDER_STATUSES.PENDING]++;
+            else if (st === 'processing' || st === 'confirmed') counts[ORDER_STATUSES.PROCESSING]++;
+            else if (st === 'shipped') counts[ORDER_STATUSES.SHIPPED]++;
+            else if (st === 'delivered' || st === 'completed') counts[ORDER_STATUSES.DELIVERED]++;
+            else if (st === 'cancelled') counts[ORDER_STATUSES.CANCELLED]++;
+        });
 
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -109,7 +144,7 @@ export const adminAnalyticsService = {
                 status,
                 label: cfg.label || status,
                 count,
-                percentage: Math.round((count / total) * 100),
+                percentage: total > 0 ? Math.round((count / total) * 100) : 0,
                 color: cfg.dotColor || '#64748b'
             };
         });
@@ -120,99 +155,139 @@ export const adminAnalyticsService = {
     /**
      * Get Order Performance bar chart data.
      * @param {string} period '7D' | '30D' | '3M' | '6M' | '1Y'
-     * @returns {Promise<{success: boolean, data: Array<{label: string, value: number}>}>}
      */
     async getOrderPerformance(period = '30D') {
-        await new Promise(resolve => setTimeout(resolve, 140));
-
-        let data = [];
-        if (period === '7D') {
-            data = [
-                { label: 'Mon', value: 14 },
-                { label: 'Tue', value: 22 },
-                { label: 'Wed', value: 18 },
-                { label: 'Thu', value: 29 },
-                { label: 'Fri', value: 35 },
-                { label: 'Sat', value: 42 },
-                { label: 'Sun', value: 38 }
-            ];
-        } else if (period === '30D') {
-            data = [
-                { label: 'Days 1-7', value: 112 },
-                { label: 'Days 8-14', value: 145 },
-                { label: 'Days 15-21', value: 188 },
-                { label: 'Days 22-30', value: 210 }
-            ];
-        } else {
-            data = [
-                { label: 'Q1', value: 990 },
-                { label: 'Q2', value: 1300 },
-                { label: 'Q3', value: 1855 },
-                { label: 'Q4', value: 2400 }
-            ];
+        try {
+            const res = await fetch(`${API_BASE}/performance?period=${period}`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    return { success: true, data: data.data };
+                }
+            }
+        } catch (e) {
+            console.warn('Analytics API performance fallback to local orders computation', e);
         }
+
+        // Dynamic Client-side Fallback Computation from Real Orders
+        const ordersRes = await adminOrderService.getOrders({ status: 'All' });
+        const orders = ordersRes.data || [];
+        const timeline = this._computeTimelineFromOrders(orders, period);
+        
+        const data = timeline.orders.map(item => ({
+            label: item.label,
+            value: item.orders
+        }));
 
         return { success: true, data };
     },
 
     /**
-     * Get Revenue Timeline data for line/area chart.
-     * @param {string} period '7D' | '30D' | '3M' | '6M' | '1Y'
-     * @returns {Promise<{success: boolean, data: Array<{label: string, revenue: number}>}>}
+     * Internal helper to compute real time-bucketed orders & revenues from order list.
      */
-    async getRevenueTimeline(period = '30D') {
-        await new Promise(resolve => setTimeout(resolve, 150));
+    _computeTimelineFromOrders(orders, period) {
+        const now = new Date();
+        const ordersTimeline = [];
+        const revenueTimeline = [];
 
-        let data;
         if (period === '7D') {
-            data = [
-                { label: 'Mon', revenue: 12400 },
-                { label: 'Tue', revenue: 19800 },
-                { label: 'Wed', revenue: 15600 },
-                { label: 'Thu', revenue: 26100 },
-                { label: 'Fri', revenue: 32500 },
-                { label: 'Sat', revenue: 41200 },
-                { label: 'Sun', revenue: 36800 }
-            ];
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 86400000);
+                const dayLabel = days[d.getDay()];
+                const dayDateStr = d.toISOString().slice(0, 10);
+
+                const dayOrders = orders.filter(o => {
+                    const rawDate = o.createdAt || o.date || o.created_at || '';
+                    return rawDate.startsWith(dayDateStr);
+                });
+
+                const count = dayOrders.length;
+                const rev = dayOrders.reduce((sum, o) => sum + (Number(o.totalAmount || o.total_amount) || 0), 0);
+
+                ordersTimeline.push({ label: dayLabel, orders: count });
+                revenueTimeline.push({ label: dayLabel, revenue: rev });
+            }
         } else if (period === '30D') {
-            data = [
-                { label: 'Week 1', revenue: 98400 },
-                { label: 'Week 2', revenue: 132000 },
-                { label: 'Week 3', revenue: 174500 },
-                { label: 'Week 4', revenue: 196800 }
-            ];
+            for (let i = 3; i >= 0; i--) {
+                const start = new Date(now.getTime() - (i + 1) * 7 * 86400000);
+                const end = new Date(now.getTime() - i * 7 * 86400000);
+                const label = `Week ${4 - i}`;
+
+                const weekOrders = orders.filter(o => {
+                    const oDate = new Date(o.createdAt || o.date || o.created_at || 0);
+                    return oDate >= start && oDate <= end;
+                });
+
+                const count = weekOrders.length;
+                const rev = weekOrders.reduce((sum, o) => sum + (Number(o.totalAmount || o.total_amount) || 0), 0);
+
+                ordersTimeline.push({ label, orders: count });
+                revenueTimeline.push({ label, revenue: rev });
+            }
         } else if (period === '3M') {
-            data = [
-                { label: 'Jun', revenue: 440000 },
-                { label: 'Jul', revenue: 580000 },
-                { label: 'Aug', revenue: 710000 }
-            ];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            for (let i = 2; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthLabel = months[d.getMonth()];
+                const targetYear = d.getFullYear();
+                const targetMonth = d.getMonth();
+
+                const mOrders = orders.filter(o => {
+                    const oDate = new Date(o.createdAt || o.date || o.created_at || 0);
+                    return oDate.getFullYear() === targetYear && oDate.getMonth() === targetMonth;
+                });
+
+                const count = mOrders.length;
+                const rev = mOrders.reduce((sum, o) => sum + (Number(o.totalAmount || o.total_amount) || 0), 0);
+
+                ordersTimeline.push({ label: monthLabel, orders: count });
+                revenueTimeline.push({ label: monthLabel, revenue: rev });
+            }
         } else if (period === '6M') {
-            data = [
-                { label: 'Mar', revenue: 290000 },
-                { label: 'Apr', revenue: 350000 },
-                { label: 'May', revenue: 395000 },
-                { label: 'Jun', revenue: 440000 },
-                { label: 'Jul', revenue: 580000 },
-                { label: 'Aug', revenue: 710000 }
-            ];
-        } else if (period === '1Y') {
-            data = [
-                { label: 'Sep', revenue: 210000 },
-                { label: 'Oct', revenue: 255000 },
-                { label: 'Nov', revenue: 280000 },
-                { label: 'Dec', revenue: 410000 },
-                { label: 'Jan', revenue: 345000 },
-                { label: 'Feb', revenue: 265000 },
-                { label: 'Mar', revenue: 290000 },
-                { label: 'Apr', revenue: 350000 },
-                { label: 'May', revenue: 395000 },
-                { label: 'Jun', revenue: 440000 },
-                { label: 'Jul', revenue: 580000 },
-                { label: 'Aug', revenue: 710000 }
-            ];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthLabel = months[d.getMonth()];
+                const targetYear = d.getFullYear();
+                const targetMonth = d.getMonth();
+
+                const mOrders = orders.filter(o => {
+                    const oDate = new Date(o.createdAt || o.date || o.created_at || 0);
+                    return oDate.getFullYear() === targetYear && oDate.getMonth() === targetMonth;
+                });
+
+                const count = mOrders.length;
+                const rev = mOrders.reduce((sum, o) => sum + (Number(o.totalAmount || o.total_amount) || 0), 0);
+
+                ordersTimeline.push({ label: monthLabel, orders: count });
+                revenueTimeline.push({ label: monthLabel, revenue: rev });
+            }
+        } else {
+            // 1 Year (12 months)
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const monthLabel = months[d.getMonth()];
+                const targetYear = d.getFullYear();
+                const targetMonth = d.getMonth();
+
+                const mOrders = orders.filter(o => {
+                    const oDate = new Date(o.createdAt || o.date || o.created_at || 0);
+                    return oDate.getFullYear() === targetYear && oDate.getMonth() === targetMonth;
+                });
+
+                const count = mOrders.length;
+                const rev = mOrders.reduce((sum, o) => sum + (Number(o.totalAmount || o.total_amount) || 0), 0);
+
+                ordersTimeline.push({ label: monthLabel, orders: count });
+                revenueTimeline.push({ label: monthLabel, revenue: rev });
+            }
         }
 
-        return { success: true, data };
+        return { orders: ordersTimeline, revenue: revenueTimeline };
     }
 };

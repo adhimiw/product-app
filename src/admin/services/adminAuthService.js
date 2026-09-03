@@ -88,7 +88,7 @@ export const adminAuthService = {
             console.error('API Admin Login Error:', err);
 
             // Fallback for offline testing if backend API is not running
-            if ((cleanEmail === 'superadmin@mangalam.com' || cleanEmail === 'admin@mangalam.com') && (password === 'admin123' || password === 'password')) {
+            if ((cleanEmail === 'superadmin@mangalam.com' || cleanEmail === 'admin@mangalam.com') && (password === '12345678' || password === 'admin123' || password === 'password')) {
                 const mockUser = {
                     id: 2,
                     name: 'Super Admin',
@@ -162,5 +162,20 @@ export const adminAuthService = {
     async logout() {
         localStorage.removeItem(STORAGE_KEY);
         return { success: true };
+    },
+
+    /**
+     * Get authorization headers for API requests.
+     */
+    getAuthHeaders() {
+        const session = this.getCurrentSession();
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        };
+        if (session && session.token) {
+            headers['Authorization'] = `Bearer ${session.token}`;
+        }
+        return headers;
     }
 };

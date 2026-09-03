@@ -8,8 +8,7 @@ export default function AdminLayout({
     setActiveTab,
     user,
     onLogout,
-    onGoToStore,
-    onResetData
+    onGoToStore
 }) {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -81,7 +80,6 @@ export default function AdminLayout({
                     activeTab={activeTab}
                     onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
                     onGoToStore={onGoToStore}
-                    onResetData={onResetData}
                     theme={theme}
                     onToggleTheme={handleToggleTheme}
                 />

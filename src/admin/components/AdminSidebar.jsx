@@ -10,7 +10,13 @@ export default function AdminSidebar({
     isCollapsed,
     onToggleCollapse
 }) {
-    const { branding } = useBranding();
+    let branding = null;
+    try {
+        const ctx = useBranding();
+        branding = ctx?.branding || null;
+    } catch {
+        branding = null;
+    }
 
     const navItems = [
         {
@@ -80,6 +86,15 @@ export default function AdminSidebar({
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
             )
+        },
+        {
+            id: 'whatsapp',
+            label: 'WhatsApp Chat',
+            icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+            )
         }
     ];
 
@@ -91,116 +106,81 @@ export default function AdminSidebar({
         <aside className={`admin-sidebar ${isOpen ? 'mobile-open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
             {/* Header / Brand */}
             <div className="admin-sidebar-header">
-                <div className="admin-sidebar-brand">
-                    <img 
-                        src={currentLogo} 
-                        alt={branding?.site_title || 'Mangalam Healthy Foods'} 
-                        className={isCollapsed ? "admin-brand-small-logo" : "admin-brand-full-logo"} 
-                        onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
+                <div className="admin-sidebar-brand" title={branding?.slogan || 'Mangalam Healthy Foods'}>
+                    <img
+                        src={currentLogo}
+                        alt="Mangalam Healthy Foods"
+                        className="admin-sidebar-logo"
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/mangalam_logo.png';
+                        }}
                     />
                 </div>
-
-                {!isCollapsed && onToggleCollapse && (
-                    <button
-                        type="button"
-                        className="admin-sidebar-collapse-btn"
-                        onClick={onToggleCollapse}
-                        title="Collapse sidebar"
-                        aria-label="Collapse sidebar"
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="15 18 9 12 15 6"></polyline>
-                        </svg>
-                    </button>
-                )}
-            </div>
-
-            {/* Nav Items */}
-            <div className="admin-sidebar-nav">
-                <div className="admin-nav-section-title">
-                    {isCollapsed ? '•••' : 'Main Menu'}
-                </div>
-
-                {navItems.map(item => {
-                    const isActive = activeTab === item.id;
-                    return (
-                        <button
-                            key={item.id}
-                            type="button"
-                            className={`admin-nav-item ${isActive ? 'active' : ''}`}
-                            onClick={() => setActiveTab(item.id)}
-                            title={isCollapsed ? item.label : undefined}
-                        >
-                            {item.icon}
-                            {!isCollapsed && <span>{item.label}</span>}
-                        </button>
-                    );
-                })}
-
-                <div className="admin-nav-section-title" style={{ marginTop: '12px' }}>
-                    {isCollapsed ? '•••' : 'Storefront'}
-                </div>
-
-                <a
-                    href="/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="admin-nav-item"
-                    title={isCollapsed ? "View Live Website" : undefined}
+                
+                {/* Desktop Collapse Toggle */}
+                <button
+                    type="button"
+                    className="admin-sidebar-collapse-btn"
+                    onClick={onToggleCollapse}
+                    aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                    title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
+                        <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
-                    {!isCollapsed && <span>View Store</span>}
-                </a>
+                </button>
             </div>
 
-            {/* Footer / User Info */}
-            <div className="admin-sidebar-footer">
-                <div className="admin-user-info-card">
-                    <div className="admin-user-details">
-                        <div className="admin-avatar">
-                            {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
-                        </div>
-                        {!isCollapsed && (
-                            <div style={{ overflow: 'hidden' }}>
-                                <div className="admin-user-name">{user?.name || 'Administrator'}</div>
-                                <div className="admin-user-role">{user?.role || 'Super Admin'}</div>
-                            </div>
-                        )}
-                    </div>
-                    {!isCollapsed && (
-                        <button 
-                            type="button"
-                            className="admin-logout-btn" 
-                            onClick={onLogout}
-                            title="Sign Out"
-                            aria-label="Sign Out"
-                        >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                                <polyline points="16 17 21 12 16 7"/>
-                                <line x1="21" y1="12" x2="9" y2="12"/>
-                            </svg>
-                        </button>
-                    )}
+            {/* Navigation Menu */}
+            <nav className="admin-sidebar-nav">
+                <div className="admin-nav-section-label">MAIN MENU</div>
+                <div className="admin-nav-group">
+                    {navItems.map((item) => {
+                        const isActive = activeTab === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                                onClick={() => setActiveTab(item.id)}
+                                title={item.label}
+                            >
+                                <span className="admin-nav-icon">{item.icon}</span>
+                                <span className="admin-nav-label">{item.label}</span>
+                                {item.id === 'whatsapp' && (
+                                    <span className="admin-nav-badge" style={{ background: '#10b981', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '10px', marginLeft: 'auto', fontWeight: 'bold' }}>Live</span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
+            </nav>
 
-                {isCollapsed && onToggleCollapse && (
+            {/* Footer / User Profile */}
+            <div className="admin-sidebar-footer">
+                <div className="admin-sidebar-user">
+                    <div className="admin-sidebar-avatar">
+                        {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                    <div className="admin-sidebar-user-info">
+                        <span className="admin-sidebar-user-name">{user?.name || 'Super Admin'}</span>
+                        <span className="admin-sidebar-user-role">{user?.role || 'super_admin'}</span>
+                    </div>
                     <button
                         type="button"
-                        className="admin-sidebar-collapse-btn"
-                        style={{ margin: '10px auto 0 auto', width: '100%' }}
-                        onClick={onToggleCollapse}
-                        title="Expand sidebar"
+                        className="admin-sidebar-logout"
+                        onClick={onLogout}
+                        title="Logout from Admin Portal"
+                        aria-label="Logout"
                     >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="9 18 15 12 9 6"></polyline>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
                         </svg>
                     </button>
-                )}
+                </div>
             </div>
         </aside>
     );

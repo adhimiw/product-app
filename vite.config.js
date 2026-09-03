@@ -18,6 +18,12 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
+      },
+      '/openwa-api': {
+        target: 'http://127.0.0.1:2785',
+        rewrite: (path) => path.replace(/^\/openwa-api/, '/api'),
+        changeOrigin: true,
+        secure: false,
       }
     }
   },

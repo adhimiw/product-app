@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\Admin\AnalyticsController as AdminAnalyticsController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
@@ -71,13 +72,26 @@ Route::apiResource('products', ProductController::class);
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\BrandingSettingController as AdminBrandingSettingController;
 use App\Http\Controllers\Api\BrandingController;
+use App\Http\Controllers\Api\Admin\WhatsAppController as AdminWhatsAppController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
 
 // Public Branding Configuration API
 Route::get('/branding', [BrandingController::class, 'index']);
 
+// Public Webhook for OpenWA Inbound Messages
+Route::post('/webhooks/openwa', [WhatsAppWebhookController::class, 'handle']);
+
 // Admin routes
 Route::prefix('admin')->group(function () {
     Route::apiResource('categories', AdminCategoryController::class);
+
+    // Admin Branding & Logo Settings routes
+    Route::prefix('settings')->group(function () {
+        Route::get('branding', [AdminBrandingSettingController::class, 'index']);
+        Route::post('branding', [AdminBrandingSettingController::class, 'update']);
+        Route::delete('branding/{key}', [AdminBrandingSettingController::class, 'destroy']);
+        Route::post('branding/reset', [AdminBrandingSettingController::class, 'reset']);
+    });
 
     // Admin Product routes
     Route::apiResource('products', AdminProductController::class);
@@ -97,12 +111,32 @@ Route::prefix('admin')->group(function () {
     Route::post('users/{id}/toggle-block', [AdminUserController::class, 'toggleBlock']);
     Route::delete('users/{id}', [AdminUserController::class, 'destroy']);
 
-    // Admin Branding & Logo Settings routes
-    Route::prefix('settings')->group(function () {
-        Route::get('branding', [AdminBrandingSettingController::class, 'index']);
-        Route::post('branding', [AdminBrandingSettingController::class, 'update']);
-        Route::delete('branding/{key}', [AdminBrandingSettingController::class, 'destroy']);
-        Route::post('branding/reset', [AdminBrandingSettingController::class, 'reset']);
+    // Admin Analytics routes
+    Route::prefix('analytics')->group(function () {
+        Route::get('overview', [AdminAnalyticsController::class, 'getOverview']);
+        Route::get('timeline', [AdminAnalyticsController::class, 'getTimeline']);
+        Route::get('revenue', [AdminAnalyticsController::class, 'getRevenue']);
+        Route::get('status-distribution', [AdminAnalyticsController::class, 'getStatusDistribution']);
+        Route::get('performance', [AdminAnalyticsController::class, 'getPerformance']);
+    });
+
+    // Admin WhatsApp & Live Chat CRM routes
+    Route::prefix('whatsapp')->group(function () {
+        Route::get('status', [AdminWhatsAppController::class, 'getStatus']);
+        Route::get('qr', [AdminWhatsAppController::class, 'getQrCode']);
+        Route::get('conversations', [AdminWhatsAppController::class, 'getConversations']);
+        Route::get('conversations/{id}/messages', [AdminWhatsAppController::class, 'getMessages']);
+        Route::post('messages/send', [AdminWhatsAppController::class, 'sendMessage']);
+        Route::get('settings', [AdminWhatsAppController::class, 'getSettings']);
+        Route::put('settings', [AdminWhatsAppController::class, 'updateSettings']);
+        Route::post('settings', [AdminWhatsAppController::class, 'updateSettings']);
+        Route::post('test-notification', [AdminWhatsAppController::class, 'sendTestNotification']);
+        Route::post('session/request-logout-otp', [AdminWhatsAppController::class, 'requestLogoutOtp']);
+        Route::post('session/verify-logout-otp', [AdminWhatsAppController::class, 'verifyLogoutOtp']);
+        Route::post('session/disconnect', [AdminWhatsAppController::class, 'disconnect']);
+        Route::get('ping', [AdminWhatsAppController::class, 'pingGateway']);
+        Route::post('ping', [AdminWhatsAppController::class, 'pingGateway']);
+        Route::get('keepalive-logs', [AdminWhatsAppController::class, 'getKeepaliveLogs']);
     });
 });
 

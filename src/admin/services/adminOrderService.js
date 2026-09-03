@@ -157,9 +157,11 @@ export const adminOrderService = {
                     stats.processingOrders += 1;
                 } else if (st === 'delivered' || st === 'completed') {
                     stats.completedOrders += 1;
-                    stats.totalRevenue += order.totalAmount;
                 } else if (st === 'cancelled') {
                     stats.cancelledOrders += 1;
+                }
+                if (st !== 'cancelled') {
+                    stats.totalRevenue += Number(order.totalAmount || order.total_amount || 0);
                 }
             });
 
