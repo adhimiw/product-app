@@ -339,19 +339,88 @@ export const adminWhatsAppService = {
     },
 
     /**
-     * Get recent KeepAlive ping log entries.
+     * Delete a conversation and its messages from DB.
      */
-    async getKeepaliveLogs(limit = 40) {
+    async deleteConversation(conversationId) {
         try {
             const headers = this._getHeaders();
-            const res = await fetch(`${API_BASE}/keepalive-logs?limit=${limit}`, { headers });
+            const res = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+                method: 'DELETE',
+                headers
+            });
+            return await res.json();
+        } catch (e) {
+            console.error('Failed to delete conversation', e);
+            return { success: false, message: 'Network error deleting conversation.' };
+        }
+    },
+
+    /**
+     * Clear all messages in a conversation from DB.
+     */
+    async clearMessages(conversationId) {
+        try {
+            const headers = this._getHeaders();
+            const res = await fetch(`${API_BASE}/conversations/${conversationId}/clear`, {
+                method: 'POST',
+                headers
+            });
+            return await res.json();
+        } catch (e) {
+            console.error('Failed to clear messages', e);
+            return { success: false, message: 'Network error clearing messages.' };
+        }
+    },
+
+    /**
+     * Purge ALL WhatsApp conversations and messages from DB.
+     */
+    async purgeAllConversations() {
+        try {
+            const headers = this._getHeaders();
+            const res = await fetch(`${API_BASE}/conversations`, {
+                method: 'DELETE',
+                headers
+            });
+            return await res.json();
+        } catch (e) {
+            console.error('Failed to purge conversations', e);
+            return { success: false, message: 'Network error purging conversations.' };
+        }
+    },
+
+    /**
+     * Get current WhatsApp CRM settings.
+     */
+    async getSettings() {
+        try {
+            const headers = this._getHeaders();
+            const res = await fetch(`${API_BASE}/settings`, { headers });
             if (res.ok) {
                 const data = await res.json();
-                return data.data || [];
+                return data.data || data;
             }
         } catch (e) {
-            console.error('Failed to fetch keepalive logs:', e);
+            console.error('Failed to fetch WhatsApp settings', e);
         }
-        return [];
+        return null;
+    },
+
+    /**
+     * Update WhatsApp CRM settings.
+     */
+    async updateSettings(payload) {
+        try {
+            const headers = this._getHeaders();
+            const res = await fetch(`${API_BASE}/settings`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload)
+            });
+            return await res.json();
+        } catch (e) {
+            console.error('Failed to update WhatsApp settings', e);
+            return { success: false, message: 'Network error updating settings.' };
+        }
     }
 };

@@ -43,6 +43,17 @@ export default function AdminWhatsApp() {
     const [keepaliveLogs, setKeepaliveLogs] = useState([]);
     const [logsLoading, setLogsLoading] = useState(false);
 
+    // WhatsApp CRM Settings & Database Purge States
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [settingsData, setSettingsData] = useState({
+        auto_reply_enabled: true,
+        welcome_message: '🌿 Welcome to Mangalam Healthy Foods! How can we assist you with our organic sprouted health mixes today?',
+        is_enabled: true,
+        admin_phone_number: '',
+    });
+    const [settingsSaving, setSettingsSaving] = useState(false);
+    const [isPurgingChats, setIsPurgingChats] = useState(false);
+
     const messagesContainerRef = useRef(null);
 
     // Initial Load
@@ -243,6 +254,133 @@ export default function AdminWhatsApp() {
         }
         setMobileActiveView('chat');
         loadMessages(id, true);
+    };
+
+    const handleDeleteConversation = async (convId, e = null) => {
+        if (e) e.stopPropagation();
+        const target = conversations.find(c => c.id === convId) || activeConversation;
+        const targetName = target?.customer_name || 'this customer';
+
+        if (!window.confirm(`Are you sure you want to permanently delete the conversation with ${targetName} and all its message history from the database?`)) {
+            return;
+        }
+
+        try {
+            const res = await adminWhatsAppService.deleteConversation(convId);
+            if (res.success) {
+                setNotificationBanner(`🗑️ Deleted chat with ${targetName}`);
+                setTimeout(() => setNotificationBanner(null), 3500);
+
+                const remaining = conversations.filter(c => c.id !== convId);
+                setConversations(remaining);
+                if (selectedConvId === convId) {
+                    if (remaining.length > 0) {
+                        setSelectedConvId(remaining[0].id);
+                        setActiveConversation(remaining[0]);
+                        loadMessages(remaining[0].id, true);
+                    } else {
+                        setSelectedConvId(null);
+                        setActiveConversation(null);
+                        setMessages([]);
+                    }
+                }
+            } else {
+                alert(res.message || 'Failed to delete conversation.');
+            }
+        } catch (err) {
+            console.error('Delete conversation error:', err);
+            alert('Failed to delete conversation from database.');
+        }
+    };
+
+    const handleClearMessages = async (convId) => {
+        const target = conversations.find(c => c.id === convId) || activeConversation;
+        const targetName = target?.customer_name || 'this customer';
+
+        if (!window.confirm(`Clear all chat message history for ${targetName}? The contact will remain active.`)) {
+            return;
+        }
+
+        try {
+            const res = await adminWhatsAppService.clearMessages(convId);
+            if (res.success) {
+                setMessages([]);
+                setNotificationBanner(`🧹 Cleared chat history for ${targetName}`);
+                setTimeout(() => setNotificationBanner(null), 3500);
+                loadConversations();
+            } else {
+                alert(res.message || 'Failed to clear chat history.');
+            }
+        } catch (err) {
+            console.error('Clear messages error:', err);
+            alert('Failed to clear chat history.');
+        }
+    };
+
+    const handlePurgeAllChats = async () => {
+        const count = conversations.length;
+        if (!window.confirm(`⚠️ DANGER: Are you sure you want to PERMANENTLY PURGE ALL ${count} conversations and all stored chat messages from the database?\n\nThis action cannot be undone.`)) {
+            return;
+        }
+
+        setIsPurgingChats(true);
+        try {
+            const res = await adminWhatsAppService.purgeAllConversations();
+            if (res.success) {
+                setConversations([]);
+                setSelectedConvId(null);
+                setActiveConversation(null);
+                setMessages([]);
+                setIsSettingsModalOpen(false);
+                setNotificationBanner('🧼 Database Chat Records Successfully Purged!');
+                setTimeout(() => setNotificationBanner(null), 4000);
+            } else {
+                alert(res.message || 'Failed to purge chat records.');
+            }
+        } catch (err) {
+            console.error('Purge error:', err);
+            alert('Failed to purge chat records from database.');
+        } finally {
+            setIsPurgingChats(false);
+        }
+    };
+
+    const handleOpenSettingsModal = async () => {
+        setIsSettingsModalOpen(true);
+        try {
+            const current = await adminWhatsAppService.getSettings();
+            if (current) {
+                setSettingsData({
+                    auto_reply_enabled: current.auto_reply_enabled !== false,
+                    welcome_message: current.welcome_message || '🌿 Welcome to Mangalam Healthy Foods! How can we assist you with our organic sprouted health mixes today?',
+                    is_enabled: current.is_enabled !== false,
+                    admin_phone_number: current.admin_phone_number || '',
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching settings:', err);
+        }
+    };
+
+    const handleSaveSettings = async (e) => {
+        e.preventDefault();
+        setSettingsSaving(true);
+        try {
+            const res = await adminWhatsAppService.updateSettings(settingsData);
+            if (res.success) {
+                setNotificationBanner('✅ WhatsApp Settings Updated Successfully!');
+                setTimeout(() => setNotificationBanner(null), 3500);
+                setIsSettingsModalOpen(false);
+                loadStatus();
+            } else {
+                alert(res.message || 'Failed to save settings.');
+            }
+        } catch (err) {
+            console.error('Save settings error:', err);
+            alert('Failed to update WhatsApp settings.');
+        } finally {
+            setSettingsSaving(false);
+        }
     };
 
     const handleSendMessage = async (customText = null) => {
@@ -528,6 +666,14 @@ export default function AdminWhatsApp() {
                 <div className="wa-toolbar-actions">
                     <button
                         className="wa-btn wa-btn-secondary"
+                        onClick={handleOpenSettingsModal}
+                        style={{ fontWeight: 600, fontSize: '12.5px' }}
+                        title="Configure WhatsApp Auto-Replies and Database Storage"
+                    >
+                        ⚙️ Settings
+                    </button>
+                    <button
+                        className="wa-btn wa-btn-secondary"
                         onClick={handleOpenLogsModal}
                         style={{ fontWeight: 600, fontSize: '12.5px' }}
                         title="View live automated keepalive ping logs"
@@ -644,9 +790,29 @@ export default function AdminWhatsApp() {
                                         </div>
 
                                         <div className="forge-conv-content">
-                                            <div className="forge-conv-header">
+                                            <div className="forge-conv-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span className="forge-conv-name">{conv.customer_name || 'Valued Customer'}</span>
-                                                <span className="forge-conv-time">{conv.last_message_time || 'Just now'}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <span className="forge-conv-time">{conv.last_message_time || 'Just now'}</span>
+                                                    <button
+                                                        onClick={(e) => handleDeleteConversation(conv.id, e)}
+                                                        title="Delete conversation from database"
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            padding: '2px 4px',
+                                                            fontSize: '11px',
+                                                            opacity: 0.6,
+                                                            transition: 'opacity 0.2s',
+                                                            borderRadius: '4px'
+                                                        }}
+                                                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
+                                                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = 'inherit'; }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className="forge-conv-sub">
                                                 <span className="forge-conv-snippet">
@@ -701,10 +867,45 @@ export default function AdminWhatsApp() {
                                     </div>
                                 </div>
 
-                                <div className="forge-chat-header-actions">
-                                    <span style={{ fontSize: '11px', color: '#64748b' }}>
-                                        OpenWA Session: <strong>mangalam-admin</strong>
-                                    </span>
+                                <div className="forge-chat-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <button
+                                        onClick={() => handleClearMessages(activeConversation.id)}
+                                        title="Clear all messages in this conversation from DB"
+                                        style={{
+                                            background: '#f8fafc',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '6px',
+                                            padding: '4px 9px',
+                                            fontSize: '11.5px',
+                                            cursor: 'pointer',
+                                            color: '#475569',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        🧹 Clear
+                                    </button>
+                                    <button
+                                        onClick={(e) => handleDeleteConversation(activeConversation.id, e)}
+                                        title="Permanently delete conversation thread from DB"
+                                        style={{
+                                            background: '#fef2f2',
+                                            border: '1px solid #fecaca',
+                                            borderRadius: '6px',
+                                            padding: '4px 9px',
+                                            fontSize: '11.5px',
+                                            cursor: 'pointer',
+                                            color: '#dc2626',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        🗑️ Delete
+                                    </button>
                                 </div>
                             </div>
 
@@ -1398,6 +1599,155 @@ export default function AdminWhatsApp() {
                                 type="button"
                                 className="wa-btn wa-btn-secondary"
                                 onClick={() => setIsLogsModalOpen(false)}
+                                style={{ padding: '6px 14px', fontSize: '12.5px' }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ⚙️ WhatsApp Settings & Database Chat Management Modal */}
+            {isSettingsModalOpen && (
+                <div className="wa-modal-overlay" onClick={() => setIsSettingsModalOpen(false)}>
+                    <div
+                        className="wa-modal"
+                        style={{ maxWidth: '580px', width: '92%' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="wa-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h3 className="wa-modal-title" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span>⚙️</span> WhatsApp Gateway & DB Settings
+                                </h3>
+                                <p className="wa-modal-subtitle" style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
+                                    Automated replies, welcome greeting & database chat management
+                                </p>
+                            </div>
+                            <button
+                                className="wa-modal-close"
+                                onClick={() => setIsSettingsModalOpen(false)}
+                                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="wa-modal-body" style={{ padding: '18px 20px', maxHeight: '460px', overflowY: 'auto' }}>
+                            <form onSubmit={handleSaveSettings}>
+                                {/* Auto Reply Toggle */}
+                                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>🤖 Automated Auto-Reply</div>
+                                        <div style={{ fontSize: '11.5px', color: '#64748b' }}>Send instant welcome greeting to customers when they message</div>
+                                    </div>
+                                    <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={settingsData.auto_reply_enabled}
+                                            onChange={(e) => setSettingsData(prev => ({ ...prev, auto_reply_enabled: e.target.checked }))}
+                                            style={{ opacity: 0, width: 0, height: 0 }}
+                                        />
+                                        <span style={{
+                                            position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                                            backgroundColor: settingsData.auto_reply_enabled ? '#10b981' : '#cbd5e1',
+                                            transition: '.3s', borderRadius: '24px'
+                                        }}></span>
+                                        <span style={{
+                                            position: 'absolute', height: '18px', width: '18px', left: settingsData.auto_reply_enabled ? '23px' : '3px', bottom: '3px',
+                                            backgroundColor: 'white', transition: '.3s', borderRadius: '50%'
+                                        }}></span>
+                                    </label>
+                                </div>
+
+                                {/* Welcome Message Textarea */}
+                                <div style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                                        🌿 Automated Welcome Greeting
+                                    </label>
+                                    <textarea
+                                        rows={3}
+                                        value={settingsData.welcome_message}
+                                        onChange={(e) => setSettingsData(prev => ({ ...prev, welcome_message: e.target.value }))}
+                                        placeholder="Enter welcome message template..."
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px 12px',
+                                            borderRadius: '8px',
+                                            border: '1.5px solid #cbd5e1',
+                                            fontSize: '12.5px',
+                                            lineHeight: '1.5',
+                                            boxSizing: 'border-box',
+                                            fontFamily: 'inherit',
+                                            outline: 'none'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+                                    <button
+                                        type="submit"
+                                        className="wa-btn wa-btn-primary"
+                                        disabled={settingsSaving}
+                                        style={{ padding: '8px 16px', fontSize: '12.5px' }}
+                                    >
+                                        {settingsSaving ? 'Saving...' : '💾 Save Settings'}
+                                    </button>
+                                </div>
+                            </form>
+
+                            {/* 🚨 DANGER ZONE: Database Chat Management */}
+                            <div style={{
+                                border: '1.5px solid #fecaca',
+                                borderRadius: '10px',
+                                padding: '16px',
+                                backgroundColor: '#fef2f2'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '16px' }}>🗑️</span>
+                                    <span style={{ fontWeight: 700, fontSize: '13.5px', color: '#991b1b' }}>
+                                        Database Chat Storage & Purge
+                                    </span>
+                                </div>
+                                <p style={{ fontSize: '12px', color: '#7f1d1d', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+                                    Permanently delete all stored customer conversations and message records from the MySQL database tables (<code style={{ background: '#fee2e2', padding: '1px 4px', borderRadius: '3px' }}>whatsapp_conversations</code> & <code style={{ background: '#fee2e2', padding: '1px 4px', borderRadius: '3px' }}>whatsapp_messages</code>).
+                                </p>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>
+                                        Active in CRM: {conversations.length} conversation threads
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={handlePurgeAllChats}
+                                        disabled={isPurgingChats || conversations.length === 0}
+                                        style={{
+                                            background: '#dc2626',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            padding: '8px 14px',
+                                            fontSize: '12px',
+                                            fontWeight: 600,
+                                            cursor: conversations.length === 0 ? 'not-allowed' : 'pointer',
+                                            opacity: conversations.length === 0 ? 0.6 : 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        {isPurgingChats ? 'Purging...' : '🧼 Purge All Chats from DB'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="wa-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 20px', borderTop: '1px solid #e2e8f0' }}>
+                            <button
+                                type="button"
+                                className="wa-btn wa-btn-secondary"
+                                onClick={() => setIsSettingsModalOpen(false)}
                                 style={{ padding: '6px 14px', fontSize: '12.5px' }}
                             >
                                 Close
