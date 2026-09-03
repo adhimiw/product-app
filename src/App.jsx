@@ -93,14 +93,14 @@ export default function App() {
         } catch (e) {}
     }, [cart]);
 
-    // Only load storefront products, cart, and favorites when visiting storefront (NOT in admin)
+    // Only load storefront products, cart, and favorites once on initial mount
     useEffect(() => {
         if (page !== 'admin') {
             loadProducts();
             loadCart();
             loadFavorites();
         }
-    }, [page]);
+    }, []); // Run once on startup instead of every page switch
 
     const loadProducts = async () => {
         setLoadingProducts(true);

@@ -39,16 +39,19 @@ export const adminBrandingService = {
     },
 
     /**
-     * Fetch all branding settings (admin or public fallback)
+     * Fetch all branding settings (admin or public fallback with cache)
      */
     async getBrandingSettings() {
         try {
-            let response = await fetch(API_BASE_URL, {
+            const headers = this.getHeaders();
+            const targetUrl = headers.Authorization ? API_BASE_URL : PUBLIC_API_URL;
+            
+            let response = await fetch(targetUrl, {
                 method: 'GET',
-                headers: this.getHeaders()
+                headers: { 'Accept': 'application/json', ...(headers.Authorization ? { 'Authorization': headers.Authorization } : {}) }
             });
 
-            if (!response.ok) {
+            if (!response.ok && targetUrl !== PUBLIC_API_URL) {
                 response = await fetch(PUBLIC_API_URL, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }

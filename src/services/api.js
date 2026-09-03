@@ -120,38 +120,130 @@ export async function loginApi({ email, password }) {
     }
 }
 
+// In-Flight Promise De-duplication Cache (Prevents simultaneous duplicate network requests)
+const inFlightRequests = new Map();
+
+// In-Memory Fast Cache with TTL
+const memoryCache = {
+    categories: null,
+    categoriesTimestamp: 0,
+    products: null,
+    productsTimestamp: 0,
+    TTL: 10 * 60 * 1000 // 10 minutes cache TTL
+};
+
 /**
- * Fetch all categories dynamically from backend API
+ * Cache Invalidation Helpers (call when admin creates/updates items)
  */
-export async function fetchCategoriesApi() {
+export function invalidateCategoriesCache() {
+    memoryCache.categories = null;
+    memoryCache.categoriesTimestamp = 0;
     try {
-        const response = await fetch(`${API_BASE_URL}/category`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+        sessionStorage.removeItem('mangalam_cached_categories');
+    } catch (e) {}
+}
 
-        const data = await response.json();
+export function invalidateProductsCache() {
+    memoryCache.products = null;
+    memoryCache.productsTimestamp = 0;
+    try {
+        sessionStorage.removeItem('mangalam_cached_products');
+    } catch (e) {}
+}
 
-        if (response.ok && (data.status || data.success)) {
-            return {
-                success: true,
-                data: data.data || []
-            };
-        }
+export function invalidateAllStoreCache() {
+    invalidateCategoriesCache();
+    invalidateProductsCache();
+}
 
+/**
+ * Fetch all categories dynamically from backend API with automatic de-duplication & caching
+ */
+export async function fetchCategoriesApi(forceRefresh = false) {
+    const now = Date.now();
+
+    // 1. Check in-memory cache
+    if (!forceRefresh && memoryCache.categories && (now - memoryCache.categoriesTimestamp < memoryCache.TTL)) {
         return {
-            success: false,
-            data: []
-        };
-    } catch (err) {
-        console.error('API Fetch Categories Error:', err);
-        return {
-            success: false,
-            data: []
+            success: true,
+            data: memoryCache.categories,
+            fromCache: true
         };
     }
+
+    // 2. Check sessionStorage cache
+    if (!forceRefresh) {
+        try {
+            const cachedRaw = sessionStorage.getItem('mangalam_cached_categories');
+            if (cachedRaw) {
+                const parsed = JSON.parse(cachedRaw);
+                if (parsed && Array.isArray(parsed.data) && (now - parsed.timestamp < memoryCache.TTL)) {
+                    memoryCache.categories = parsed.data;
+                    memoryCache.categoriesTimestamp = parsed.timestamp;
+                    return {
+                        success: true,
+                        data: parsed.data,
+                        fromCache: true
+                    };
+                }
+            }
+        } catch (e) {}
+    }
+
+    // 3. Check if request is already in-flight (Merge duplicate calls)
+    if (inFlightRequests.has('categories')) {
+        return inFlightRequests.get('categories');
+    }
+
+    const fetchPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/category`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok && (data.status || data.success)) {
+                const catList = data.data || [];
+                memoryCache.categories = catList;
+                memoryCache.categoriesTimestamp = Date.now();
+                try {
+                    sessionStorage.setItem('mangalam_cached_categories', JSON.stringify({
+                        data: catList,
+                        timestamp: Date.now()
+                    }));
+                } catch (e) {}
+
+                return {
+                    success: true,
+                    data: catList
+                };
+            }
+
+            return {
+                success: false,
+                data: []
+            };
+        } catch (err) {
+            console.error('API Fetch Categories Error:', err);
+            // Return cached fallback if available during network error
+            if (memoryCache.categories) {
+                return { success: true, data: memoryCache.categories, fromCache: true };
+            }
+            return {
+                success: false,
+                data: []
+            };
+        } finally {
+            inFlightRequests.delete('categories');
+        }
+    })();
+
+    inFlightRequests.set('categories', fetchPromise);
+    return fetchPromise;
 }
 
 const BADGE_MAP = {
@@ -260,38 +352,94 @@ export function normalizeProduct(p) {
 }
 
 /**
- * Fetch all products dynamically from backend API (http://127.0.0.1:8000/api/products)
+ * Fetch all products dynamically with automatic de-duplication & caching
  */
-export async function fetchProductsApi() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/products`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
+export async function fetchProductsApi(forceRefresh = false) {
+    const now = Date.now();
 
-        const data = await response.json();
-
-        if (response.ok && (data.status || data.success)) {
-            const rawList = data.data || [];
-            return {
-                success: true,
-                data: rawList.map(normalizeProduct).filter(Boolean)
-            };
-        }
-
+    // 1. Check in-memory cache
+    if (!forceRefresh && memoryCache.products && (now - memoryCache.productsTimestamp < memoryCache.TTL)) {
         return {
-            success: false,
-            data: []
-        };
-    } catch (err) {
-        console.error('API Fetch Products Error:', err);
-        return {
-            success: false,
-            data: []
+            success: true,
+            data: memoryCache.products,
+            fromCache: true
         };
     }
+
+    // 2. Check sessionStorage cache
+    if (!forceRefresh) {
+        try {
+            const cachedRaw = sessionStorage.getItem('mangalam_cached_products');
+            if (cachedRaw) {
+                const parsed = JSON.parse(cachedRaw);
+                if (parsed && Array.isArray(parsed.data) && (now - parsed.timestamp < memoryCache.TTL)) {
+                    memoryCache.products = parsed.data;
+                    memoryCache.productsTimestamp = parsed.timestamp;
+                    return {
+                        success: true,
+                        data: parsed.data,
+                        fromCache: true
+                    };
+                }
+            }
+        } catch (e) {}
+    }
+
+    // 3. Check if request is already in-flight (Merge concurrent duplicate calls)
+    if (inFlightRequests.has('products')) {
+        return inFlightRequests.get('products');
+    }
+
+    const fetchPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/products`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok && (data.status || data.success)) {
+                const rawList = data.data || [];
+                const normalized = rawList.map(normalizeProduct).filter(Boolean);
+                memoryCache.products = normalized;
+                memoryCache.productsTimestamp = Date.now();
+                try {
+                    sessionStorage.setItem('mangalam_cached_products', JSON.stringify({
+                        data: normalized,
+                        timestamp: Date.now()
+                    }));
+                } catch (e) {}
+
+                return {
+                    success: true,
+                    data: normalized
+                };
+            }
+
+            return {
+                success: false,
+                data: []
+            };
+        } catch (err) {
+            console.error('API Fetch Products Error:', err);
+            // Return cached fallback if available
+            if (memoryCache.products) {
+                return { success: true, data: memoryCache.products, fromCache: true };
+            }
+            return {
+                success: false,
+                data: []
+            };
+        } finally {
+            inFlightRequests.delete('products');
+        }
+    })();
+
+    inFlightRequests.set('products', fetchPromise);
+    return fetchPromise;
 }
 
 /**

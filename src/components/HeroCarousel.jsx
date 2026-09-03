@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import HeroBanner from './HeroBanner';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function HeroCarousel({ setPage }) {
@@ -7,85 +6,26 @@ export default function HeroCarousel({ setPage }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
 
-    const categories = [
-        {
-            name: "Health Mix",
-            colorClass: "cat-health-mix",
-            icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-            ),
-            action: () => setPage('shop')
-        },
-        {
-            name: "Family Packs",
-            colorClass: "cat-family-packs",
-            icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                </svg>
-            ),
-            action: () => setPage('shop')
-        },
-        {
-            name: "Digestive Care",
-            colorClass: "cat-digestive-care",
-            icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-            ),
-            action: () => setPage('science')
-        },
-        {
-            name: "Monsoon Special",
-            colorClass: "cat-monsoon-special",
-            icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
-                    <path d="M16 14v6M8 14v6M12 16v6"></path>
-                </svg>
-            ),
-            action: () => setPage('shop')
-        },
-        {
-            name: "All Products",
-            colorClass: "cat-all-products",
-            icon: (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-            ),
-            action: () => setPage('shop')
-        }
-    ];
-
     const slides = [
         {
             id: 1,
-            pillBadge: t('heroSlide1Badge'),
-            title: t('heroSlide1Title'),
-            description: t('heroSlide1Desc'),
-            primaryCtaText: t('heroSlide1Cta'),
+            pillBadge: "LIMITED OFFER 25% OFF",
+            title: "Organic Sprouted Food For Your Family's Health",
+            description: "Save 25% on Freshly Prepared Sprouted Health Mix & Porridge",
+            primaryCtaText: "Shop Now",
             primaryCtaAction: () => setPage('shop'),
             image: "/assets/images/300g_amutham/amutham-01.jpg",
-            backgroundColor: "linear-gradient(135deg, #e4efe4 0%, #d8e7d7 100%)"
+            backgroundColor: "linear-gradient(135deg, #f25a2b 0%, #ea4f20 50%, #d73d10 100%)"
         },
         {
             id: 2,
-            pillBadge: t('heroSlide2Badge'),
-            title: t('heroSlide2Title'),
-            description: t('heroSlide2Desc'),
-            primaryCtaText: t('heroSlide2Cta'),
+            pillBadge: "HERITAGE SPECIAL 20% OFF",
+            title: "Traditional Sprouted Grains For Everyday Energy",
+            description: "100% Soak-Sprouted Ancient Grains Bio-Activated For Pure Wellness",
+            primaryCtaText: "Shop Now",
             primaryCtaAction: () => setPage('shop'),
             image: "/assets/images/300g_mangalam/Black Ulundhu Mix-10cm 12cm outline-01.jpg",
-            backgroundColor: "linear-gradient(135deg, #dce8db 0%, #d0e1cf 100%)"
+            backgroundColor: "linear-gradient(135deg, #1b5e3b 0%, #154c30 50%, #0d3822 100%)"
         }
     ];
 
@@ -98,71 +38,175 @@ export default function HeroCarousel({ setPage }) {
         return () => clearInterval(timer);
     }, [isPaused, slides.length]);
 
+    const activeSlide = slides[currentIndex];
+
     return (
         <section className="hero-main-wrapper">
             <div className="container">
 
-                {/* Clean Top Category Chips Bar */}
-                <div className="hero-category-row">
-                    {categories.map((cat, idx) => (
-                        <button key={idx} className={`category-circle-item ${cat.colorClass}`} onClick={cat.action}>
-                            <div className="category-circle-icon">
-                                {cat.icon}
-                            </div>
-                            <span className="category-circle-label">{cat.name}</span>
-                        </button>
-                    ))}
-                </div>
+                {/* 2-Column Split Hero Layout: Main Banner Left + 2 Stacked Promos Right */}
+                <div className="hero-grid-split">
 
-                {/* Single Full-Width Banner Slider (No Side Cards, No Navigation Arrows) */}
-                <div
-                    className="hero-slider-fullwidth-container"
-                    onMouseEnter={() => setIsPaused(true)}
-                    onMouseLeave={() => setIsPaused(false)}
-                >
-                    <div className="hero-slides-viewport">
-                        {slides.map((slide, index) => (
-                            <div
-                                key={slide.id}
-                                className="hero-slide-pane"
-                                style={{
-                                    display: index === currentIndex ? 'block' : 'none',
-                                    animation: 'heroSlideFade 0.8s cubic-bezier(0.25, 1, 0.5, 1)'
-                                }}
-                            >
-                                <HeroBanner {...slide} />
+                    {/* Left Main Hero Banner */}
+                    <div
+                        className="hero-main-carousel-col"
+                        style={{ background: activeSlide.backgroundColor }}
+                        onMouseEnter={() => setIsPaused(true)}
+                        onMouseLeave={() => setIsPaused(false)}
+                    >
+                        <div className="hero-main-slide-inner">
+                            <div className="hero-main-slide-content">
+                                <span className="hero-offer-badge">{activeSlide.pillBadge}</span>
+                                <h1 className="hero-main-title">{activeSlide.title}</h1>
+                                <p className="hero-main-desc">{activeSlide.description}</p>
+                                <button
+                                    type="button"
+                                    className="hero-main-shop-btn"
+                                    onClick={activeSlide.primaryCtaAction}
+                                >
+                                    <span>{activeSlide.primaryCtaText}</span>
+                                </button>
                             </div>
-                        ))}
+
+                            <div className="hero-main-slide-img-wrap">
+                                <img
+                                    src={activeSlide.image}
+                                    alt={activeSlide.title}
+                                    className="hero-main-slide-img"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Carousel Arrow Controls at Bottom Center */}
+                        <div className="hero-main-nav-arrows">
+                            <button
+                                type="button"
+                                className="hero-nav-arrow-btn"
+                                onClick={() => setCurrentIndex((currentIndex - 1 + slides.length) % slides.length)}
+                                aria-label="Previous Slide"
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                className="hero-nav-arrow-btn"
+                                onClick={() => setCurrentIndex((currentIndex + 1) % slides.length)}
+                                aria-label="Next Slide"
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Minimal Dots Pagination (No Arrows) */}
-                    <div className="hero-pagination-dots">
-                        {slides.map((_, index) => (
-                            <button
-                                key={index}
-                                onClick={() => setCurrentIndex(index)}
-                                className={`hero-dot-pill ${index === currentIndex ? 'active' : ''}`}
-                                aria-label={`Go to slide ${index + 1}`}
-                            />
-                        ))}
+                    {/* Right 2 Stacked Promo Cards */}
+                    <div className="hero-side-promos-col">
+                        {/* Top Promo Card */}
+                        <div className="hero-promo-card promo-card-green" onClick={() => setPage('shop')}>
+                            <div className="hero-promo-info">
+                                <span className="hero-promo-tag">Weekend Discount 20%</span>
+                                <h3 className="hero-promo-title">Everyday Fresh &amp; Clean Products</h3>
+                                <button type="button" className="hero-promo-btn btn-green">
+                                    <span>Shop Now</span>
+                                </button>
+                            </div>
+                            <div className="hero-promo-img-wrap">
+                                <img
+                                    src="/assets/images/300g_amutham/amutham-01.jpg"
+                                    alt="Fresh & Clean Products"
+                                    className="hero-promo-img"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Bottom Promo Card */}
+                        <div className="hero-promo-card promo-card-rose" onClick={() => setPage('shop')}>
+                            <div className="hero-promo-info">
+                                <span className="hero-promo-tag">Weekend Discount 20%</span>
+                                <h3 className="hero-promo-title">Traditional Health Mix Collection</h3>
+                                <button type="button" className="hero-promo-btn btn-coral">
+                                    <span>Shop Now</span>
+                                </button>
+                            </div>
+                            <div className="hero-promo-img-wrap">
+                                <img
+                                    src="/assets/images/300g_mangalam/Black Ulundhu Mix-10cm 12cm outline-01.jpg"
+                                    alt="Traditional Mix"
+                                    className="hero-promo-img"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {/* 4 Feature / Trust Badges in Colorful Pastel Cards (Matching Reference) */}
+                <div className="hero-feature-badges-grid">
+                    {/* Card 1: Mega Discounts */}
+                    <div className="hero-feature-badge-card card-mint">
+                        <div className="hero-feature-badge-icon icon-mint">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                            </svg>
+                        </div>
+                        <div className="hero-feature-badge-text">
+                            <h4 className="hero-feature-badge-title">Mega Discounts</h4>
+                            <p className="hero-feature-badge-sub">When sign up</p>
+                        </div>
+                    </div>
+
+                    {/* Card 2: Free Delivery */}
+                    <div className="hero-feature-badge-card card-yellow">
+                        <div className="hero-feature-badge-icon icon-yellow">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="1" y="3" width="15" height="13"></rect>
+                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                            </svg>
+                        </div>
+                        <div className="hero-feature-badge-text">
+                            <h4 className="hero-feature-badge-title">Free Delivery</h4>
+                            <p className="hero-feature-badge-sub">24/7 amazing services</p>
+                        </div>
+                    </div>
+
+                    {/* Card 3: Secured Payment */}
+                    <div className="hero-feature-badge-card card-purple">
+                        <div className="hero-feature-badge-icon icon-purple">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                                <line x1="2" y1="10" x2="22" y2="10"></line>
+                                <circle cx="6" cy="15" r="1"></circle>
+                                <circle cx="10" cy="15" r="1"></circle>
+                            </svg>
+                        </div>
+                        <div className="hero-feature-badge-text">
+                            <h4 className="hero-feature-badge-title">Secured Payment</h4>
+                            <p className="hero-feature-badge-sub">We accept all credit cards</p>
+                        </div>
+                    </div>
+
+                    {/* Card 4: Easy Returns */}
+                    <div className="hero-feature-badge-card card-pink">
+                        <div className="hero-feature-badge-icon icon-pink">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                        </div>
+                        <div className="hero-feature-badge-text">
+                            <h4 className="hero-feature-badge-title">Easy Returns</h4>
+                            <p className="hero-feature-badge-sub">30-days free return policy</p>
+                        </div>
                     </div>
                 </div>
 
             </div>
-
-            <style>{`
-                @keyframes heroSlideFade {
-                    0% {
-                        opacity: 0;
-                        transform: scale(0.985) translateY(3px);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: scale(1) translateY(0);
-                    }
-                }
-            `}</style>
         </section>
     );
 }
-

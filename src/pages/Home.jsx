@@ -21,7 +21,7 @@ export default function Home({
     const [newsletterEmail, setNewsletterEmail] = useState('');
     const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
 
-    // Dynamic Products State - 100% API Driven
+    // Dynamic Products State - Powered by App-level state & Instant Cache
     const [productList, setProductList] = useState(propProducts || []);
     const [loadingProducts, setLoadingProducts] = useState(propLoading !== undefined ? propLoading : (!propProducts || propProducts.length === 0));
 
@@ -29,33 +29,37 @@ export default function Home({
         if (propProducts && propProducts.length > 0) {
             setProductList(propProducts);
             setLoadingProducts(false);
-        } else {
-            async function loadProducts() {
-                setLoadingProducts(true);
-                const res = await fetchProductsApi();
-                if (res.success && res.data) {
-                    setProductList(res.data);
+        } else if (!propProducts || propProducts.length === 0) {
+            if (propLoading === false) {
+                let isMounted = true;
+                async function loadProducts() {
+                    const res = await fetchProductsApi();
+                    if (isMounted && res.success && res.data) {
+                        setProductList(res.data);
+                    }
+                    if (isMounted) setLoadingProducts(false);
                 }
-                setLoadingProducts(false);
+                loadProducts();
+                return () => { isMounted = false; };
             }
-            loadProducts();
         }
-    }, [propProducts]);
+    }, [propProducts, propLoading]);
 
-    // Dynamic Categories State - 100% API Driven (No static data)
+    // Dynamic Categories State - 100% API Driven with Instant Storage Cache
     const [categoryItems, setCategoryItems] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
         async function loadCategories() {
-            setLoadingCategories(true);
             const res = await fetchCategoriesApi();
-            if (res.success && res.data) {
+            if (isMounted && res.success && res.data) {
                 setCategoryItems(res.data);
             }
-            setLoadingCategories(false);
+            if (isMounted) setLoadingCategories(false);
         }
         loadCategories();
+        return () => { isMounted = false; };
     }, []);
 
     const handleCategoryClick = (catName) => {
@@ -92,30 +96,8 @@ export default function Home({
     return (
         <main style={{ width: '100%' }}>
 
-            {/* Multi-banner interactive Hero Carousel */}
+            {/* Multi-banner interactive Hero Carousel with 2-Column Split & 4 Pastel Feature Badges */}
             <HeroCarousel setPage={setPage} />
-
-            {/* Trust Badges Bar */}
-            <section style={{ background: 'var(--color-primary-light)', padding: '24px 0', borderBottom: '1px solid rgba(7, 56, 32, 0.05)' }}>
-                <div className="container trust-badges-container" style={{ display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🌱</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('badgeSprouted')}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🚫</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('badgeNoChemicals')}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🚚</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('badgeFreeShipping')}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '1.5rem' }}>🛡️</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('badgeCertified')}</span>
-                    </div>
-                </div>
-            </section>
 
             {/* Shop by Category Section (Exact Reference Image Structure) */}
             <section className="shop-by-category-section reveal-on-scroll" id="shop-by-category">
@@ -183,7 +165,6 @@ export default function Home({
                                             />
                                         </div>
                                         <h3 className="category-ref-card-title">{cat.name}</h3>
-                                        <p className="category-ref-card-desc">{cat.description || cat.desc}</p>
                                     </div>
                                 );
                             })
@@ -197,12 +178,12 @@ export default function Home({
                 </div>
             </section>
 
-            {/* Section 1: About Mangalam Healthy Foods (Clean, Minimal & Informative Format with PDF Journey) */}
+            {/* Section 1: About Mangalam Healthy Foods (Clean, Minimal & Informative Format with PDF Journey) - Hidden for now */}
+            {/*
             <section className="about-minimal-section" id="about-mangalam">
                 <div className="container">
                     <div className="about-minimal-grid">
 
-                        {/* Left Side: Clean Informative Copy & Highlights */}
                         <div className="about-minimal-left">
                             <span className="about-minimal-tag">{t('aboutTag')}</span>
                             <h2 className="about-minimal-title">
@@ -212,7 +193,6 @@ export default function Home({
                                 {t('aboutDesc')}
                             </p>
 
-                            {/* Informative Key Points */}
                             <div className="about-info-list">
                                 <div className="about-info-item">
                                     <div className="about-info-check">✓</div>
@@ -245,7 +225,6 @@ export default function Home({
                             </button>
                         </div>
 
-                        {/* Right Side: Clean Rounded Photo Frame */}
                         <div className="about-minimal-right">
                             <div className="about-minimal-img-frame">
                                 <img
@@ -258,9 +237,10 @@ export default function Home({
                     </div>
                 </div>
             </section>
+            */}
 
             {/* Section 2: Product Showcase (Official API Product Cards) */}
-            <section className="rituals-section" id="our-products" style={{ padding: '45px 0', background: 'linear-gradient(180deg, #e4efe3 0%, #d8ebd6 100%)' }}>
+            <section className="rituals-section" id="our-products" style={{ padding: '45px 0', background: 'transparent' }}>
                 <div className="container">
                     <div className="section-header" style={{ marginBottom: '28px' }}>
                         <span className="section-subtitle">{t('productSectionSub')}</span>
