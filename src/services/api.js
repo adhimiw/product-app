@@ -120,6 +120,127 @@ export async function loginApi({ email, password }) {
     }
 }
 
+/**
+ * Send 6-digit OTP for Forgot Password flow
+ * @param {Object} payload - { email }
+ */
+export async function sendForgotPasswordOtpApi({ email }) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/forgot-password/send-otp`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                message: data.message || 'Failed to send OTP',
+                errors: data.errors || null,
+                cooldown_seconds: data.data?.cooldown_seconds || 60
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message || 'A 6-digit verification code has been sent to your email.',
+            data: data.data
+        };
+    } catch (err) {
+        console.error('API sendForgotPasswordOtp Error:', err);
+        return {
+            success: false,
+            message: 'Unable to connect to authentication server. Please ensure the backend server is running.',
+            errors: null
+        };
+    }
+}
+
+/**
+ * Verify 6-digit OTP for Forgot Password flow
+ * @param {Object} payload - { email, otp }
+ */
+export async function verifyForgotPasswordOtpApi({ email, otp }) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/forgot-password/verify-otp`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ email, otp })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                message: data.message || 'Invalid or expired OTP',
+                errors: data.errors || null,
+                remaining_attempts: data.data?.remaining_attempts
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message || 'OTP verified successfully.',
+            data: data.data
+        };
+    } catch (err) {
+        console.error('API verifyForgotPasswordOtp Error:', err);
+        return {
+            success: false,
+            message: 'Unable to connect to authentication server. Please ensure the backend server is running.',
+            errors: null
+        };
+    }
+}
+
+/**
+ * Reset Password using verified reset_token
+ * @param {Object} payload - { email, reset_token, password, password_confirmation }
+ */
+export async function resetForgotPasswordApi({ email, reset_token, password, password_confirmation }) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/forgot-password/reset-password`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                email,
+                reset_token,
+                password,
+                password_confirmation
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                message: data.message || 'Password reset failed',
+                errors: data.errors || null
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message || 'Your password has been reset successfully.',
+            data: data.data
+        };
+    } catch (err) {
+        console.error('API resetForgotPassword Error:', err);
+        return {
+            success: false,
+            message: 'Unable to connect to authentication server. Please ensure the backend server is running.',
+            errors: null
+        };
+    }
+}
+
 // In-Flight Promise De-duplication Cache (Prevents simultaneous duplicate network requests)
 const inFlightRequests = new Map();
 

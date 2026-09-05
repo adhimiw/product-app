@@ -30,6 +30,14 @@ export default function AdminLayout({
     useEffect(() => {
         try {
             localStorage.setItem('mangalam_admin_theme', theme);
+            document.documentElement.setAttribute('data-theme', theme);
+            if (theme === 'dark') {
+                document.documentElement.classList.add('admin-theme-dark');
+                document.documentElement.classList.remove('admin-theme-light');
+            } else {
+                document.documentElement.classList.add('admin-theme-light');
+                document.documentElement.classList.remove('admin-theme-dark');
+            }
         } catch (e) {
             console.error('Failed to save theme in localStorage', e);
         }

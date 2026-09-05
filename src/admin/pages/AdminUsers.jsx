@@ -348,15 +348,15 @@ export default function AdminUsers() {
                                 <tr>
                                     <td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>
                                         <div className="admin-spinner-inline"></div>
-                                        <p style={{ marginTop: '10px', color: '#64748b', fontSize: '0.84rem' }}>Loading user directory...</p>
+                                        <p style={{ marginTop: '10px', color: 'var(--admin-text-muted)', fontSize: '0.84rem' }}>Loading user directory...</p>
                                     </td>
                                 </tr>
                             ) : users.length === 0 ? (
                                 <tr>
                                     <td colSpan="7" style={{ textAlign: 'center', padding: '48px 20px' }}>
                                         <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👥</div>
-                                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1e293b', margin: '0 0 6px 0' }}>No matching accounts found</h3>
-                                        <p style={{ fontSize: '0.84rem', color: '#64748b', margin: 0 }}>
+                                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--admin-text-main)', margin: '0 0 6px 0' }}>No matching accounts found</h3>
+                                        <p style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)', margin: 0 }}>
                                             Try adjusting your search keywords or filter settings.
                                         </p>
                                     </td>
@@ -376,8 +376,8 @@ export default function AdminUsers() {
                                                     <div 
                                                         className="admin-user-avatar"
                                                         style={{
-                                                            background: isBlocked ? '#fee2e2' : isVendor ? '#f3e8ff' : '#ecfdf5',
-                                                            color: isBlocked ? '#dc2626' : isVendor ? '#9333ea' : '#059669'
+                                                            background: isBlocked ? 'var(--admin-danger-bg)' : isVendor ? 'rgba(147, 51, 234, 0.12)' : 'var(--admin-success-bg)',
+                                                            color: isBlocked ? 'var(--admin-danger-text)' : isVendor ? '#9333ea' : 'var(--admin-success-text)'
                                                         }}
                                                     >
                                                         {getInitials(user.full_name)}
@@ -441,17 +441,17 @@ export default function AdminUsers() {
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: '#1e293b' }}>
+                                                    <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--admin-text-main)' }}>
                                                         {orderCount} {orderCount === 1 ? 'Order' : 'Orders'}
                                                     </span>
                                                     {totalSpent > 0 && (
-                                                        <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 600 }}>
+                                                        <span style={{ fontSize: '0.78rem', color: 'var(--admin-primary)', fontWeight: 600 }}>
                                                             ₹{totalSpent.toFixed(2)} spent
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                                            <td style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>
                                                 {user.created_at ? new Date(user.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                                             </td>
                                             <td style={{ textAlign: 'center' }}>
@@ -776,15 +776,15 @@ export default function AdminUsers() {
                                         width: '52px',
                                         height: '52px',
                                         fontSize: '1.25rem',
-                                        background: viewingUser.is_blocked ? '#fee2e2' : '#ecfdf5',
-                                        color: viewingUser.is_blocked ? '#dc2626' : '#059669'
+                                        background: viewingUser.is_blocked ? 'var(--admin-danger-bg)' : 'var(--admin-success-bg)',
+                                        color: viewingUser.is_blocked ? 'var(--admin-danger-text)' : 'var(--admin-success-text)'
                                     }}
                                 >
                                     {getInitials(viewingUser.full_name)}
                                 </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#1e293b' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--admin-text-main)' }}>
                                             {viewingUser.full_name || 'Unnamed User'}
                                         </h3>
                                         <span className={`admin-badge ${viewingUser.role === 3 ? 'admin-badge-vendor' : 'admin-badge-customer'}`}>
@@ -794,7 +794,7 @@ export default function AdminUsers() {
                                             <span className="admin-badge admin-badge-danger">Suspended</span>
                                         )}
                                     </div>
-                                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>{viewingUser.email}</p>
+                                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>{viewingUser.email}</p>
                                 </div>
                             </div>
 
@@ -843,13 +843,13 @@ export default function AdminUsers() {
                                         {viewingUser.addresses.map((addr, idx) => (
                                             <div key={addr.id || idx} className="admin-user-address-card">
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                    <strong style={{ color: '#1e293b' }}>{addr.full_name || addr.name}</strong>
+                                                    <strong style={{ color: 'var(--admin-text-main)' }}>{addr.full_name || addr.name}</strong>
                                                     <span className="admin-badge admin-badge-neutral">{addr.type || 'Home'}</span>
                                                 </div>
-                                                <p style={{ margin: '0 0 4px 0', color: '#475569' }}>
+                                                <p style={{ margin: '0 0 4px 0', color: 'var(--admin-text-secondary)' }}>
                                                     {addr.address_line1 || addr.line1}, {addr.city}, {addr.state} - {addr.pincode}
                                                 </p>
-                                                <span style={{ color: '#64748b' }}>📞 {addr.phone_number}</span>
+                                                <span style={{ color: 'var(--admin-text-muted)' }}>📞 {addr.phone_number}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -864,13 +864,13 @@ export default function AdminUsers() {
                                         {viewingUser.orders.map(order => (
                                             <div key={order.id} className="admin-user-order-card">
                                                 <div>
-                                                    <strong style={{ fontSize: '0.84rem', color: '#1e293b' }}>#{order.order_number || order.id}</strong>
-                                                    <span style={{ fontSize: '0.76rem', color: '#64748b', display: 'block' }}>
+                                                    <strong style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)' }}>#{order.order_number || order.id}</strong>
+                                                    <span style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', display: 'block' }}>
                                                         {new Date(order.created_at).toLocaleDateString('en-IN')}
                                                     </span>
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
-                                                    <strong style={{ fontSize: '0.88rem', color: '#059669' }}>₹{order.total_amount}</strong>
+                                                    <strong style={{ fontSize: '0.88rem', color: 'var(--admin-primary)' }}>₹{order.total_amount}</strong>
                                                     <span className="admin-badge admin-badge-success" style={{ display: 'block', marginTop: '2px', fontSize: '0.68rem' }}>
                                                         {order.order_status || 'Confirmed'}
                                                     </span>

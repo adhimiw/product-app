@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
@@ -16,10 +17,17 @@ use App\Http\Controllers\Api\V1\HealthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Authentication routes (Throttled for security against brute-force)
+// Authentication & Password Reset routes (Throttled for security against brute-force)
 Route::middleware('throttle:10,1')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Dedicated Forgot Password Endpoints
+    Route::prefix('forgot-password')->group(function () {
+        Route::post('/send-otp', [ForgotPasswordController::class, 'sendOtp']);
+        Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp']);
+        Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword']);
+    });
 });
 
 // Dynamic Cart APIs (Support both Authenticated and Guest Users)

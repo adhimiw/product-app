@@ -25,7 +25,11 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
     });
     const [activeTab, setActiveTab] = useState(() => {
         const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-        const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
+        let sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim().toLowerCase();
+        if (!sub && pathname.startsWith('/')) {
+            sub = pathname.substring(1).split('/')[0].trim().toLowerCase();
+        }
+        if (sub === 'branding') sub = 'settings';
         const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
         if (valid.includes(sub)) return sub;
         return initialTab || 'dashboard';
@@ -46,7 +50,8 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
     // Sync with external route changes
     useEffect(() => {
         if (initialTab && initialTab !== activeTab) {
-            setActiveTab(initialTab);
+            const normalized = initialTab === 'branding' ? 'settings' : initialTab;
+            setActiveTab(normalized);
         }
     }, [initialTab]);
 
@@ -54,12 +59,14 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
     useEffect(() => {
         const handleAdminPopState = () => {
             const pathname = window.location.pathname;
-            if (pathname.startsWith('/admin')) {
-                const sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim();
-                const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
-                const targetTab = valid.includes(sub) ? sub : 'dashboard';
-                setActiveTab(targetTab);
+            let sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim().toLowerCase();
+            if (!sub && pathname.startsWith('/')) {
+                sub = pathname.substring(1).split('/')[0].trim().toLowerCase();
             }
+            if (sub === 'branding') sub = 'settings';
+            const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
+            const targetTab = valid.includes(sub) ? sub : 'dashboard';
+            setActiveTab(targetTab);
         };
 
         window.addEventListener('popstate', handleAdminPopState);

@@ -890,3 +890,100 @@
         gap: 4px;
     }
 }
+
+/* ==========================================================================
+   WHATSAPP CRM DARK THEME OVERRIDES
+   ========================================================================== */
+.admin-theme-dark .admin-whatsapp-container,
+[data-theme="dark"] .admin-whatsapp-container,
+[data-admin-theme="dark"] .admin-whatsapp-container {
+    background: #111827;
+    border-color: #1F2937;
+    color: #F9FAFB;
+}
+
+.admin-theme-dark .wa-toolbar,
+[data-theme="dark"] .wa-toolbar {
+    background: #0D131F;
+    border-color: #1F2937;
+}
+
+.admin-theme-dark .forge-chat-sidebar,
+[data-theme="dark"] .forge-chat-sidebar {
+    background: #111827;
+    border-color: #1F2937;
+}
+
+.admin-theme-dark .forge-chat-main,
+[data-theme="dark"] .forge-chat-main {
+    background: #090D16;
+}
+
+.admin-theme-dark .forge-chat-header,
+[data-theme="dark"] .forge-chat-header {
+    background: #111827;
+    border-color: #1F2937;
+    color: #F9FAFB;
+}
+
+.admin-theme-dark .forge-chat-input-area,
+[data-theme="dark"] .forge-chat-input-area {
+    background: #111827;
+    border-color: #1F2937;
+}
+
+.admin-theme-dark .forge-chat-input,
+[data-theme="dark"] .forge-chat-input {
+    background: #1F2937;
+    border-color: #374151;
+    color: #F9FAFB;
+}
+
+.admin-theme-dark .forge-chat-crm-panel,
+[data-theme="dark"] .forge-chat-crm-panel {
+    background: #111827;
+    border-color: #1F2937;
+    color: #F9FAFB;
+}
+
+.admin-theme-dark .forge-crm-card,
+[data-theme="dark"] .forge-crm-card {
+    background: #1F2937;
+    border-color: #374151;
+}
+
+.admin-theme-dark .forge-conversation-item,
+[data-theme="dark"] .forge-conversation-item {
+    border-color: #1F2937;
+}
+
+.admin-theme-dark .forge-conversation-item:hover,
+[data-theme="dark"] .forge-conversation-item:hover {
+    background: #1E293B;
+}
+
+.admin-theme-dark .forge-conversation-item.active,
+[data-theme="dark"] .forge-conversation-item.active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.admin-theme-dark .forge-msg-bubble.incoming,
+[data-theme="dark"] .forge-msg-bubble.incoming {
+    background: #1F2937;
+    color: #F9FAFB;
+}
+
+.admin-theme-dark .forge-qr-modal,
+[data-theme="dark"] .forge-qr-modal {
+    background: #111827;
+    border: 1px solid #1F2937;
+    color: #F9FAFB;
+}
+
+.admin-theme-dark .forge-qr-container,
+[data-theme="dark"] .forge-qr-container {
+    background: #0B1120;
+    border-color: #374151;
+}
+

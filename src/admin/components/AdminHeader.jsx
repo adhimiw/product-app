@@ -1,40 +1,42 @@
 import React from 'react';
 import ThemeSwitcher from './ThemeSwitcher';
+import { Menu, ExternalLink, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function AdminHeader({
     activeTab,
     onToggleMobileSidebar,
+    onGoToStore,
     theme,
     onToggleTheme
 }) {
     const titleMap = {
         dashboard: {
             title: 'Overview Dashboard',
-            subtitle: 'Real-time sales performance, revenue timeline, and recent orders'
+            badge: 'Real-time'
         },
         categories: {
-            title: 'Categories Management',
-            subtitle: 'Organize store taxonomy, upload media, and manage active status'
+            title: 'Categories Directory',
+            badge: 'Taxonomy'
         },
         products: {
-            title: 'Products Management',
-            subtitle: 'Manage catalog inventory, variants, pricing, discounts, and binary media'
+            title: 'Products Inventory',
+            badge: 'Catalog'
         },
         orders: {
             title: 'Orders Management',
-            subtitle: 'Track dispatch status, filter customer orders, and update statuses'
+            badge: 'Dispatches'
         },
         users: {
             title: 'User Management',
-            subtitle: 'Manage registered customer accounts (Role 2) and vendor partners (Role 3)'
+            badge: 'Directory'
         },
         settings: {
             title: 'Logo & Branding',
-            subtitle: 'Manage storefront logos, dark/light branding, and brand assets'
+            badge: 'Settings'
         },
         whatsapp: {
-            title: 'WhatsApp & Live Chat CRM',
-            subtitle: 'Real-time customer WhatsApp messaging, automated order alerts, and OpenWA gateway'
+            title: 'WhatsApp & Live CRM',
+            badge: 'OpenWA'
         }
     };
 
@@ -42,24 +44,40 @@ export default function AdminHeader({
 
     return (
         <header className="admin-topbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="admin-topbar-left">
                 <button 
                     type="button"
                     className="admin-mobile-toggle"
                     onClick={onToggleMobileSidebar}
                     aria-label="Toggle navigation menu"
                 >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
+                    <Menu size={18} />
                 </button>
+
+                <div className="admin-topbar-breadcrumb">
+                    <span className="admin-topbar-brand-tag">Mangalam Admin</span>
+                    <span className="admin-topbar-sep">/</span>
+                    <span className="admin-topbar-current">{currentMeta.title}</span>
+                    <span className="admin-topbar-pill">{currentMeta.badge}</span>
+                </div>
             </div>
 
             <div className="admin-topbar-actions">
+                {/* Live Store Button */}
+                {onGoToStore && (
+                    <button
+                        type="button"
+                        className="admin-btn admin-btn-view-store"
+                        onClick={onGoToStore}
+                        title="View Live Storefront"
+                    >
+                        <ExternalLink size={13} />
+                        <span>Live Store</span>
+                    </button>
+                )}
+
                 {/* Theme Switcher */}
-                <ThemeSwitcher theme={theme} onToggleTheme={onToggleTheme} />
+                <ThemeSwitcher theme={theme} onToggleTheme={onToggleTheme} onToggle={onToggleTheme} />
             </div>
         </header>
     );
