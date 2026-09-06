@@ -75,7 +75,7 @@ class CartFavoriteService
     public function formatCartResponse(array $actor): array
     {
         $items = $this->getCartQuery($actor)
-            ->with(['product.category', 'packageSize'])
+            ->with(['product.category', 'product.packageSizes', 'packageSize'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -90,11 +90,14 @@ class CartFavoriteService
             }
 
             $packageSize = $item->packageSize;
+            if (!$packageSize && $product->packageSizes && $product->packageSizes->isNotEmpty()) {
+                $packageSize = $product->packageSizes->first();
+            }
             
-            // Determine unit price
-            if ($packageSize && !empty($packageSize->variant_price)) {
+            // Determine unit price - Always prioritize package size variant_price
+            if ($packageSize && $packageSize->variant_price !== null && $packageSize->variant_price !== '') {
                 $unitPrice = (float) $packageSize->variant_price;
-                $regularPrice = (float) ($product->actual_price ?: $unitPrice);
+                $regularPrice = (float) ($packageSize->variant_price ?: ($product->actual_price ?: $unitPrice));
                 $sizeLabel = $packageSize->size_number . $packageSize->size_unit;
             } else {
                 $unitPrice = (float) ($product->actual_price ?: 0);
@@ -113,9 +116,11 @@ class CartFavoriteService
             $formattedItems[] = [
                 'id'              => $item->id,
                 'product_id'      => $product->id,
-                'package_size_id' => $item->package_size_id,
+                'package_size_id' => $packageSize ? $packageSize->id : $item->package_size_id,
                 'quantity'        => $item->quantity,
                 'unit_price'      => $unitPrice,
+                'price'           => $unitPrice,
+                'variant_price'   => $unitPrice,
                 'regular_price'   => $regularPrice,
                 'subtotal'        => round($itemSubtotal, 2),
                 'size_label'      => $sizeLabel,
@@ -126,7 +131,9 @@ class CartFavoriteService
                     'category'     => ($product->category instanceof \App\Models\Category ? $product->category->name : ($product->category ?: 'General')),
                     'image'        => $primaryImage,
                     'actual_price' => $unitPrice,
-                    'stock'        => $product->stock,
+                    'price'        => $unitPrice,
+                    'variant_price'=> $unitPrice,
+                    'stock'        => $packageSize && $packageSize->stock !== null ? $packageSize->stock : $product->stock,
                     'discount'     => $product->discount,
                 ],
                 'created_at'      => $item->created_at?->toISOString(),

@@ -27,11 +27,12 @@ class ProductPackageSizeResource extends JsonResource
         }, $rawImages);
 
         return [
-            'id'             => $this->size_key ?? ('pkg-' . $this->id),
-            'db_id'          => $this->id,
+            'id'             => (int) $this->id,
+            'db_id'          => (int) $this->id,
+            'size_key'       => $this->size_key ?? ('pkg-' . $this->id),
             'size_number'    => $this->size_number,
             'size_unit'      => $this->size_unit,
-            'variant_price'  => $this->variant_price,
+            'variant_price'  => (float) $this->variant_price,
             'variant_badge'  => $this->variant_badge,
             'discount_type'  => $this->discount_type,
             'discount_value' => $this->discount_value,

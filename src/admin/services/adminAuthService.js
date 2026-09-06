@@ -58,10 +58,14 @@ export const adminAuthService = {
                 const adminUser = {
                     id: apiUser.id,
                     name: apiUser.full_name || apiUser.name || 'Super Admin',
+                    full_name: apiUser.full_name || apiUser.name || 'Super Admin',
                     email: apiUser.email,
+                    contact_number: apiUser.contact_number || '',
+                    whatsapp_number: apiUser.whatsapp_number || '',
                     role: 'Super Admin',
                     role_id: userRole,
-                    avatarUrl: null
+                    user_profile: apiUser.user_profile || null,
+                    avatarUrl: apiUser.user_profile || null
                 };
 
                 const sessionData = {
@@ -92,9 +96,13 @@ export const adminAuthService = {
                 const mockUser = {
                     id: 2,
                     name: 'Super Admin',
+                    full_name: 'Super Admin',
                     email: cleanEmail,
+                    contact_number: '1234567890',
+                    whatsapp_number: '1234567890',
                     role: 'Super Admin',
                     role_id: 1,
+                    user_profile: null,
                     avatarUrl: null
                 };
                 const mockToken = 'sanctum_token_fallback_' + Date.now();
@@ -132,6 +140,100 @@ export const adminAuthService = {
             return JSON.parse(data);
         } catch {
             return null;
+        }
+    },
+
+    /**
+     * Update session user data in localStorage.
+     */
+    updateSessionUser(updatedUserFields) {
+        try {
+            const session = this.getCurrentSession();
+            if (!session) return null;
+            session.user = { ...session.user, ...updatedUserFields };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+            return session.user;
+        } catch {
+            return null;
+        }
+    },
+
+    /**
+     * Fetch current admin profile from API.
+     */
+    async getProfile() {
+        const url = (import.meta.env.VITE_API_BASE_URL || '/api') + '/admin/profile';
+        try {
+            const response = await fetch(url, {
+                headers: this.getAuthHeaders()
+            });
+            const data = await response.json();
+            if (response.ok && data.status && data.data) {
+                const p = data.data;
+                const updated = {
+                    id: p.id,
+                    name: p.full_name,
+                    full_name: p.full_name,
+                    email: p.email,
+                    contact_number: p.contact_number || '',
+                    whatsapp_number: p.whatsapp_number || '',
+                    role: 'Super Admin',
+                    role_id: p.role,
+                    user_profile: p.user_profile || null,
+                    avatarUrl: p.user_profile || null
+                };
+                this.updateSessionUser(updated);
+                return { success: true, data: p, user: updated };
+            }
+            return { success: false, error: data.message || 'Failed to fetch profile' };
+        } catch (err) {
+            console.error('getProfile error:', err);
+            const session = this.getCurrentSession();
+            return { success: !!session, data: session?.user || null, user: session?.user || null };
+        }
+    },
+
+    /**
+     * Update admin profile via API (supports multipart FormData for profile image).
+     * @param {FormData|object} payload 
+     */
+    async updateProfile(payload) {
+        const url = (import.meta.env.VITE_API_BASE_URL || '/api') + '/admin/profile';
+        try {
+            const isFormData = payload instanceof FormData;
+            const headers = this.getAuthHeaders();
+            if (isFormData) {
+                delete headers['Content-Type']; // Let browser set boundary
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: isFormData ? payload : JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (response.ok && data.status && data.data) {
+                const p = data.data;
+                const updated = {
+                    id: p.id,
+                    name: p.full_name,
+                    full_name: p.full_name,
+                    email: p.email,
+                    contact_number: p.contact_number || '',
+                    whatsapp_number: p.whatsapp_number || '',
+                    role: 'Super Admin',
+                    role_id: p.role,
+                    user_profile: p.user_profile || null,
+                    avatarUrl: p.user_profile || null
+                };
+                this.updateSessionUser(updated);
+                return { success: true, message: data.message, data: p, user: updated };
+            }
+            return { success: false, error: data.message || 'Failed to update profile' };
+        } catch (err) {
+            console.error('updateProfile error:', err);
+            return { success: false, error: err.message || 'Network error updating profile' };
         }
     },
 

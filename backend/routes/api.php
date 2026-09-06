@@ -79,12 +79,27 @@ Route::apiResource('products', ProductController::class);
 
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\BrandingSettingController as AdminBrandingSettingController;
+use App\Http\Controllers\Api\Admin\MarqueeController as AdminMarqueeController;
+use App\Http\Controllers\Api\Admin\ContactQueryController as AdminContactQueryController;
+use App\Http\Controllers\Api\Admin\BannerController as AdminBannerController;
 use App\Http\Controllers\Api\BrandingController;
+use App\Http\Controllers\Api\MarqueeController;
+use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\Admin\WhatsAppController as AdminWhatsAppController;
 use App\Http\Controllers\Api\WhatsAppWebhookController;
 
 // Public Branding Configuration API
 Route::get('/branding', [BrandingController::class, 'index']);
+
+// Public Marquee Announcements API
+Route::get('/marquee', [MarqueeController::class, 'index']);
+
+// Public Hero Banners Carousel API
+Route::get('/banners', [BannerController::class, 'index']);
+
+// Public Contact & Customer Queries API
+Route::post('/contact', [ContactController::class, 'store']);
 
 // Public Webhook for OpenWA Inbound Messages
 Route::post('/webhooks/openwa', [WhatsAppWebhookController::class, 'handle']);
@@ -92,6 +107,42 @@ Route::post('/webhooks/openwa', [WhatsAppWebhookController::class, 'handle']);
 // Admin routes
 Route::prefix('admin')->group(function () {
     Route::apiResource('categories', AdminCategoryController::class);
+
+    // Admin Hero Banners Management routes
+    Route::prefix('banners')->group(function () {
+        Route::get('/', [AdminBannerController::class, 'index']);
+        Route::post('/', [AdminBannerController::class, 'store']);
+        Route::get('/{id}', [AdminBannerController::class, 'show']);
+        Route::post('/{id}', [AdminBannerController::class, 'update']);
+        Route::put('/{id}', [AdminBannerController::class, 'update']);
+        Route::delete('/{id}', [AdminBannerController::class, 'destroy']);
+        Route::patch('/{id}/status', [AdminBannerController::class, 'updateStatus']);
+        Route::post('/{id}/status', [AdminBannerController::class, 'updateStatus']);
+        Route::post('/reorder', [AdminBannerController::class, 'reorder']);
+    });
+
+    // Admin Customer Queries Management routes
+    Route::prefix('queries')->group(function () {
+        Route::get('/', [AdminContactQueryController::class, 'index']);
+        Route::get('/{id}', [AdminContactQueryController::class, 'show']);
+        Route::put('/{id}/status', [AdminContactQueryController::class, 'updateStatus']);
+        Route::post('/{id}/reply', [AdminContactQueryController::class, 'reply']);
+        Route::delete('/{id}', [AdminContactQueryController::class, 'destroy']);
+        Route::post('/bulk-status', [AdminContactQueryController::class, 'bulkStatus']);
+        Route::post('/bulk-delete', [AdminContactQueryController::class, 'bulkDestroy']);
+    });
+
+    // Admin Marquee Management routes
+    Route::prefix('marquees')->group(function () {
+        Route::get('/', [AdminMarqueeController::class, 'index']);
+        Route::post('/', [AdminMarqueeController::class, 'store']);
+        Route::get('/{id}', [AdminMarqueeController::class, 'show']);
+        Route::put('/{id}', [AdminMarqueeController::class, 'update']);
+        Route::delete('/{id}', [AdminMarqueeController::class, 'destroy']);
+        Route::patch('/{id}/toggle', [AdminMarqueeController::class, 'toggleStatus']);
+        Route::post('/toggle-global', [AdminMarqueeController::class, 'toggleGlobalVisibility']);
+        Route::post('/reorder', [AdminMarqueeController::class, 'reorder']);
+    });
 
     // Admin Branding & Logo Settings routes
     Route::prefix('settings')->group(function () {
@@ -118,6 +169,10 @@ Route::prefix('admin')->group(function () {
     Route::put('users/{id}', [AdminUserController::class, 'update']);
     Route::post('users/{id}/toggle-block', [AdminUserController::class, 'toggleBlock']);
     Route::delete('users/{id}', [AdminUserController::class, 'destroy']);
+
+    // Admin Self Profile Management routes
+    Route::get('profile', [AdminUserController::class, 'getAdminProfile']);
+    Route::post('profile', [AdminUserController::class, 'updateAdminProfile']);
 
     // Admin Analytics routes
     Route::prefix('analytics')->group(function () {

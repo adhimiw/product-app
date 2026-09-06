@@ -62,6 +62,7 @@ class UserController extends Controller
                 'email'           => $user->email,
                 'whatsapp_number' => $user->whatsapp_number,
                 'contact_number'  => $user->contact_number,
+                'user_profile'    => $user->user_profile,
                 'created_at'      => $user->created_at,
             ],
         ]);
@@ -73,9 +74,11 @@ class UserController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'full_name'       => 'required|string|max:255',
-            'whatsapp_number' => 'nullable|string|max:20',
-            'contact_number'  => 'nullable|string|max:20',
+            'full_name'            => 'required|string|max:255',
+            'whatsapp_number'      => 'nullable|string|max:20',
+            'contact_number'       => 'nullable|string|max:20',
+            'user_profile'         => 'nullable',
+            'remove_profile_image' => 'nullable',
         ]);
 
         $user = $this->getAuthUser($request);
@@ -91,6 +94,18 @@ class UserController extends Controller
             $user->contact_number = $phone;
         }
 
+        if ($request->boolean('remove_profile_image') || $request->input('user_profile') === 'remove') {
+            $user->user_profile = null;
+        } elseif ($request->hasFile('user_profile')) {
+            $file = $request->file('user_profile');
+            if ($file && $file->isValid()) {
+                $path = $file->store('profiles', 'public');
+                $user->user_profile = asset(\Illuminate\Support\Facades\Storage::url($path));
+            }
+        } elseif ($request->filled('user_profile') && is_string($request->input('user_profile'))) {
+            $user->user_profile = $request->input('user_profile');
+        }
+
         $user->save();
 
         return response()->json([
@@ -103,6 +118,7 @@ class UserController extends Controller
                 'email'           => $user->email,
                 'whatsapp_number' => $user->whatsapp_number,
                 'contact_number'  => $user->contact_number,
+                'user_profile'    => $user->user_profile,
                 'created_at'      => $user->created_at,
             ],
         ]);

@@ -22,6 +22,7 @@ import OrderStatusPieChart from '../components/charts/OrderStatusPieChart';
 import OrderPerformanceBarChart from '../components/charts/OrderPerformanceBarChart';
 import RevenueTimelineChart from '../components/charts/RevenueTimelineChart';
 import { StatusBadge, PaymentStatusBadge } from '../components/StatusBadge';
+import TableSkeleton from '../components/TableSkeleton';
 import { adminOrderService } from '../services/adminOrderService';
 import { adminCategoryService } from '../services/adminCategoryService';
 import { adminProductService } from '../services/adminProductService';
@@ -285,9 +286,7 @@ export default function AdminDashboard({ onNavigateToCategories, onNavigateToOrd
 
                 <div className="admin-table-responsive">
                     {loadingRecent ? (
-                        <div style={{ padding: '30px', textAlign: 'center', color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                            Loading recent activity...
-                        </div>
+                        <TableSkeleton columns={7} rows={4} hasImage={false} />
                     ) : recentOrders.length === 0 ? (
                         <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>
                             <ShoppingBag size={28} style={{ opacity: 0.3, margin: '0 auto 8px auto', display: 'block' }} />

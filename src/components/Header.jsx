@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useBranding } from '../context/BrandingContext';
+import { fetchMarqueeApi, subscribeToCacheInvalidation } from '../services/api';
 
 export default function Header({ page, setPage, products = [], cartCount, onCartOpen, onProductView, user, onAuthOpen, onLogout, favoriteCount = 0, onFavoritesOpen }) {
     const { lang, toggleLanguage, t } = useLanguage();
@@ -9,8 +10,38 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
     const [searchQuery, setSearchQuery] = useState('');
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+    // Dynamic Marquee state
+    const [marqueeData, setMarqueeData] = useState({
+        is_enabled: true,
+        items: []
+    });
+
     const searchContainerRef = useRef(null);
     const userMenuRef = useRef(null);
+
+    const loadMarquee = (forceRefresh = false) => {
+        fetchMarqueeApi(forceRefresh).then(res => {
+            if (res && res.success) {
+                setMarqueeData({
+                    is_enabled: res.is_enabled !== false,
+                    items: res.items || []
+                });
+            }
+        });
+    };
+
+    // Fetch marquee announcements on mount
+    useEffect(() => {
+        loadMarquee();
+    }, []);
+
+    // Subscribe to marquee updates from Admin or other tabs
+    useEffect(() => {
+        const unsubscribe = subscribeToCacheInvalidation('marquee', () => {
+            loadMarquee(true);
+        });
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -67,31 +98,72 @@ export default function Header({ page, setPage, products = [], cartCount, onCart
         setSearchQuery('');
     };
 
+    const handleMarqueeItemClick = (linkUrl) => {
+        if (!linkUrl) return;
+        const clean = linkUrl.trim().toLowerCase();
+        if (clean === '/shop' || clean === 'shop') setPage('shop');
+        else if (clean === '/about' || clean === 'about') setPage('about');
+        else if (clean === '/science' || clean === 'science') setPage('science');
+        else if (clean.startsWith('http://') || clean.startsWith('https://')) {
+            window.open(linkUrl, '_blank', 'noopener,noreferrer');
+        } else if (clean.startsWith('/')) {
+            const pageName = clean.replace('/', '');
+            if (pageName) setPage(pageName);
+        }
+    };
+
+    const fallbackMarqueeItems = [
+        { id: 'f1', text: t('marqueeText1'), icon: '🚚' },
+        { id: 'f2', text: t('marqueeText2'), icon: '🎉' },
+        { id: 'f3', text: t('marqueeText3'), icon: '🌱' },
+        { id: 'f4', text: t('marqueeText4'), icon: '⭐' },
+    ];
+
+    const activeMarqueeItems = marqueeData.items.length > 0 ? marqueeData.items : fallbackMarqueeItems;
+
     return (
         <header className={`main-header ${scrolled ? 'scrolled' : ''}`}>
             {/* Infinite Marquee Running Announcement Bar */}
-            <div className="announcement-marquee-bar">
-                <div className="marquee-track">
-                    <span>{t('marqueeText1')}</span>
-                    <span className="marquee-dot">•</span>
-                    <span>{t('marqueeText2')}</span>
-                    <span className="marquee-dot">•</span>
-                    <span>{t('marqueeText3')}</span>
-                    <span className="marquee-dot">•</span>
-                    <span>{t('marqueeText4')}</span>
-                    <span className="marquee-dot">•</span>
+            {marqueeData.is_enabled && activeMarqueeItems.length > 0 && (
+                <div className="announcement-marquee-bar">
+                    <div className="marquee-track">
+                        {activeMarqueeItems.map((item, idx) => (
+                            <React.Fragment key={`mq1-${item.id || idx}`}>
+                                <span 
+                                    className="marquee-item-span"
+                                    onClick={() => handleMarqueeItemClick(item.link_url)}
+                                    style={{ cursor: item.link_url ? 'pointer' : 'default' }}
+                                >
+                                    {item.icon && <span className="marquee-item-icon">{item.icon}</span>}
+                                    <span>{item.text}</span>
+                                    {item.badge_text && (
+                                        <span className="marquee-item-badge">{item.badge_text}</span>
+                                    )}
+                                </span>
+                                <span className="marquee-dot">•</span>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                    <div className="marquee-track" aria-hidden="true">
+                        {activeMarqueeItems.map((item, idx) => (
+                            <React.Fragment key={`mq2-${item.id || idx}`}>
+                                <span 
+                                    className="marquee-item-span"
+                                    onClick={() => handleMarqueeItemClick(item.link_url)}
+                                    style={{ cursor: item.link_url ? 'pointer' : 'default' }}
+                                >
+                                    {item.icon && <span className="marquee-item-icon">{item.icon}</span>}
+                                    <span>{item.text}</span>
+                                    {item.badge_text && (
+                                        <span className="marquee-item-badge">{item.badge_text}</span>
+                                    )}
+                                </span>
+                                <span className="marquee-dot">•</span>
+                            </React.Fragment>
+                        ))}
+                    </div>
                 </div>
-                <div className="marquee-track" aria-hidden="true">
-                    <span>{t('marqueeText1')}</span>
-                    <span className="marquee-dot">•</span>
-                    <span>{t('marqueeText2')}</span>
-                    <span className="marquee-dot">•</span>
-                    <span>{t('marqueeText3')}</span>
-                    <span className="marquee-dot">•</span>
-                    <span>{t('marqueeText4')}</span>
-                    <span className="marquee-dot">•</span>
-                </div>
-            </div>
+            )}
 
             {/* Top Row: Search | Centered Logo | Right Action Icons */}
             <div className="header-top-row">

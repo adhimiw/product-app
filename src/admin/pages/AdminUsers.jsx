@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { adminUserService } from '../services/adminUserService';
 import StatCard from '../components/StatCard';
+import TableSkeleton from '../components/TableSkeleton';
 import { 
     Users, 
     UserCheck, 
@@ -330,39 +331,32 @@ export default function AdminUsers() {
 
             {/* Users Data Table */}
             <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div className="admin-table-responsive">
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>User Profile</th>
-                                <th>Contact Information</th>
-                                <th>Account Role</th>
-                                <th>Access Status</th>
-                                <th>Orders & Activity</th>
-                                <th>Registration Date</th>
-                                <th style={{ textAlign: 'center', minWidth: '160px' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
+                {loading ? (
+                    <TableSkeleton columns={7} rows={6} hasImage={false} />
+                ) : users.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👥</div>
+                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--admin-text-main)', margin: '0 0 6px 0' }}>No matching accounts found</h3>
+                        <p style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)', margin: 0 }}>
+                            Try adjusting your search keywords or filter settings.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="admin-table-responsive">
+                        <table className="admin-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>
-                                        <div className="admin-spinner-inline"></div>
-                                        <p style={{ marginTop: '10px', color: 'var(--admin-text-muted)', fontSize: '0.84rem' }}>Loading user directory...</p>
-                                    </td>
+                                    <th>User Profile</th>
+                                    <th>Contact Information</th>
+                                    <th>Account Role</th>
+                                    <th>Access Status</th>
+                                    <th>Orders & Activity</th>
+                                    <th>Registration Date</th>
+                                    <th style={{ textAlign: 'center', minWidth: '160px' }}>Actions</th>
                                 </tr>
-                            ) : users.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" style={{ textAlign: 'center', padding: '48px 20px' }}>
-                                        <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👥</div>
-                                        <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--admin-text-main)', margin: '0 0 6px 0' }}>No matching accounts found</h3>
-                                        <p style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)', margin: 0 }}>
-                                            Try adjusting your search keywords or filter settings.
-                                        </p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                users.map(user => {
+                            </thead>
+                            <tbody>
+                                {users.map(user => {
                                     const isCustomer = user.role === 2;
                                     const isVendor = user.role === 3;
                                     const isBlocked = Boolean(user.is_blocked);
@@ -495,11 +489,11 @@ export default function AdminUsers() {
                                             </td>
                                         </tr>
                                     );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
 
             {/* ----------------- EDIT USER MODAL (NO PASSWORD INPUT) ----------------- */}

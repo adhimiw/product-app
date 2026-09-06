@@ -1,3 +1,5 @@
+import { invalidateCategoriesCache } from '../../utils/cacheManager';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 const LOCAL_STORAGE_KEY = 'mangalam_admin_categories';
 
@@ -163,6 +165,7 @@ export const adminCategoryService = {
                 const list = getLocalCategories();
                 list.unshift(normalized);
                 saveLocalCategories(list);
+                invalidateCategoriesCache();
                 return {
                     success: true,
                     message: data.message || 'Category created successfully',
@@ -235,6 +238,7 @@ export const adminCategoryService = {
 
         categories.unshift(newCat);
         saveLocalCategories(categories);
+        invalidateCategoriesCache();
 
         return {
             success: true,
@@ -296,6 +300,7 @@ export const adminCategoryService = {
             const data = await response.json();
 
             if (response.ok && (data.status === true || data.success === true)) {
+                invalidateCategoriesCache();
                 return {
                     success: true,
                     message: data.message || 'Category updated successfully',
@@ -376,6 +381,7 @@ export const adminCategoryService = {
 
         categories[index] = updatedCat;
         saveLocalCategories(categories);
+        invalidateCategoriesCache();
 
         return {
             success: true,
@@ -400,6 +406,7 @@ export const adminCategoryService = {
             const data = await response.json();
 
             if (response.ok && (data.status === true || data.success === true)) {
+                invalidateCategoriesCache();
                 return {
                     success: true,
                     message: data.message || 'Category deleted successfully'
@@ -422,6 +429,7 @@ export const adminCategoryService = {
 
         categories = categories.filter(c => c.id !== id && c.id !== Number(id));
         saveLocalCategories(categories);
+        invalidateCategoriesCache();
 
         return {
             success: true,
@@ -434,6 +442,7 @@ export const adminCategoryService = {
      */
     resetData() {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
+        invalidateCategoriesCache();
         return { success: true, message: 'Categories reset.' };
     }
 };

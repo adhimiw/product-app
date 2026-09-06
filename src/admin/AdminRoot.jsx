@@ -6,8 +6,12 @@ import AdminOrders from './pages/AdminOrders';
 import AdminCategories from './pages/AdminCategories';
 import AdminProducts from './pages/AdminProducts';
 import AdminUsers from './pages/AdminUsers';
+import AdminQueries from './pages/AdminQueries';
+import AdminBanners from './pages/AdminBanners';
+import AdminMarquee from './pages/AdminMarquee';
 import AdminBrandingSettings from './pages/AdminBrandingSettings';
 import AdminWhatsApp from './pages/AdminWhatsApp';
+import AdminProfile from './pages/AdminProfile';
 import AdminLayout from './components/AdminLayout';
 import { adminAuthService } from './services/adminAuthService';
 import { adminOrderService } from './services/adminOrderService';
@@ -30,7 +34,10 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
             sub = pathname.substring(1).split('/')[0].trim().toLowerCase();
         }
         if (sub === 'branding') sub = 'settings';
-        const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
+        if (sub === 'inquiries' || sub === 'contact') sub = 'queries';
+        if (sub === 'banner' || sub === 'hero-banners') sub = 'banners';
+        if (sub === 'my-profile' || sub === 'account') sub = 'profile';
+        const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'queries', 'banners', 'marquee', 'settings', 'whatsapp', 'profile'];
         if (valid.includes(sub)) return sub;
         return initialTab || 'dashboard';
     });
@@ -50,7 +57,7 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
     // Sync with external route changes
     useEffect(() => {
         if (initialTab && initialTab !== activeTab) {
-            const normalized = initialTab === 'branding' ? 'settings' : initialTab;
+            const normalized = initialTab === 'branding' ? 'settings' : (initialTab === 'banner' ? 'banners' : initialTab);
             setActiveTab(normalized);
         }
     }, [initialTab]);
@@ -64,7 +71,9 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
                 sub = pathname.substring(1).split('/')[0].trim().toLowerCase();
             }
             if (sub === 'branding') sub = 'settings';
-            const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'settings', 'whatsapp'];
+            if (sub === 'inquiries' || sub === 'contact') sub = 'queries';
+            if (sub === 'banner' || sub === 'hero-banners') sub = 'banners';
+            const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'queries', 'banners', 'marquee', 'settings', 'whatsapp'];
             const targetTab = valid.includes(sub) ? sub : 'dashboard';
             setActiveTab(targetTab);
         };
@@ -132,11 +141,27 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
                 {activeTab === 'users' && (
                     <AdminUsers />
                 )}
+                {activeTab === 'queries' && (
+                    <AdminQueries />
+                )}
+                {activeTab === 'banners' && (
+                    <AdminBanners />
+                )}
+                {activeTab === 'marquee' && (
+                    <AdminMarquee />
+                )}
                 {activeTab === 'settings' && (
                     <AdminBrandingSettings />
                 )}
                 {activeTab === 'whatsapp' && (
                     <AdminWhatsApp />
+                )}
+                {activeTab === 'profile' && (
+                    <AdminProfile 
+                        onProfileUpdated={(updatedUser) => {
+                            setUser(updatedUser);
+                        }} 
+                    />
                 )}
             </AdminLayout>
         </div>

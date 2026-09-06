@@ -60,10 +60,10 @@ export default function AdminCategories() {
     const filteredCategories = useMemo(() => {
         let list = [...categories];
 
-        if (statusFilter === 'active') {
-            list = list.filter(c => c.is_active || c.status === 1);
-        } else if (statusFilter === 'inactive') {
-            list = list.filter(c => !c.is_active && c.status === 0);
+        if (statusFilter === 'active' || statusFilter === 'Active') {
+            list = list.filter(c => Boolean(c.is_active) || Number(c.status) === 1);
+        } else if (statusFilter === 'inactive' || statusFilter === 'Inactive') {
+            list = list.filter(c => (!c.is_active && c.is_active !== undefined) || Number(c.status) === 0);
         }
 
         return list;
@@ -320,28 +320,17 @@ export default function AdminCategories() {
                         />
                     </div>
 
-                    <div className="admin-tabs">
-                        <button 
-                            type="button"
-                            className={`admin-tab-btn ${statusFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => setStatusFilter('all')}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <select
+                            className="admin-select"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            style={{ width: 'auto', minWidth: '140px' }}
                         >
-                            All ({categories.length})
-                        </button>
-                        <button 
-                            type="button"
-                            className={`admin-tab-btn ${statusFilter === 'active' ? 'active' : ''}`}
-                            onClick={() => setStatusFilter('active')}
-                        >
-                            Active ({categories.filter(c => c.is_active || c.status === 1).length})
-                        </button>
-                        <button 
-                            type="button"
-                            className={`admin-tab-btn ${statusFilter === 'inactive' ? 'active' : ''}`}
-                            onClick={() => setStatusFilter('inactive')}
-                        >
-                            Inactive ({categories.filter(c => !c.is_active && c.status === 0).length})
-                        </button>
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
                     </div>
                 </div>
 

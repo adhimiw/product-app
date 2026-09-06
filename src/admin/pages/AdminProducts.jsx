@@ -785,6 +785,11 @@ export default function AdminProducts() {
                                 {filteredProducts.map((prod) => {
                                     const hasSizes = Array.isArray(prod.package_sizes) && prod.package_sizes.length > 0;
                                     const primarySize = hasSizes ? `${prod.package_sizes[0].size_number}${prod.package_sizes[0].size_unit}` : '';
+                                    const displayPrice = hasSizes
+                                        ? (prod.package_sizes.length === 1
+                                            ? prod.package_sizes[0].variant_price
+                                            : `${Math.min(...prod.package_sizes.map(s => Number(s.variant_price) || 0))} - ₹${Math.max(...prod.package_sizes.map(s => Number(s.variant_price) || 0))}`)
+                                        : (prod.actual_price || prod.price || 0);
                                     return (
                                         <tr key={prod.id} className={selectedProductIds.includes(prod.id) ? 'selected' : ''}>
                                             <td style={{ textAlign: 'center', width: '36px', paddingLeft: '14px' }}>
@@ -863,7 +868,7 @@ export default function AdminProducts() {
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     <span style={{ fontWeight: 800, color: 'var(--admin-text-main)', fontSize: '0.86rem' }}>
-                                                        ₹{prod.actual_price}
+                                                        ₹{displayPrice}
                                                     </span>
                                                     {hasSizes && (
                                                         <span style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', background: 'var(--admin-surface-subtle)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--admin-border-color)' }}>
@@ -952,20 +957,20 @@ export default function AdminProducts() {
 
             {/* Popup Modal Dialog Box Overlay */}
             {isModalOpen && (
-                <div className="admin-modal-overlay">
-                    <div className="admin-modal-dialog-box" style={{ maxWidth: '1060px', width: '100%', maxHeight: '92vh' }}>
+                <div className="admin-modal-backdrop" onClick={handleCloseModal}>
+                    <div className="admin-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1040px', width: '94vw', maxHeight: '92vh' }}>
                         
                         {/* Modal Header */}
-                        <div className="admin-modal-header" style={{ padding: '16px 24px', background: '#FAFAF9' }}>
+                        <div className="admin-modal-header" style={{ padding: '16px 24px' }}>
                             <div>
-                                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#18181B' }}>
+                                <h3 className="admin-modal-title" style={{ fontSize: '1.2rem' }}>
                                     {editingProduct ? 'Edit Product Configuration' : 'Add New Product'}
                                 </h3>
-                                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#71717A' }}>
+                                <p className="admin-modal-desc">
                                     Configure package size variants, binary image uploads, rich text content, pricing, and tags
                                 </p>
                             </div>
-                            <button className="admin-modal-close-btn" onClick={handleCloseModal} aria-label="Close dialog">
+                            <button className="admin-modal-close" onClick={handleCloseModal} aria-label="Close dialog">
                                 ✕
                             </button>
                         </div>
@@ -1067,12 +1072,12 @@ export default function AdminProducts() {
                                         {formData.tags.length > 0 && (
                                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
                                                 {formData.tags.map((tag, idx) => (
-                                                    <span key={idx} style={{ background: '#18181B', color: '#FFFFFF', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span key={idx} style={{ background: 'var(--admin-text-main)', color: 'var(--admin-card-bg)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                                         <span>✓ {tag}</span>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemoveTag(tag)}
-                                                            style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', fontSize: '11px', padding: 0 }}
+                                                            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '11px', padding: 0 }}
                                                         >
                                                             ✕
                                                         </button>
@@ -1121,25 +1126,17 @@ export default function AdminProducts() {
                                                 return (
                                                     <div
                                                         key={pkg.id || index}
-                                                        style={{
-                                                            border: '1px solid #E4E4E7',
-                                                            borderRadius: '16px',
-                                                            background: '#FAFAF9',
-                                                            padding: '16px 18px',
-                                                            display: 'flex',
-                                                            flexDirection: 'column',
-                                                            gap: '14px',
-                                                            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.02)'
-                                                        }}
+                                                        className="admin-variant-card"
                                                     >
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#18181B' }}>
+                                                        <div className="admin-variant-header">
+                                                            <span className="admin-variant-title">
                                                                 Package Variant #{index + 1} ({pkg.size_number || 0}{pkg.size_unit})
                                                             </span>
                                                             {formData.package_sizes.length > 1 && (
                                                                 <button
                                                                     type="button"
-                                                                    className="admin-btn-compact-icon danger"
+                                                                    className="admin-btn admin-btn-danger"
+                                                                    style={{ padding: '4px 10px', fontSize: '0.74rem' }}
                                                                     onClick={() => handleRemovePackageSize(pkg.id)}
                                                                     title="Delete this package variant"
                                                                 >
@@ -1149,9 +1146,9 @@ export default function AdminProducts() {
                                                         </div>
 
                                                         {/* Row 1: Size Number, Unit, Variant Price, Badge Tag Dropdown */}
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.2fr', gap: '12px' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Size Number</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Size Number</label>
                                                                 <input
                                                                     type="number"
                                                                     className="admin-input"
@@ -1162,7 +1159,7 @@ export default function AdminProducts() {
                                                             </div>
 
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Unit (Gram/Kilo)</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Unit (Gram/Kilo)</label>
                                                                 <select
                                                                     className="admin-input"
                                                                     value={pkg.size_unit}
@@ -1176,7 +1173,7 @@ export default function AdminProducts() {
                                                             </div>
 
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Variant Price (₹)</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Variant Price (₹)</label>
                                                                 <input
                                                                     type="number"
                                                                     className="admin-input"
@@ -1187,7 +1184,7 @@ export default function AdminProducts() {
                                                             </div>
 
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Badge Tag Dropdown</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Badge Tag Dropdown</label>
                                                                 <select
                                                                     className="admin-input"
                                                                     value={pkg.variant_badge !== undefined ? pkg.variant_badge : 0}
@@ -1203,9 +1200,9 @@ export default function AdminProducts() {
                                                         </div>
 
                                                         {/* Row 2: Per-Variant Discount & Stock Count */}
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.6fr', gap: '12px', background: '#FFFFFF', padding: '12px 14px', border: '1px solid #E4E4E7', borderRadius: '12px' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', background: 'var(--admin-card-bg)', padding: '12px 14px', border: '1px solid var(--admin-border-color)', borderRadius: 'var(--admin-radius-md)' }}>
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Discount Value</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Discount Value</label>
                                                                 <input
                                                                     type="number"
                                                                     className="admin-input"
@@ -1216,7 +1213,7 @@ export default function AdminProducts() {
                                                             </div>
 
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Discount Type Dropdown</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Discount Type</label>
                                                                 <select
                                                                     className="admin-input"
                                                                     value={pkg.discount_type || 1}
@@ -1228,7 +1225,7 @@ export default function AdminProducts() {
                                                             </div>
 
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#71717A' }}>Stock Count (Nullable / Optional)</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Stock Count (Nullable / Optional)</label>
                                                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                                     <input
                                                                         type="number"
@@ -1244,17 +1241,18 @@ export default function AdminProducts() {
                                                                             type="checkbox"
                                                                             checked={!!pkg.is_unlimited_stock}
                                                                             onChange={(e) => handlePackageChange(pkg.id, 'is_unlimited_stock', e.target.checked)}
+                                                                            style={{ accentColor: 'var(--admin-primary)' }}
                                                                         />
-                                                                        <span>Unlimited / Nullable</span>
+                                                                        <span>Unlimited</span>
                                                                     </label>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         {/* Binary Image Uploads for Variant with Clean Hover Actions */}
-                                                        <div style={{ borderTop: '1px solid #E4E4E7', paddingTop: '12px' }}>
+                                                        <div style={{ borderTop: '1px solid var(--admin-border-color)', paddingTop: '12px' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                                                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#18181B' }}>
+                                                                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--admin-text-main)' }}>
                                                                     Binary Image Uploads for Variant ({variantImagesList.length} uploaded)
                                                                 </label>
                                                                 <div>
@@ -1271,7 +1269,7 @@ export default function AdminProducts() {
                                                                         className="admin-btn admin-btn-secondary"
                                                                         style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '0.78rem' }}
                                                                     >
-                                                                        + Upload Variant Images (Binary)
+                                                                        + Upload Variant Images
                                                                     </label>
                                                                 </div>
                                                             </div>
@@ -1345,7 +1343,7 @@ export default function AdminProducts() {
                                                                     ))}
                                                                 </div>
                                                             ) : (
-                                                                <div style={{ fontSize: '0.75rem', color: '#71717A', fontStyle: 'italic', marginTop: '4px' }}>
+                                                                <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontStyle: 'italic', marginTop: '4px' }}>
                                                                     No separate images uploaded for this variant yet.
                                                                 </div>
                                                             )}
@@ -1358,7 +1356,7 @@ export default function AdminProducts() {
                                     </div>
 
                                     {/* Overall Product Status Section */}
-                                    <div style={{ borderTop: '1px solid #E4E4E7', paddingTop: '16px', marginTop: '10px' }}>
+                                    <div style={{ borderTop: '1px solid var(--admin-border-color)', paddingTop: '16px', marginTop: '10px' }}>
                                         <div className="admin-form-group">
                                             <label className="admin-label">Product Status</label>
                                             <div style={{ display: 'flex', gap: '20px', alignItems: 'center', height: '38px' }}>
@@ -1368,6 +1366,7 @@ export default function AdminProducts() {
                                                         name="product-status"
                                                         checked={Number(formData.status) === 1}
                                                         onChange={() => setFormData(prev => ({ ...prev, status: 1 }))}
+                                                        style={{ accentColor: 'var(--admin-primary)' }}
                                                     />
                                                     <span>Active (Visible on Store)</span>
                                                 </label>
@@ -1377,6 +1376,7 @@ export default function AdminProducts() {
                                                         name="product-status"
                                                         checked={Number(formData.status) === 0}
                                                         onChange={() => setFormData(prev => ({ ...prev, status: 0 }))}
+                                                        style={{ accentColor: 'var(--admin-primary)' }}
                                                     />
                                                     <span>Inactive (Hidden)</span>
                                                 </label>
@@ -1385,9 +1385,9 @@ export default function AdminProducts() {
                                     </div>
 
                                     {/* Main Product Gallery Binary Multi-Upload */}
-                                    <div className="admin-form-group" style={{ marginTop: '16px', borderTop: '1px solid #E4E4E7', paddingTop: '16px' }}>
+                                    <div className="admin-form-group" style={{ marginTop: '16px', borderTop: '1px solid var(--admin-border-color)', paddingTop: '16px' }}>
                                         <label className="admin-label">Main Product Gallery (Binary Image File Uploads)</label>
-                                        <div style={{ border: '1.5px dashed #D4D4D8', borderRadius: '12px', background: '#FAFAF9', padding: '20px', textAlign: 'center' }}>
+                                        <div style={{ border: '1.5px dashed var(--admin-border-color)', borderRadius: 'var(--admin-radius-md)', background: 'var(--admin-surface-subtle)', padding: '20px', textAlign: 'center' }}>
                                             <input
                                                 type="file"
                                                 multiple
@@ -1401,7 +1401,7 @@ export default function AdminProducts() {
                                                 className="admin-btn admin-btn-primary"
                                                 style={{ cursor: 'pointer', display: 'inline-flex', padding: '10px 20px', borderRadius: '8px' }}
                                             >
-                                                + Select Image Files from System (Binary)
+                                                + Select Image Files from System
                                             </label>
                                         </div>
 

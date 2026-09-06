@@ -241,41 +241,30 @@ export async function resetForgotPasswordApi({ email, reset_token, password, pas
     }
 }
 
-// In-Flight Promise De-duplication Cache (Prevents simultaneous duplicate network requests)
-const inFlightRequests = new Map();
+import {
+    memoryStore,
+    CACHE_KEYS,
+    invalidateProductsCache,
+    invalidateCategoriesCache,
+    invalidateMarqueeCache,
+    invalidateBrandingCache,
+    invalidateAllStoreCache,
+    subscribeToCacheInvalidation,
+    emitCacheInvalidation
+} from '../utils/cacheManager';
 
-// In-Memory Fast Cache with TTL
-const memoryCache = {
-    categories: null,
-    categoriesTimestamp: 0,
-    products: null,
-    productsTimestamp: 0,
-    TTL: 10 * 60 * 1000 // 10 minutes cache TTL
+export {
+    invalidateProductsCache,
+    invalidateCategoriesCache,
+    invalidateMarqueeCache,
+    invalidateBrandingCache,
+    invalidateAllStoreCache,
+    subscribeToCacheInvalidation,
+    emitCacheInvalidation
 };
 
-/**
- * Cache Invalidation Helpers (call when admin creates/updates items)
- */
-export function invalidateCategoriesCache() {
-    memoryCache.categories = null;
-    memoryCache.categoriesTimestamp = 0;
-    try {
-        sessionStorage.removeItem('mangalam_cached_categories');
-    } catch (e) {}
-}
-
-export function invalidateProductsCache() {
-    memoryCache.products = null;
-    memoryCache.productsTimestamp = 0;
-    try {
-        sessionStorage.removeItem('mangalam_cached_products');
-    } catch (e) {}
-}
-
-export function invalidateAllStoreCache() {
-    invalidateCategoriesCache();
-    invalidateProductsCache();
-}
+// In-Flight Promise De-duplication Cache (Prevents simultaneous duplicate network requests)
+const inFlightRequests = new Map();
 
 /**
  * Fetch all categories dynamically from backend API with automatic de-duplication & caching
@@ -284,10 +273,10 @@ export async function fetchCategoriesApi(forceRefresh = false) {
     const now = Date.now();
 
     // 1. Check in-memory cache
-    if (!forceRefresh && memoryCache.categories && (now - memoryCache.categoriesTimestamp < memoryCache.TTL)) {
+    if (!forceRefresh && memoryStore.categories && (now - memoryStore.categoriesTimestamp < memoryStore.TTL)) {
         return {
             success: true,
-            data: memoryCache.categories,
+            data: memoryStore.categories,
             fromCache: true
         };
     }
@@ -295,12 +284,12 @@ export async function fetchCategoriesApi(forceRefresh = false) {
     // 2. Check sessionStorage cache
     if (!forceRefresh) {
         try {
-            const cachedRaw = sessionStorage.getItem('mangalam_cached_categories');
+            const cachedRaw = sessionStorage.getItem(CACHE_KEYS.CATEGORIES_SESSION);
             if (cachedRaw) {
                 const parsed = JSON.parse(cachedRaw);
-                if (parsed && Array.isArray(parsed.data) && (now - parsed.timestamp < memoryCache.TTL)) {
-                    memoryCache.categories = parsed.data;
-                    memoryCache.categoriesTimestamp = parsed.timestamp;
+                if (parsed && Array.isArray(parsed.data) && (now - parsed.timestamp < memoryStore.TTL)) {
+                    memoryStore.categories = parsed.data;
+                    memoryStore.categoriesTimestamp = parsed.timestamp;
                     return {
                         success: true,
                         data: parsed.data,
@@ -312,7 +301,7 @@ export async function fetchCategoriesApi(forceRefresh = false) {
     }
 
     // 3. Check if request is already in-flight (Merge duplicate calls)
-    if (inFlightRequests.has('categories')) {
+    if (!forceRefresh && inFlightRequests.has('categories')) {
         return inFlightRequests.get('categories');
     }
 
@@ -329,10 +318,10 @@ export async function fetchCategoriesApi(forceRefresh = false) {
 
             if (response.ok && (data.status || data.success)) {
                 const catList = data.data || [];
-                memoryCache.categories = catList;
-                memoryCache.categoriesTimestamp = Date.now();
+                memoryStore.categories = catList;
+                memoryStore.categoriesTimestamp = Date.now();
                 try {
-                    sessionStorage.setItem('mangalam_cached_categories', JSON.stringify({
+                    sessionStorage.setItem(CACHE_KEYS.CATEGORIES_SESSION, JSON.stringify({
                         data: catList,
                         timestamp: Date.now()
                     }));
@@ -351,8 +340,8 @@ export async function fetchCategoriesApi(forceRefresh = false) {
         } catch (err) {
             console.error('API Fetch Categories Error:', err);
             // Return cached fallback if available during network error
-            if (memoryCache.categories) {
-                return { success: true, data: memoryCache.categories, fromCache: true };
+            if (memoryStore.categories) {
+                return { success: true, data: memoryStore.categories, fromCache: true };
             }
             return {
                 success: false,
@@ -380,7 +369,12 @@ const BADGE_MAP = {
  */
 export function normalizeProduct(p) {
     if (!p) return null;
-    const pkgSizes = Array.isArray(p.package_sizes) && p.package_sizes.length > 0 ? p.package_sizes : [];
+    const pkgSizes = (Array.isArray(p.package_sizes) && p.package_sizes.length > 0 ? p.package_sizes : []).map(ps => ({
+        ...ps,
+        id: typeof ps.id === 'number' ? ps.id : (ps.db_id ? Number(ps.db_id) : (ps.package_id ? Number(ps.package_id) : (typeof ps.id === 'string' && !isNaN(Number(ps.id)) ? Number(ps.id) : ps.id))),
+        db_id: ps.db_id ? Number(ps.db_id) : (typeof ps.id === 'number' ? ps.id : (typeof ps.id === 'string' && !isNaN(Number(ps.id)) ? Number(ps.id) : ps.id)),
+        variant_price: ps.variant_price !== undefined && ps.variant_price !== null ? Number(ps.variant_price) : (p.actual_price ? Number(p.actual_price) : 110)
+    }));
     const primaryPkg = pkgSizes[0] || {};
 
     const price = primaryPkg.variant_price !== undefined && primaryPkg.variant_price !== null 
@@ -416,15 +410,19 @@ export function normalizeProduct(p) {
             const vPrice = ps.variant_price !== undefined && ps.variant_price !== null ? Number(ps.variant_price) : price;
             const vBadge = BADGE_MAP[ps.variant_badge] || (idx === 0 ? 'Popular' : 'Best Deal');
             return {
+                id: ps.id || ps.db_id,
+                db_id: ps.db_id || ps.id,
                 size: `${ps.size_number}${ps.size_unit || 'g'} Package`,
+                sizeWeight: `${ps.size_number}${ps.size_unit || 'g'}`,
                 price: vPrice,
                 inrPrice: `₹${vPrice}`,
                 badge: vBadge,
-                package_id: ps.id || ps.db_id
+                package_id: ps.id || ps.db_id,
+                variant_images: ps.variant_images || ps.images || []
             };
         })
         : [
-            { size: '300g Package', price: price, inrPrice: `₹${price}`, badge: 'Popular' }
+            { id: 'pkg-default', db_id: null, size: '300g Package', sizeWeight: '300g', price: price, inrPrice: `₹${price}`, badge: 'Popular', variant_images: [] }
         ];
 
     let benefitsList = [];
@@ -442,6 +440,8 @@ export function normalizeProduct(p) {
         subtitle: `${p.category || '100% Sprouted'} | Natural`,
         description: p.description || '',
         price: price,
+        actual_price: price,
+        variant_price: price,
         inrPrice: inrPrice,
         image: primaryImg,
         images: allImages.length > 0 ? allImages : [primaryImg],
@@ -479,10 +479,10 @@ export async function fetchProductsApi(forceRefresh = false) {
     const now = Date.now();
 
     // 1. Check in-memory cache
-    if (!forceRefresh && memoryCache.products && (now - memoryCache.productsTimestamp < memoryCache.TTL)) {
+    if (!forceRefresh && memoryStore.products && (now - memoryStore.productsTimestamp < memoryStore.TTL)) {
         return {
             success: true,
-            data: memoryCache.products,
+            data: memoryStore.products,
             fromCache: true
         };
     }
@@ -490,12 +490,12 @@ export async function fetchProductsApi(forceRefresh = false) {
     // 2. Check sessionStorage cache
     if (!forceRefresh) {
         try {
-            const cachedRaw = sessionStorage.getItem('mangalam_cached_products');
+            const cachedRaw = sessionStorage.getItem(CACHE_KEYS.PRODUCTS_SESSION);
             if (cachedRaw) {
                 const parsed = JSON.parse(cachedRaw);
-                if (parsed && Array.isArray(parsed.data) && (now - parsed.timestamp < memoryCache.TTL)) {
-                    memoryCache.products = parsed.data;
-                    memoryCache.productsTimestamp = parsed.timestamp;
+                if (parsed && Array.isArray(parsed.data) && (now - parsed.timestamp < memoryStore.TTL)) {
+                    memoryStore.products = parsed.data;
+                    memoryStore.productsTimestamp = parsed.timestamp;
                     return {
                         success: true,
                         data: parsed.data,
@@ -507,7 +507,7 @@ export async function fetchProductsApi(forceRefresh = false) {
     }
 
     // 3. Check if request is already in-flight (Merge concurrent duplicate calls)
-    if (inFlightRequests.has('products')) {
+    if (!forceRefresh && inFlightRequests.has('products')) {
         return inFlightRequests.get('products');
     }
 
@@ -525,10 +525,10 @@ export async function fetchProductsApi(forceRefresh = false) {
             if (response.ok && (data.status || data.success)) {
                 const rawList = data.data || [];
                 const normalized = rawList.map(normalizeProduct).filter(Boolean);
-                memoryCache.products = normalized;
-                memoryCache.productsTimestamp = Date.now();
+                memoryStore.products = normalized;
+                memoryStore.productsTimestamp = Date.now();
                 try {
-                    sessionStorage.setItem('mangalam_cached_products', JSON.stringify({
+                    sessionStorage.setItem(CACHE_KEYS.PRODUCTS_SESSION, JSON.stringify({
                         data: normalized,
                         timestamp: Date.now()
                     }));
@@ -547,8 +547,8 @@ export async function fetchProductsApi(forceRefresh = false) {
         } catch (err) {
             console.error('API Fetch Products Error:', err);
             // Return cached fallback if available
-            if (memoryCache.products) {
-                return { success: true, data: memoryCache.products, fromCache: true };
+            if (memoryStore.products) {
+                return { success: true, data: memoryStore.products, fromCache: true };
             }
             return {
                 success: false,
@@ -1330,4 +1330,216 @@ export async function fetchFavoritesCountApi() {
         };
     }
 }
+
+/**
+ * Fetch dynamic marquee announcements from public API with memory & session cache
+ */
+export async function fetchMarqueeApi(forceRefresh = false) {
+    const now = Date.now();
+
+    // 1. Check in-memory cache
+    if (!forceRefresh && memoryStore.marquee && (now - memoryStore.marqueeTimestamp < memoryStore.TTL)) {
+        return {
+            success: true,
+            is_enabled: memoryStore.marquee.is_enabled,
+            items: memoryStore.marquee.items,
+            fromCache: true
+        };
+    }
+
+    // 2. Check sessionStorage cache
+    if (!forceRefresh) {
+        try {
+            const cachedRaw = sessionStorage.getItem(CACHE_KEYS.MARQUEE_SESSION);
+            if (cachedRaw) {
+                const parsed = JSON.parse(cachedRaw);
+                if (parsed && Array.isArray(parsed.items) && (now - parsed.timestamp < memoryStore.TTL)) {
+                    memoryStore.marquee = parsed;
+                    memoryStore.marqueeTimestamp = parsed.timestamp;
+                    return {
+                        success: true,
+                        is_enabled: parsed.is_enabled,
+                        items: parsed.items,
+                        fromCache: true
+                    };
+                }
+            }
+        } catch (e) {}
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/marquee`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status) {
+            const resultData = {
+                is_enabled: data.data?.is_enabled ?? true,
+                items: data.data?.items || []
+            };
+
+            memoryStore.marquee = resultData;
+            memoryStore.marqueeTimestamp = Date.now();
+            try {
+                sessionStorage.setItem(CACHE_KEYS.MARQUEE_SESSION, JSON.stringify({
+                    ...resultData,
+                    timestamp: Date.now()
+                }));
+            } catch (e) {}
+
+            return {
+                success: true,
+                is_enabled: resultData.is_enabled,
+                items: resultData.items
+            };
+        }
+
+        return {
+            success: false,
+            is_enabled: true,
+            items: []
+        };
+    } catch (err) {
+        console.error('API Fetch Marquee Error:', err);
+        if (memoryStore.marquee) {
+            return {
+                success: true,
+                is_enabled: memoryStore.marquee.is_enabled,
+                items: memoryStore.marquee.items,
+                fromCache: true
+            };
+        }
+        return {
+            success: false,
+            is_enabled: true,
+            items: []
+        };
+    }
+}
+
+/**
+ * Submit Contact Inquiry / Query
+ * @param {Object} payload - { name, email, phone, message, subject }
+ */
+export async function submitContactQueryApi(payload) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/contact`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            return {
+                success: false,
+                status: response.status,
+                message: data.message || 'Failed to submit message',
+                errors: data.errors || null
+            };
+        }
+
+        return {
+            success: true,
+            message: data.message || 'Your message has been sent successfully!',
+            data: data.data
+        };
+    } catch (err) {
+        console.error('submitContactQueryApi Error:', err);
+        return {
+            success: false,
+            message: 'Unable to connect to server. Please try again later.',
+            errors: null
+        };
+    }
+}
+
+/**
+ * Fetch all active Hero Banners dynamically from backend API with localStorage/memoryStore caching
+ */
+export async function fetchBannersApi(forceRefresh = false) {
+    const STORAGE_KEY = 'mangalam_cached_banners_v1';
+
+    // 1. Check in-memory and localStorage cache if not forced
+    if (!forceRefresh) {
+        try {
+            const cached = localStorage.getItem(STORAGE_KEY);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    // Trigger silent background revalidation
+                    fetch(`${API_BASE_URL}/banners`, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && (data.status || data.success) && Array.isArray(data.data)) {
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.data));
+                        }
+                    })
+                    .catch(() => {});
+
+                    return {
+                        success: true,
+                        data: parsed
+                    };
+                }
+            }
+        } catch {}
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/banners`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && (data.status || data.success)) {
+            const bannersList = Array.isArray(data.data) ? data.data : [];
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(bannersList));
+            } catch {}
+            return {
+                success: true,
+                data: bannersList
+            };
+        }
+
+        return {
+            success: false,
+            data: []
+        };
+    } catch (err) {
+        console.error('API Fetch Banners Error:', err);
+        // Fallback to cache if network error
+        try {
+            const cached = localStorage.getItem(STORAGE_KEY);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (Array.isArray(parsed)) {
+                    return { success: true, data: parsed };
+                }
+            }
+        } catch {}
+
+        return {
+            success: false,
+            data: []
+        };
+    }
+}
+
+export const getBannersApi = fetchBannersApi;
+
 

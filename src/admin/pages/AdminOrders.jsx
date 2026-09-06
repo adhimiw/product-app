@@ -123,17 +123,19 @@ export default function AdminOrders() {
                         />
                     </div>
 
-                    <div className="admin-tabs">
-                        {filterTabs.map(tab => (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                className={`admin-tab-btn ${statusFilter === tab.id ? 'active' : ''}`}
-                                onClick={() => setStatusFilter(tab.id)}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <select
+                            className="admin-select"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            style={{ width: 'auto', minWidth: '160px' }}
+                        >
+                            {filterTabs.map(tab => (
+                                <option key={tab.id} value={tab.id}>
+                                    {tab.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 

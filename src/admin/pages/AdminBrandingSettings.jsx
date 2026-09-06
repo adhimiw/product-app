@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useBranding } from '../../context/BrandingContext';
+import { 
+    Upload, 
+    Trash2, 
+    RotateCcw, 
+    Check, 
+    Image as ImageIcon, 
+    Sparkles, 
+    Globe, 
+    FileText,
+    CheckCircle2,
+    AlertCircle
+} from 'lucide-react';
 
 export default function AdminBrandingSettings() {
     const { branding, updateBranding, deleteLogo, resetBranding, loading } = useBranding();
@@ -26,13 +38,18 @@ export default function AdminBrandingSettings() {
     });
 
     const [saving, setSaving] = useState(false);
-    const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const fileInputRefs = {
         logo_full: useRef(null),
         logo_small: useRef(null),
         logo_dark: useRef(null),
         favicon: useRef(null),
+    };
+
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
     };
 
     // Populate existing values
@@ -53,26 +70,20 @@ export default function AdminBrandingSettings() {
 
         // Validation
         if (file.size > 2 * 1024 * 1024) {
-            setFeedback({
-                type: 'error',
-                message: `File size exceeds 2MB limit. Please upload an optimized file.`
-            });
+            showToast('File size exceeds 2MB limit. Please upload an optimized file.', 'error');
             return;
         }
 
         const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/vnd.microsoft.icon'];
         if (!validTypes.includes(file.type) && !file.name.endsWith('.ico')) {
-            setFeedback({
-                type: 'error',
-                message: `Invalid file type. Please upload a PNG, JPG, WebP, SVG, or ICO image.`
-            });
+            showToast('Invalid file type. Please upload PNG, JPG, WebP, SVG, or ICO image.', 'error');
             return;
         }
 
         const previewUrl = URL.createObjectURL(file);
         setPreviews(prev => ({ ...prev, [key]: previewUrl }));
         setFiles(prev => ({ ...prev, [key]: file }));
-        setFeedback(null);
+        showToast('New asset selected. Click "Save Changes" to apply.', 'success');
     };
 
     // Remove / Reset single logo
@@ -92,18 +103,17 @@ export default function AdminBrandingSettings() {
             const res = await deleteLogo(key);
             setSaving(false);
             if (res.success) {
-                setFeedback({ type: 'success', message: `${key.replace('_', ' ')} reset to default.` });
+                showToast(`${key.replace('_', ' ')} reset to default.`);
             } else {
-                setFeedback({ type: 'error', message: res.message || 'Failed to delete logo' });
+                showToast(res.message || 'Failed to delete logo', 'error');
             }
         }
     };
 
     // Save All Changes
     const handleSave = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setSaving(true);
-        setFeedback(null);
 
         const payload = new FormData();
         payload.append('site_title', formData.site_title);
@@ -121,12 +131,11 @@ export default function AdminBrandingSettings() {
         setSaving(false);
 
         if (res.success) {
-            setFeedback({ type: 'success', message: 'Branding and logo settings saved successfully!' });
-            // Clear temporary local files
+            showToast('Branding and logo settings saved successfully!');
             setFiles({ logo_full: null, logo_small: null, logo_dark: null, favicon: null });
             setPreviews({ logo_full: null, logo_small: null, logo_dark: null, favicon: null });
         } else {
-            setFeedback({ type: 'error', message: res.message || 'Failed to save branding settings' });
+            showToast(res.message || 'Failed to save branding settings', 'error');
         }
     };
 
@@ -139,105 +148,157 @@ export default function AdminBrandingSettings() {
             if (res.success) {
                 setPreviews({ logo_full: null, logo_small: null, logo_dark: null, favicon: null });
                 setFiles({ logo_full: null, logo_small: null, logo_dark: null, favicon: null });
-                setFeedback({ type: 'success', message: 'All branding settings reset to factory defaults.' });
+                showToast('All branding settings reset to factory defaults.');
             }
         }
     };
 
+    const hasPendingChanges = Object.values(files).some(f => f !== null);
+
     return (
-        <div className="admin-page-container branding-settings-page">
-            {/* Header */}
-            <div className="admin-page-header-flex">
+        <div className="admin-page-container">
+            {/* Toast Notification */}
+            {toast.show && (
+                <div style={{
+                    position: 'fixed',
+                    top: '24px',
+                    right: '24px',
+                    zIndex: 99999,
+                    background: toast.type === 'error' ? '#ef4444' : '#10b981',
+                    color: '#ffffff',
+                    padding: '12px 20px',
+                    borderRadius: 'var(--admin-radius-md)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
+            {/* Breadcrumbs */}
+            <div className="admin-breadcrumbs" style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', marginBottom: '4px', fontWeight: 600 }}>
+                Admin / Settings / <span style={{ color: 'var(--admin-text-main)' }}>Logo & Branding</span>
+            </div>
+
+            {/* Page Header */}
+            <div className="admin-page-header" style={{ marginBottom: '20px' }}>
                 <div>
-                    <h1 className="admin-page-title">Logo & Branding Settings</h1>
+                    <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        Logo & Branding Settings
+                    </h1>
                     <p className="admin-page-subtitle">
                         Configure brand identity, storefront logo, dark theme assets, and browser favicon across the entire site.
                     </p>
                 </div>
-                <div className="admin-header-actions-group">
+                <div className="admin-page-header-actions" style={{ display: 'flex', gap: '10px' }}>
                     <button
                         type="button"
                         className="admin-btn admin-btn-secondary"
                         onClick={handleResetAll}
                         disabled={saving || loading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
-                        Reset Defaults
+                        <RotateCcw size={14} />
+                        <span>Reset Defaults</span>
                     </button>
                     <button
                         type="button"
                         className="admin-btn admin-btn-primary"
                         onClick={handleSave}
                         disabled={saving || loading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                     >
-                        {saving ? (
-                            <>
-                                <span className="admin-btn-spinner"></span>
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                    <polyline points="7 3 7 8 15 8"></polyline>
-                                </svg>
-                                Save Changes
-                            </>
-                        )}
+                        <Check size={15} />
+                        <span>{saving ? 'Saving...' : (hasPendingChanges ? 'Save Changes *' : 'Save Changes')}</span>
                     </button>
                 </div>
             </div>
 
-            {/* Notification Banner */}
-            {feedback && (
-                <div className={`admin-alert ${feedback.type === 'success' ? 'admin-alert-success' : 'admin-alert-error'}`}>
-                    <div className="admin-alert-icon">
-                        {feedback.type === 'success' ? (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        ) : (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
-                        )}
-                    </div>
-                    <span>{feedback.message}</span>
-                </div>
-            )}
-
-            {/* Logo Slots Grid */}
-            <div className="branding-cards-grid">
+            {/* 4 Core Brand Assets Cards Grid */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gap: '18px',
+                marginBottom: '24px'
+            }}>
                 
                 {/* 1. FULL LOGO */}
-                <div className="branding-card">
-                    <div className="branding-card-header">
-                        <div className="branding-card-title-group">
-                            <span className="branding-card-badge">Storefront & Header</span>
-                            <h3>Full Logo</h3>
-                            <p>Primary horizontal logo displayed on main website header, navigation, and auth modals.</p>
-                        </div>
+                <div className="admin-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{
+                            fontSize: '0.70rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: 'var(--admin-primary)',
+                            background: 'rgba(27, 59, 43, 0.08)',
+                            padding: '3px 8px',
+                            borderRadius: '4px'
+                        }}>
+                            Storefront & Header
+                        </span>
+                        {previews.logo_full && (
+                            <span className="admin-badge admin-badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                                Preview Ready
+                            </span>
+                        )}
                     </div>
+                    <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: '0 0 4px 0', color: 'var(--admin-text-main)' }}>
+                        Full Horizontal Logo
+                    </h3>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+                        Primary horizontal logo displayed on storefront navigation, header, and auth modals.
+                    </p>
 
-                    {/* Wide Horizontal Logo-shaped Preview Container */}
-                    <div className="logo-preview-box horizontal-box light-backdrop">
+                    {/* Preview Box */}
+                    <div style={{
+                        width: '100%',
+                        height: '110px',
+                        borderRadius: '8px',
+                        border: '1.5px dashed var(--admin-border-color)',
+                        background: '#FAFBFC',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '12px',
+                        marginBottom: '12px',
+                        overflow: 'hidden'
+                    }}>
                         <img
                             src={previews.logo_full || branding.logo_full || '/mangalam_logo.png'}
                             alt="Full Logo Preview"
-                            className="preview-img-full"
+                            style={{
+                                maxHeight: '52px',
+                                maxWidth: '240px',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain'
+                            }}
                             onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
                         />
-                        {previews.logo_full && <span className="preview-tag">New Preview</span>}
                     </div>
 
-                    <div className="branding-card-meta">
-                        <span className="spec-item">Recommended: <strong>500 × 140 px</strong></span>
-                        <span className="spec-item">Formats: <strong>PNG, SVG, WebP</strong></span>
+                    {/* Specs Row */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.72rem',
+                        color: 'var(--admin-text-muted)',
+                        marginBottom: '14px',
+                        padding: '0 2px'
+                    }}>
+                        <span>Recommended: <strong style={{ color: 'var(--admin-text-main)' }}>500 × 140 px</strong></span>
+                        <span>Formats: <strong style={{ color: 'var(--admin-text-main)' }}>PNG, SVG, WebP</strong></span>
                     </div>
 
-                    <div className="branding-card-actions">
+                    {/* Actions */}
+                    <div style={{ marginTop: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
                             type="file"
                             ref={fileInputRefs.logo_full}
@@ -247,57 +308,97 @@ export default function AdminBrandingSettings() {
                         />
                         <button
                             type="button"
-                            className="admin-btn admin-btn-outline"
+                            className="admin-btn admin-btn-secondary"
                             onClick={() => fileInputRefs.logo_full.current?.click()}
+                            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.78rem', padding: '6px 12px' }}
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            {previews.logo_full ? 'Change File' : 'Upload / Replace'}
+                            <Upload size={13} />
+                            <span>{previews.logo_full ? 'Change Image' : 'Upload / Replace'}</span>
                         </button>
                         <button
                             type="button"
-                            className="admin-btn-icon-danger"
+                            className="admin-btn-icon"
                             onClick={() => handleRemoveLogo('logo_full')}
                             title="Reset to Default"
+                            style={{ width: '32px', height: '32px', color: 'var(--admin-danger-text)' }}
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                            <Trash2 size={13} />
                         </button>
                     </div>
                 </div>
 
                 {/* 2. SMALL / SIDEBAR LOGO */}
-                <div className="branding-card">
-                    <div className="branding-card-header">
-                        <div className="branding-card-title-group">
-                            <span className="branding-card-badge">Sidebar & Mobile</span>
-                            <h3>Small Logo / Crest Icon</h3>
-                            <p>Compact icon mark used when admin sidebar is collapsed and in compact mobile bars.</p>
-                        </div>
+                <div className="admin-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{
+                            fontSize: '0.70rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: 'var(--admin-primary)',
+                            background: 'rgba(27, 59, 43, 0.08)',
+                            padding: '3px 8px',
+                            borderRadius: '4px'
+                        }}>
+                            Sidebar & Mobile
+                        </span>
+                        {previews.logo_small && (
+                            <span className="admin-badge admin-badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                                Preview Ready
+                            </span>
+                        )}
                     </div>
+                    <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: '0 0 4px 0', color: 'var(--admin-text-main)' }}>
+                        Small Crest / Icon Logo
+                    </h3>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+                        Compact emblem icon used when the admin sidebar is collapsed and in compact mobile bars.
+                    </p>
 
-                    {/* Square Compact Logo-shaped Preview */}
-                    <div className="logo-preview-box square-box light-backdrop">
+                    {/* Preview Box */}
+                    <div style={{
+                        width: '100%',
+                        height: '110px',
+                        borderRadius: '8px',
+                        border: '1.5px dashed var(--admin-border-color)',
+                        background: '#FAFBFC',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '12px',
+                        marginBottom: '12px',
+                        overflow: 'hidden'
+                    }}>
                         <img
-                            src={previews.logo_small || branding.logo_small || '/mangalam_logo.png'}
+                            src={previews.logo_small || branding.logo_small || '/sprout-mascot-badge.png'}
                             alt="Small Logo Preview"
-                            className="preview-img-small"
-                            onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
+                            style={{
+                                maxHeight: '56px',
+                                maxWidth: '56px',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain'
+                            }}
+                            onError={(e) => { e.target.src = '/sprout-mascot-badge.png'; }}
                         />
-                        {previews.logo_small && <span className="preview-tag">New Preview</span>}
                     </div>
 
-                    <div className="branding-card-meta">
-                        <span className="spec-item">Recommended: <strong>120 × 120 px (1:1)</strong></span>
-                        <span className="spec-item">Formats: <strong>PNG, SVG, WebP</strong></span>
+                    {/* Specs Row */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.72rem',
+                        color: 'var(--admin-text-muted)',
+                        marginBottom: '14px',
+                        padding: '0 2px'
+                    }}>
+                        <span>Recommended: <strong style={{ color: 'var(--admin-text-main)' }}>120 × 120 px (1:1)</strong></span>
+                        <span>Formats: <strong style={{ color: 'var(--admin-text-main)' }}>PNG, SVG, WebP</strong></span>
                     </div>
 
-                    <div className="branding-card-actions">
+                    {/* Actions */}
+                    <div style={{ marginTop: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
                             type="file"
                             ref={fileInputRefs.logo_small}
@@ -307,57 +408,97 @@ export default function AdminBrandingSettings() {
                         />
                         <button
                             type="button"
-                            className="admin-btn admin-btn-outline"
+                            className="admin-btn admin-btn-secondary"
                             onClick={() => fileInputRefs.logo_small.current?.click()}
+                            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.78rem', padding: '6px 12px' }}
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            {previews.logo_small ? 'Change File' : 'Upload / Replace'}
+                            <Upload size={13} />
+                            <span>{previews.logo_small ? 'Change Image' : 'Upload / Replace'}</span>
                         </button>
                         <button
                             type="button"
-                            className="admin-btn-icon-danger"
+                            className="admin-btn-icon"
                             onClick={() => handleRemoveLogo('logo_small')}
                             title="Reset to Default"
+                            style={{ width: '32px', height: '32px', color: 'var(--admin-danger-text)' }}
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                            <Trash2 size={13} />
                         </button>
                     </div>
                 </div>
 
                 {/* 3. DARK THEME LOGO */}
-                <div className="branding-card">
-                    <div className="branding-card-header">
-                        <div className="branding-card-title-group">
-                            <span className="branding-card-badge">Dark Theme & Footer</span>
-                            <h3>Dark Background Logo</h3>
-                            <p>Light artwork variant rendered on dark navy footers and dark-mode themes.</p>
-                        </div>
+                <div className="admin-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{
+                            fontSize: '0.70rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: '#10b981',
+                            background: 'rgba(16, 185, 129, 0.12)',
+                            padding: '3px 8px',
+                            borderRadius: '4px'
+                        }}>
+                            Dark Theme & Footer
+                        </span>
+                        {previews.logo_dark && (
+                            <span className="admin-badge admin-badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                                Preview Ready
+                            </span>
+                        )}
                     </div>
+                    <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: '0 0 4px 0', color: 'var(--admin-text-main)' }}>
+                        Dark Background Logo
+                    </h3>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+                        Light artwork variant rendered on dark navy footers and dark-mode themes.
+                    </p>
 
-                    {/* Wide Horizontal Logo-shaped Preview Container on Dark Theme */}
-                    <div className="logo-preview-box horizontal-box dark-backdrop">
+                    {/* Preview Box */}
+                    <div style={{
+                        width: '100%',
+                        height: '110px',
+                        borderRadius: '8px',
+                        border: '1.5px dashed #334155',
+                        background: '#073820',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '12px',
+                        marginBottom: '12px',
+                        overflow: 'hidden'
+                    }}>
                         <img
                             src={previews.logo_dark || branding.logo_dark || '/mangalam_logo.png'}
                             alt="Dark Logo Preview"
-                            className="preview-img-dark"
+                            style={{
+                                maxHeight: '52px',
+                                maxWidth: '240px',
+                                width: 'auto',
+                                height: 'auto',
+                                objectFit: 'contain'
+                            }}
                             onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
                         />
-                        {previews.logo_dark && <span className="preview-tag">New Preview</span>}
                     </div>
 
-                    <div className="branding-card-meta">
-                        <span className="spec-item">Recommended: <strong>500 × 140 px (White/Light)</strong></span>
-                        <span className="spec-item">Formats: <strong>PNG, SVG (Transparent)</strong></span>
+                    {/* Specs Row */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.72rem',
+                        color: 'var(--admin-text-muted)',
+                        marginBottom: '14px',
+                        padding: '0 2px'
+                    }}>
+                        <span>Recommended: <strong style={{ color: 'var(--admin-text-main)' }}>500 × 140 px</strong></span>
+                        <span>Formats: <strong style={{ color: 'var(--admin-text-main)' }}>PNG, SVG (Light)</strong></span>
                     </div>
 
-                    <div className="branding-card-actions">
+                    {/* Actions */}
+                    <div style={{ marginTop: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
                             type="file"
                             ref={fileInputRefs.logo_dark}
@@ -367,69 +508,136 @@ export default function AdminBrandingSettings() {
                         />
                         <button
                             type="button"
-                            className="admin-btn admin-btn-outline"
+                            className="admin-btn admin-btn-secondary"
                             onClick={() => fileInputRefs.logo_dark.current?.click()}
+                            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.78rem', padding: '6px 12px' }}
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            {previews.logo_dark ? 'Change File' : 'Upload / Replace'}
+                            <Upload size={13} />
+                            <span>{previews.logo_dark ? 'Change Image' : 'Upload / Replace'}</span>
                         </button>
                         <button
                             type="button"
-                            className="admin-btn-icon-danger"
+                            className="admin-btn-icon"
                             onClick={() => handleRemoveLogo('logo_dark')}
                             title="Reset to Default"
+                            style={{ width: '32px', height: '32px', color: 'var(--admin-danger-text)' }}
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                            <Trash2 size={13} />
                         </button>
                     </div>
                 </div>
 
                 {/* 4. FAVICON */}
-                <div className="branding-card">
-                    <div className="branding-card-header">
-                        <div className="branding-card-title-group">
-                            <span className="branding-card-badge">Browser Tab</span>
-                            <h3>Website Favicon</h3>
-                            <p>Icon shown on browser tabs, bookmarks bar, and shortcut icons.</p>
-                        </div>
+                <div className="admin-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{
+                            fontSize: '0.70rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: '#3b82f6',
+                            background: 'rgba(59, 130, 246, 0.12)',
+                            padding: '3px 8px',
+                            borderRadius: '4px'
+                        }}>
+                            Browser Tab & Bookmark
+                        </span>
+                        {previews.favicon && (
+                            <span className="admin-badge admin-badge-success" style={{ fontSize: '0.68rem', padding: '1px 6px' }}>
+                                Preview Ready
+                            </span>
+                        )}
                     </div>
+                    <h3 style={{ fontSize: '0.96rem', fontWeight: 800, margin: '0 0 4px 0', color: 'var(--admin-text-main)' }}>
+                        Website Favicon Icon
+                    </h3>
+                    <p style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', margin: '0 0 14px 0', lineHeight: 1.4 }}>
+                        Square icon displayed on browser tabs, bookmarks bar, and shortcut icons.
+                    </p>
 
-                    {/* Mock Browser Tab Preview */}
-                    <div className="favicon-mock-tab-container">
-                        <div className="mock-browser-tab">
+                    {/* Clean Mock Browser Tab Preview Box */}
+                    <div style={{
+                        width: '100%',
+                        height: '110px',
+                        borderRadius: '8px',
+                        border: '1.5px dashed var(--admin-border-color)',
+                        background: '#FAFBFC',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '10px 14px',
+                        marginBottom: '12px',
+                        position: 'relative'
+                    }}>
+                        {/* Mock Tab Strip */}
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: '#e2e8f0',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            maxWidth: '220px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                        }}>
                             <img
-                                src={previews.favicon || branding.favicon || '/mangalam_logo.png'}
+                                src={previews.favicon || branding.favicon || '/sprout-mascot-badge.png'}
                                 alt="Favicon"
-                                className="mock-tab-favicon"
-                                onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
+                                style={{ width: '16px', height: '16px', borderRadius: '3px', objectFit: 'contain' }}
+                                onError={(e) => { e.target.src = '/sprout-mascot-badge.png'; }}
                             />
-                            <span className="mock-tab-title">{formData.site_title || 'Mangalam Healthy Foods'}</span>
-                            <span className="mock-tab-close">×</span>
+                            <span style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                color: '#1e293b',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: '140px'
+                            }}>
+                                {formData.site_title || 'Mangalam Store'}
+                            </span>
                         </div>
-                        <div className="mock-tab-body">
-                            <div className="favicon-large-view">
-                                <img
-                                    src={previews.favicon || branding.favicon || '/mangalam_logo.png'}
-                                    alt="Favicon Large"
-                                    onError={(e) => { e.target.src = '/mangalam_logo.png'; }}
-                                />
-                            </div>
+
+                        {/* Centered Favicon Large Badge */}
+                        <div style={{
+                            marginTop: '8px',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '6px',
+                            background: '#ffffff',
+                            border: '1px solid var(--admin-border-color)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: 'var(--admin-shadow-xs)'
+                        }}>
+                            <img
+                                src={previews.favicon || branding.favicon || '/sprout-mascot-badge.png'}
+                                alt="Favicon Preview"
+                                style={{ width: '22px', height: '22px', objectFit: 'contain' }}
+                                onError={(e) => { e.target.src = '/sprout-mascot-badge.png'; }}
+                            />
                         </div>
                     </div>
 
-                    <div className="branding-card-meta">
-                        <span className="spec-item">Recommended: <strong>64 × 64 px or 32 × 32 px</strong></span>
-                        <span className="spec-item">Formats: <strong>ICO, PNG, SVG</strong></span>
+                    {/* Specs Row */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.72rem',
+                        color: 'var(--admin-text-muted)',
+                        marginBottom: '14px',
+                        padding: '0 2px'
+                    }}>
+                        <span>Recommended: <strong style={{ color: 'var(--admin-text-main)' }}>32 × 32 px</strong></span>
+                        <span>Formats: <strong style={{ color: 'var(--admin-text-main)' }}>ICO, PNG, SVG</strong></span>
                     </div>
 
-                    <div className="branding-card-actions">
+                    {/* Actions */}
+                    <div style={{ marginTop: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
                             type="file"
                             ref={fileInputRefs.favicon}
@@ -439,80 +647,90 @@ export default function AdminBrandingSettings() {
                         />
                         <button
                             type="button"
-                            className="admin-btn admin-btn-outline"
+                            className="admin-btn admin-btn-secondary"
                             onClick={() => fileInputRefs.favicon.current?.click()}
+                            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.78rem', padding: '6px 12px' }}
                         >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            {previews.favicon ? 'Change File' : 'Upload / Replace'}
+                            <Upload size={13} />
+                            <span>{previews.favicon ? 'Change Image' : 'Upload / Replace'}</span>
                         </button>
                         <button
                             type="button"
-                            className="admin-btn-icon-danger"
+                            className="admin-btn-icon"
                             onClick={() => handleRemoveLogo('favicon')}
                             title="Reset to Default"
+                            style={{ width: '32px', height: '32px', color: 'var(--admin-danger-text)' }}
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                            <Trash2 size={13} />
                         </button>
                     </div>
                 </div>
 
             </div>
 
-            {/* Brand Meta Details Form */}
-            <div className="branding-meta-card">
-                <h3 className="branding-meta-title">Store Identity & Typography</h3>
-                <p className="branding-meta-subtitle">General store title and footer copyright configured across the app.</p>
+            {/* Brand Meta Details Form Card */}
+            <div className="admin-card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <Globe size={18} style={{ color: 'var(--admin-primary)' }} />
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: 'var(--admin-text-main)' }}>
+                        Store Identity & Typography
+                    </h3>
+                </div>
+                <p style={{ fontSize: '0.80rem', color: 'var(--admin-text-muted)', margin: '0 0 20px 0' }}>
+                    General store title, brand tagline, and footer copyright notice configured across the entire website.
+                </p>
 
-                <div className="branding-meta-grid">
-                    <div className="admin-form-group">
-                        <label className="admin-form-label">Site Title</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                    <div>
+                        <label className="admin-label" style={{ marginBottom: '6px' }}>
+                            Site Title
+                        </label>
                         <input
                             type="text"
-                            className="admin-form-input"
+                            className="admin-input"
                             value={formData.site_title}
                             onChange={(e) => setFormData(prev => ({ ...prev, site_title: e.target.value }))}
-                            placeholder="e.g. Mangalam Healthy Foods"
+                            placeholder="e.g., Mangalam Healthy Foods"
                         />
                     </div>
 
-                    <div className="admin-form-group">
-                        <label className="admin-form-label">Brand Tagline</label>
+                    <div>
+                        <label className="admin-label" style={{ marginBottom: '6px' }}>
+                            Brand Tagline
+                        </label>
                         <input
                             type="text"
-                            className="admin-form-input"
+                            className="admin-input"
                             value={formData.tagline}
                             onChange={(e) => setFormData(prev => ({ ...prev, tagline: e.target.value }))}
-                            placeholder="e.g. Traditional & Heritage Wellness Foods"
-                        />
-                    </div>
-
-                    <div className="admin-form-group full-col">
-                        <label className="admin-form-label">Footer Copyright Notice</label>
-                        <input
-                            type="text"
-                            className="admin-form-input"
-                            value={formData.footer_text}
-                            onChange={(e) => setFormData(prev => ({ ...prev, footer_text: e.target.value }))}
-                            placeholder="e.g. © 2026 Mangalam Healthy Foods. All rights reserved."
+                            placeholder="e.g., Traditional & Heritage Wellness Foods"
                         />
                     </div>
                 </div>
 
-                <div className="branding-save-footer">
+                <div style={{ marginBottom: '20px' }}>
+                    <label className="admin-label" style={{ marginBottom: '6px' }}>
+                        Footer Copyright Notice
+                    </label>
+                    <input
+                        type="text"
+                        className="admin-input"
+                        value={formData.footer_text}
+                        onChange={(e) => setFormData(prev => ({ ...prev, footer_text: e.target.value }))}
+                        placeholder="e.g., © 2026 Mangalam Healthy Foods. All rights reserved."
+                    />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                         type="button"
                         className="admin-btn admin-btn-primary"
                         onClick={handleSave}
                         disabled={saving || loading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 20px' }}
                     >
-                        {saving ? 'Saving...' : 'Save Branding Settings'}
+                        <Check size={15} />
+                        <span>{saving ? 'Saving...' : 'Save Branding Settings'}</span>
                     </button>
                 </div>
             </div>

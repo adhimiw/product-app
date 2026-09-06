@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Product;
+use App\Models\ProductPackageSize;
 use App\Services\CartFavoriteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,22 +46,52 @@ class CartController extends Controller
             $validated = $request->validate([
                 'product_id'      => 'required|exists:products,id',
                 'quantity'        => 'nullable|integer|min:1|max:999',
-                'package_size_id' => 'nullable|exists:product_package_sizes,id',
+                'package_size_id' => 'nullable',
             ]);
 
             $actor = $this->cartService->resolveActor($request);
             $productId = (int) $validated['product_id'];
             $quantity = (int) ($validated['quantity'] ?? 1);
-            $packageSizeId = !empty($validated['package_size_id']) ? (int) $validated['package_size_id'] : null;
+            $rawPkgId = $request->input('package_size_id');
+            $packageSizeId = null;
+
+            // Resolve package size ID (supports integer ID, string ID, size_key, or default first package size)
+            if (!empty($rawPkgId)) {
+                if (is_numeric($rawPkgId)) {
+                    $packageSizeId = (int) $rawPkgId;
+                } else {
+                    $matchedPkg = ProductPackageSize::where('product_id', $productId)
+                        ->where(function ($q) use ($rawPkgId) {
+                            $q->where('size_key', $rawPkgId)
+                              ->orWhere('id', $rawPkgId);
+                        })->first();
+                    $packageSizeId = $matchedPkg?->id;
+                }
+            }
+
+            // If not provided or not resolved, pick the product's primary package size
+            if (!$packageSizeId) {
+                $defaultPkg = ProductPackageSize::where('product_id', $productId)->first();
+                $packageSizeId = $defaultPkg?->id;
+            }
 
             // Check if item already exists in this actor's cart
             $existing = $this->cartService->getCartQuery($actor)
                 ->where('product_id', $productId)
-                ->where('package_size_id', $packageSizeId)
+                ->where(function ($q) use ($packageSizeId) {
+                    if ($packageSizeId) {
+                        $q->where('package_size_id', $packageSizeId);
+                    } else {
+                        $q->whereNull('package_size_id');
+                    }
+                })
                 ->first();
 
             if ($existing) {
                 $existing->quantity += $quantity;
+                if (!$existing->package_size_id && $packageSizeId) {
+                    $existing->package_size_id = $packageSizeId;
+                }
                 $existing->save();
                 $cartItem = $existing;
             } else {

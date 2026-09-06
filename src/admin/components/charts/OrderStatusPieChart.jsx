@@ -140,21 +140,34 @@ export default function OrderStatusPieChart() {
                                 return (
                                     <div
                                         key={item.status}
-                                        className="admin-legend-item"
+                                        className={`admin-pie-legend-item ${isHovered ? 'active' : ''}`}
                                         style={{
-                                            padding: '4px 8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '6px 10px',
                                             borderRadius: '6px',
                                             cursor: 'pointer',
-                                            backgroundColor: isHovered ? 'var(--admin-surface-hover)' : 'transparent',
-                                            transition: 'background-color 0.15s ease'
+                                            background: isHovered ? 'var(--admin-surface-hover)' : 'transparent',
+                                            transition: 'background 0.15s ease'
                                         }}
                                         onMouseEnter={() => setHoveredSlice(item)}
                                         onMouseLeave={() => setHoveredSlice(null)}
                                     >
-                                        <span className="admin-legend-dot" style={{ backgroundColor: item.color }} />
-                                        <span className="admin-legend-label">{item.label}</span>
-                                        <span className="admin-legend-value">{item.count}</span>
-                                        <span className="admin-legend-percent">({item.percentage}%)</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, flexShrink: 0 }} />
+                                            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--admin-text-main)' }}>
+                                                {item.label}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '0.80rem', fontWeight: 700, color: 'var(--admin-text-main)' }}>
+                                                {item.count}
+                                            </span>
+                                            <span style={{ fontSize: '0.70rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
+                                                ({item.percentage}%)
+                                            </span>
+                                        </div>
                                     </div>
                                 );
                             })}

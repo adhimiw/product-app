@@ -10,7 +10,10 @@ import {
     MessageSquare, 
     ChevronLeft, 
     LogOut,
-    ExternalLink
+    ExternalLink,
+    Megaphone,
+    Inbox,
+    Sliders
 } from 'lucide-react';
 
 export default function AdminSidebar({
@@ -56,6 +59,21 @@ export default function AdminSidebar({
             id: 'users',
             label: 'Users',
             icon: <Users size={17} />
+        },
+        {
+            id: 'queries',
+            label: 'Customer Queries',
+            icon: <Inbox size={17} />
+        },
+        {
+            id: 'banners',
+            label: 'Hero Banners',
+            icon: <Sliders size={17} />
+        },
+        {
+            id: 'marquee',
+            label: 'Marquee Banner',
+            icon: <Megaphone size={17} />
         },
         {
             id: 'settings',
@@ -142,14 +160,32 @@ export default function AdminSidebar({
 
             {/* Footer / User Profile */}
             <div className="admin-sidebar-footer">
-                <div className="admin-sidebar-user">
-                    <div className="admin-sidebar-avatar" title={user?.name || 'Super Admin'}>
-                        {user?.name ? user.name.charAt(0).toUpperCase() : 'S'}
+                <div 
+                    className={`admin-sidebar-user ${activeTab === 'profile' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('profile')}
+                    role="button"
+                    tabIndex={0}
+                    title="View & Edit Administrator Profile"
+                    style={{ cursor: 'pointer' }}
+                >
+                    <div className="admin-sidebar-avatar" title={user?.name || user?.full_name || 'Super Admin'}>
+                        {(user?.user_profile || user?.avatarUrl) ? (
+                            <img 
+                                src={user.user_profile || user.avatarUrl} 
+                                alt={user?.name || user?.full_name || 'Super Admin'} 
+                                className="admin-sidebar-avatar-img"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <span>{user?.name ? user.name.charAt(0).toUpperCase() : (user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'S')}</span>
+                        )}
                     </div>
                     {!isCollapsed && (
                         <div className="admin-sidebar-user-info">
-                            <span className="admin-sidebar-user-name" title={user?.name || 'Super Admin'}>
-                                {user?.name || 'Super Admin'}
+                            <span className="admin-sidebar-user-name" title={user?.name || user?.full_name || 'Super Admin'}>
+                                {user?.name || user?.full_name || 'Super Admin'}
                             </span>
                             <span className="admin-sidebar-user-role">
                                 {user?.role === 1 || user?.role === 'super_admin' ? 'Super Admin' : (user?.role || 'Administrator')}
@@ -159,7 +195,10 @@ export default function AdminSidebar({
                     <button
                         type="button"
                         className="admin-sidebar-logout"
-                        onClick={onLogout}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onLogout();
+                        }}
                         title="Logout from Admin Portal"
                         aria-label="Logout"
                     >

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { adminBrandingService, DEFAULT_BRANDING } from '../admin/services/adminBrandingService';
+import { subscribeToCacheInvalidation } from '../utils/cacheManager';
 
 const BrandingContext = createContext({
     branding: DEFAULT_BRANDING,
@@ -24,24 +25,30 @@ export function BrandingProvider({ children }) {
     // Apply favicon and page title dynamically to document head
     useEffect(() => {
         if (typeof document !== 'undefined') {
-            // Update Favicon
-            const faviconUrl = branding.favicon || '/mangalam_logo.png';
-            let link = document.querySelector("link[rel~='icon']");
-            if (!link) {
-                link = document.createElement('link');
-                link.rel = 'icon';
-                document.getElementsByTagName('head')[0].appendChild(link);
-            }
-            link.href = faviconUrl;
+            const faviconUrl = branding.favicon || '/sprout-mascot-badge.png';
 
-            // Update Apple Touch Icon
-            let appleLink = document.querySelector("link[rel='apple-touch-icon']");
-            if (!appleLink) {
-                appleLink = document.createElement('link');
-                appleLink.rel = 'apple-touch-icon';
-                document.getElementsByTagName('head')[0].appendChild(appleLink);
-            }
+            // 1. Remove all previous favicon/shortcut icon elements to avoid conflicting tags
+            const existingIcons = document.querySelectorAll("link[rel*='icon']");
+            existingIcons.forEach(el => el.remove());
+
+            // 2. Create primary dynamic favicon link
+            const link = document.createElement('link');
+            link.id = 'dynamic-favicon';
+            link.rel = 'icon';
+            link.type = faviconUrl.endsWith('.svg') 
+                ? 'image/svg+xml' 
+                : (faviconUrl.endsWith('.ico') ? 'image/x-icon' : 'image/png');
+            // Cache-bust if dynamic to force instant browser tab refresh
+            link.href = faviconUrl.startsWith('http') || faviconUrl.startsWith('/storage') 
+                ? `${faviconUrl}${faviconUrl.includes('?') ? '&' : '?'}v=${Date.now()}` 
+                : faviconUrl;
+            document.head.appendChild(link);
+
+            // 3. Update Apple Touch Icon
+            const appleLink = document.createElement('link');
+            appleLink.rel = 'apple-touch-icon';
             appleLink.href = branding.logo_small || faviconUrl;
+            document.head.appendChild(appleLink);
         }
     }, [branding.favicon, branding.logo_small]);
 
@@ -61,6 +68,13 @@ export function BrandingProvider({ children }) {
 
     useEffect(() => {
         refreshBranding();
+    }, [refreshBranding]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeToCacheInvalidation('branding', () => {
+            refreshBranding();
+        });
+        return () => unsubscribe();
     }, [refreshBranding]);
 
     const updateBranding = async (formData) => {

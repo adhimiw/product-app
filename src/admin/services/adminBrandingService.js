@@ -3,9 +3,11 @@
  * Manages Full Logo, Small Logo, Dark Logo, Favicon, and Brand Metadata.
  */
 
+import { invalidateBrandingCache, CACHE_KEYS } from '../../utils/cacheManager';
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/admin/settings/branding';
 const PUBLIC_API_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/branding';
-const STORAGE_KEY = 'mangalam_branding_settings_v1';
+const STORAGE_KEY = CACHE_KEYS.BRANDING_LOCAL;
 
 export const DEFAULT_BRANDING = {
     logo_full: '/mangalam_logo.png',
@@ -95,6 +97,7 @@ export const adminBrandingService = {
             const updated = resData.data || resData || DEFAULT_BRANDING;
             const merged = { ...DEFAULT_BRANDING, ...updated };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+            invalidateBrandingCache();
 
             return {
                 success: true,
@@ -125,6 +128,7 @@ export const adminBrandingService = {
                 const updated = resData.data || DEFAULT_BRANDING;
                 const merged = { ...DEFAULT_BRANDING, ...updated };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                invalidateBrandingCache();
                 return { success: true, data: merged };
             }
 
@@ -150,6 +154,7 @@ export const adminBrandingService = {
                 const updated = resData.data || DEFAULT_BRANDING;
                 const merged = { ...DEFAULT_BRANDING, ...updated };
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+                invalidateBrandingCache();
                 return { success: true, data: merged };
             }
 

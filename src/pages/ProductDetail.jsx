@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchProductsApi } from '../services/api';
+import { fetchProductsApi, subscribeToCacheInvalidation } from '../services/api';
 
 export default function ProductDetail({ 
     productId, 
@@ -30,6 +30,17 @@ export default function ProductDetail({
             loadProducts();
         }
     }, [propProducts]);
+
+    // Subscribe to product updates
+    useEffect(() => {
+        const unsubscribe = subscribeToCacheInvalidation('products', async () => {
+            const res = await fetchProductsApi(true);
+            if (res.success && res.data) {
+                setProducts(res.data);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
     const product = products.find(p => String(p.id) === String(productId) || p.slug === productId) || products[0];
 
@@ -131,12 +142,14 @@ export default function ProductDetail({
         const variantName = `${cleanName} (${sizeWeight})`;
 
         let packageSizeId = null;
-        if (activeGramOption && activeGramOption.id && typeof activeGramOption.id === 'number') {
-            packageSizeId = activeGramOption.id;
-        } else if (Array.isArray(product.package_sizes)) {
-            const matchedPkg = product.package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === sizeWeight);
-            if (matchedPkg && typeof matchedPkg.id === 'number') {
-                packageSizeId = matchedPkg.id;
+        const pId = activeGramOption?.id ?? activeGramOption?.db_id ?? activeGramOption?.package_id;
+        if (pId !== undefined && pId !== null && !isNaN(Number(pId))) {
+            packageSizeId = Number(pId);
+        } else if (Array.isArray(product.package_sizes) && product.package_sizes.length > 0) {
+            const matchedPkg = product.package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === sizeWeight) || product.package_sizes[0];
+            const matchId = matchedPkg?.id ?? matchedPkg?.db_id;
+            if (matchId !== undefined && matchId !== null && !isNaN(Number(matchId))) {
+                packageSizeId = Number(matchId);
             }
         }
 
@@ -150,16 +163,11 @@ export default function ProductDetail({
         );
     };
 
-    const defaultFeatures = [
-        { icon: '🍵', text: 'Traditional Taste' },
-        { icon: '🌾', text: '0g Added Sugar' },
-        { icon: '🌱', text: '100% Sprouted' },
-        { icon: '⚡', text: '15.6g Bio-Protein' }
-    ];
-    const featuresList = product.features || defaultFeatures;
-
-    const defaultTags = ['Digestion', 'Immunity', 'Calm', 'Vitality'];
-    const tagsList = product.tags || defaultTags;
+    const tagsList = Array.isArray(product.tags) ? product.tags.filter(t => t && String(t).trim()) : [];
+    const howToUseContent = product.how_to_use || product.howToUse;
+    const benefitsContent = product.benefits;
+    const ingredientsContent = product.ingredients;
+    const hasAnyAccordion = Boolean(howToUseContent || benefitsContent || ingredientsContent);
 
     return (
         <main className="pdp-page">
@@ -200,7 +208,7 @@ export default function ProductDetail({
                             <div className="pdp-main-image-card">
                                 <div className="pdp-main-img-holder">
                                     <img
-                                        src={imgList[selectedImgIndex] || product.image}
+                                        src={imgList[selectedImgIndex] || product.image || '/assets/images/categories/organic-food-ingredients.png'}
                                         alt={product.name}
                                         className="pdp-hero-display-img"
                                     />
@@ -213,62 +221,70 @@ export default function ProductDetail({
                     {/* Right Column: Title, Gram Package Options, Price, Big CTA, & Accordions */}
                     <div className="pdp-right-info-panel">
 
-                        {/* Rating Row */}
-                        <div className="pdp-stars-row">
-                            <span className="stars-gold">★★★★★</span>
-                            <span className="reviews-label">{product.rating || '4.9'} ({product.reviewCount || 1240} {t('verifiedReviews')})</span>
-                        </div>
+                        {/* Rating Row (only shown if ratings/reviews exist) */}
+                        {(product.rating || product.reviewCount) ? (
+                            <div className="pdp-stars-row">
+                                <span className="stars-gold">★★★★★</span>
+                                <span className="reviews-label">{product.rating || '5.0'} ({product.reviewCount || 0} {t('verifiedReviews')})</span>
+                            </div>
+                        ) : null}
 
                         {/* Product Title */}
                         <h1 className="pdp-novelty-title">{product.name}</h1>
 
-                        {/* Benefit Checkmarks Tags Row */}
-                        <div className="pdp-benefits-tags-row">
-                            {tagsList.map((tag, idx) => (
-                                <span key={idx} className="benefit-tag-item">
-                                    ✓ {tag}
-                                </span>
-                            ))}
-                        </div>
-
-                        {/* Lead Description Paragraph */}
-                        {typeof product.description === 'string' && (product.description.includes('<') || product.description.includes('>')) ? (
-                            <div className="pdp-novelty-desc" dangerouslySetInnerHTML={{ __html: product.description }} />
-                        ) : (
-                            <p className="pdp-novelty-desc">
-                                {product.description}
-                            </p>
-                        )}
-
-                        {/* Gram Package Size Selector (300g & 500g Packets) */}
-                        <div className="pdp-gram-selector-block">
-                            <div className="gram-selector-label">
-                                {t('packSizeLabel')} <strong>{activeGramOption.size}</strong>
-                            </div>
-
-                            <div className="gram-options-grid">
-                                {gramOptions.map((opt, idx) => (
-                                    <div
-                                        key={idx}
-                                        className={`gram-card-box ${idx === selectedGramIndex ? 'active' : ''}`}
-                                        onClick={() => {
-                                            setSelectedGramIndex(idx);
-                                            setSelectedImgIndex(0);
-                                        }}
-                                    >
-                                        {opt.badge && (
-                                            <span className="gram-deal-badge">{opt.badge}</span>
-                                        )}
-                                        <div className="gram-card-inner">
-                                            <div className="gram-card-info">
-                                                <span className="gram-size-text">{opt.size}</span>
-                                                <span className="gram-price-text">{opt.inrPrice}</span>
-                                            </div>
-                                        </div>
-                                    </div>
+                        {/* Benefit Checkmarks Tags Row (only shown if tags exist in DB) */}
+                        {tagsList.length > 0 && (
+                            <div className="pdp-benefits-tags-row">
+                                {tagsList.map((tag, idx) => (
+                                    <span key={idx} className="benefit-tag-item">
+                                        ✓ {tag}
+                                    </span>
                                 ))}
                             </div>
-                        </div>
+                        )}
+
+                        {/* Lead Description Paragraph */}
+                        {product.description && (
+                            typeof product.description === 'string' && (product.description.includes('<') || product.description.includes('>')) ? (
+                                <div className="pdp-novelty-desc" dangerouslySetInnerHTML={{ __html: product.description }} />
+                            ) : (
+                                <p className="pdp-novelty-desc">
+                                    {product.description}
+                                </p>
+                            )
+                        )}
+
+                        {/* Gram Package Size Selector */}
+                        {gramOptions.length > 0 && (
+                            <div className="pdp-gram-selector-block">
+                                <div className="gram-selector-label">
+                                    {t('packSizeLabel')} <strong>{activeGramOption.size}</strong>
+                                </div>
+
+                                <div className="gram-options-grid">
+                                    {gramOptions.map((opt, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`gram-card-box ${idx === selectedGramIndex ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setSelectedGramIndex(idx);
+                                                setSelectedImgIndex(0);
+                                            }}
+                                        >
+                                            {opt.badge && (
+                                                <span className="gram-deal-badge">{opt.badge}</span>
+                                            )}
+                                            <div className="gram-card-inner">
+                                                <div className="gram-card-info">
+                                                    <span className="gram-size-text">{opt.size}</span>
+                                                    <span className="gram-price-text">{opt.inrPrice}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Trust / Guarantee Perks Line */}
                         <div className="pdp-trust-guarantee-row">
@@ -280,7 +296,6 @@ export default function ProductDetail({
                         {/* Dynamic Price Display */}
                         <div className="pdp-novelty-price-row">
                             <span className="novelty-current-price">{currentInrPrice}</span>
-                            <span className="novelty-original-price">₹{(parseInt(currentInrPrice.replace(/\D/g, '')) * 1.25).toFixed(0)}</span>
                         </div>
 
                         {/* Big Single Add to Bag CTA Button with Quantity Counter & Wishlist Button */}
@@ -330,77 +345,71 @@ export default function ProductDetail({
                             <span>{t('satisfactionGuarantee')}</span>
                         </div>
 
-                        {/* Expandable Accordions: How to use, Benefits, Ingredients */}
-                        <div className="pdp-accordions-group">
+                        {/* Expandable Accordions: How to use, Benefits, Ingredients (strictly rendered if present in DB) */}
+                        {hasAnyAccordion && (
+                            <div className="pdp-accordions-group">
 
-                            {/* Accordion 1: How to use & preparation */}
-                            <div className={`pdp-accordion-item ${openAccordion.howToUse ? 'open' : ''}`}>
-                                <button
-                                    className="pdp-accordion-head"
-                                    onClick={() => toggleAccordion('howToUse')}
-                                >
-                                    <span>{t('accHowToUse')}</span>
-                                    <span className="acc-chevron">{openAccordion.howToUse ? '▲' : '▼'}</span>
-                                </button>
+                                {/* Accordion 1: How to use & preparation */}
+                                {howToUseContent && (
+                                    <div className={`pdp-accordion-item ${openAccordion.howToUse ? 'open' : ''}`}>
+                                        <button
+                                            className="pdp-accordion-head"
+                                            onClick={() => toggleAccordion('howToUse')}
+                                        >
+                                            <span>{t('accHowToUse')}</span>
+                                            <span className="acc-chevron">{openAccordion.howToUse ? '▲' : '▼'}</span>
+                                        </button>
 
-                                {openAccordion.howToUse && (
-                                    <div className="pdp-accordion-body">
-                                        <div className="how-to-use-box">
-                                            {product.howToUse ? (
-                                                <div dangerouslySetInnerHTML={{ __html: product.howToUse }} />
-                                            ) : (
-                                                <p>Dissolve 2 tablespoons in 200ml clean water without lumps. Boil on medium flame for 5-6 minutes. Add jaggery or salt to taste. Serve warm with milk.</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Accordion 2: Benefits */}
-                            <div className={`pdp-accordion-item ${openAccordion.benefits ? 'open' : ''}`}>
-                                <button
-                                    className="pdp-accordion-head"
-                                    onClick={() => toggleAccordion('benefits')}
-                                >
-                                    <span>{t('accBenefits')}</span>
-                                    <span className="acc-chevron">{openAccordion.benefits ? '▲' : '▼'}</span>
-                                </button>
-
-                                {openAccordion.benefits && (
-                                    <div className="pdp-accordion-body">
-                                        {product.benefits ? (
-                                            <div dangerouslySetInnerHTML={{ __html: product.benefits }} />
-                                        ) : (
-                                            <p>100% Soak-sprouted millets bio-activate maximum nutrient absorption.</p>
+                                        {openAccordion.howToUse && (
+                                            <div className="pdp-accordion-body">
+                                                <div className="how-to-use-box">
+                                                    <div dangerouslySetInnerHTML={{ __html: howToUseContent }} />
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 )}
-                            </div>
 
-                            {/* Accordion 3: Ingredients */}
-                            <div className={`pdp-accordion-item ${openAccordion.ingredients ? 'open' : ''}`}>
-                                <button
-                                    className="pdp-accordion-head"
-                                    onClick={() => toggleAccordion('ingredients')}
-                                >
-                                    <span>{t('accIngredients')}</span>
-                                    <span className="acc-chevron">{openAccordion.ingredients ? '▲' : '▼'}</span>
-                                </button>
+                                {/* Accordion 2: Benefits */}
+                                {benefitsContent && (
+                                    <div className={`pdp-accordion-item ${openAccordion.benefits ? 'open' : ''}`}>
+                                        <button
+                                            className="pdp-accordion-head"
+                                            onClick={() => toggleAccordion('benefits')}
+                                        >
+                                            <span>{t('accBenefits')}</span>
+                                            <span className="acc-chevron">{openAccordion.benefits ? '▲' : '▼'}</span>
+                                        </button>
 
-                                {openAccordion.ingredients && (
-                                    <div className="pdp-accordion-body">
-                                        {product.ingredients ? (
-                                            <div className="pdp-ingredients-text" dangerouslySetInnerHTML={{ __html: product.ingredients }} />
-                                        ) : (
-                                            <p className="pdp-ingredients-text">
-                                                Pearl Millet (Kambu), Finger Millet (Ragi), Sorghum (Cholam), Bengal Gram, Black Gram, Green Gram, Wheat, Sprouted Roasted Gram, Organic Green Cardamom.
-                                            </p>
+                                        {openAccordion.benefits && (
+                                            <div className="pdp-accordion-body">
+                                                <div dangerouslySetInnerHTML={{ __html: benefitsContent }} />
+                                            </div>
                                         )}
                                     </div>
                                 )}
-                            </div>
 
-                        </div>
+                                {/* Accordion 3: Ingredients */}
+                                {ingredientsContent && (
+                                    <div className={`pdp-accordion-item ${openAccordion.ingredients ? 'open' : ''}`}>
+                                        <button
+                                            className="pdp-accordion-head"
+                                            onClick={() => toggleAccordion('ingredients')}
+                                        >
+                                            <span>{t('accIngredients')}</span>
+                                            <span className="acc-chevron">{openAccordion.ingredients ? '▲' : '▼'}</span>
+                                        </button>
+
+                                        {openAccordion.ingredients && (
+                                            <div className="pdp-accordion-body">
+                                                <div className="pdp-ingredients-text" dangerouslySetInnerHTML={{ __html: ingredientsContent }} />
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                            </div>
+                        )}
 
                     </div>
 

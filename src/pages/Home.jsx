@@ -3,7 +3,8 @@ import HeroCarousel from '../components/HeroCarousel';
 import ProductCard from '../components/ProductCard';
 import ReviewCardSlider from '../components/ReviewCardSlider';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchCategoriesApi, fetchProductsApi } from '../services/api';
+import { useBranding } from '../context/BrandingContext';
+import { fetchCategoriesApi, fetchProductsApi, submitContactQueryApi, subscribeToCacheInvalidation } from '../services/api';
 
 export default function Home({
     products: propProducts,
@@ -16,6 +17,14 @@ export default function Home({
     onToggleFavorite
 }) {
     const { t } = useLanguage();
+    let branding = null;
+    try {
+        const ctx = useBranding();
+        branding = ctx?.branding || null;
+    } catch {
+        branding = null;
+    }
+
     const [activeTab, setActiveTab] = useState('300g');
     const [purchaseOption, setPurchaseOption] = useState('one-time');
     const [newsletterEmail, setNewsletterEmail] = useState('');
@@ -45,21 +54,39 @@ export default function Home({
         }
     }, [propProducts, propLoading]);
 
+    // Subscribe to product updates
+    useEffect(() => {
+        const unsubscribe = subscribeToCacheInvalidation('products', async () => {
+            const res = await fetchProductsApi(true);
+            if (res.success && res.data) {
+                setProductList(res.data);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     // Dynamic Categories State - 100% API Driven with Instant Storage Cache
     const [categoryItems, setCategoryItems] = useState([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
 
-    useEffect(() => {
-        let isMounted = true;
-        async function loadCategories() {
-            const res = await fetchCategoriesApi();
-            if (isMounted && res.success && res.data) {
-                setCategoryItems(res.data);
-            }
-            if (isMounted) setLoadingCategories(false);
+    const loadCategories = async (forceRefresh = false) => {
+        const res = await fetchCategoriesApi(forceRefresh);
+        if (res.success && res.data) {
+            setCategoryItems(res.data);
         }
+        setLoadingCategories(false);
+    };
+
+    useEffect(() => {
         loadCategories();
-        return () => { isMounted = false; };
+    }, []);
+
+    // Subscribe to category cache invalidation
+    useEffect(() => {
+        const unsubscribe = subscribeToCacheInvalidation('categories', () => {
+            loadCategories(true);
+        });
+        return () => unsubscribe();
     }, []);
 
     const handleCategoryClick = (catName) => {
@@ -73,8 +100,11 @@ export default function Home({
     // Contact Form States
     const [contactName, setContactName] = useState('');
     const [contactEmail, setContactEmail] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
     const [contactMessage, setContactMessage] = useState('');
+    const [contactSubmitting, setContactSubmitting] = useState(false);
     const [contactSubmitted, setContactSubmitted] = useState(false);
+    const [contactError, setContactError] = useState('');
 
     const handleNewsletterSubmit = (e) => {
         e.preventDefault();
@@ -83,13 +113,31 @@ export default function Home({
         }
     };
 
-    const handleContactSubmit = (e) => {
+    const handleContactSubmit = async (e) => {
         e.preventDefault();
-        if (contactName && contactEmail && contactMessage) {
+        setContactError('');
+        if (!contactName.trim() || !contactEmail.trim() || !contactMessage.trim()) {
+            setContactError('Please fill in all required fields.');
+            return;
+        }
+
+        setContactSubmitting(true);
+        const res = await submitContactQueryApi({
+            name: contactName.trim(),
+            email: contactEmail.trim(),
+            phone: contactPhone.trim() || null,
+            message: contactMessage.trim()
+        });
+        setContactSubmitting(false);
+
+        if (res.success) {
             setContactSubmitted(true);
             setContactName('');
             setContactEmail('');
+            setContactPhone('');
             setContactMessage('');
+        } else {
+            setContactError(res.message || 'Failed to send message. Please try again.');
         }
     };
 
@@ -298,7 +346,7 @@ export default function Home({
                                 </div>
                                 <div>
                                     <h4 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{t('phoneLabel')}</h4>
-                                    <p style={{ fontSize: '0.85rem' }}>+91 7094074655</p>
+                                    <p style={{ fontSize: '0.85rem' }}>{branding?.support_phone || '+91 7094074655'}</p>
                                 </div>
                             </div>
 
@@ -311,7 +359,7 @@ export default function Home({
                                 </div>
                                 <div>
                                     <h4 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{t('emailLabel')}</h4>
-                                    <p style={{ fontSize: '0.85rem' }}>mangalamhealthyfood@zohomail.in</p>
+                                    <p style={{ fontSize: '0.85rem' }}>{branding?.support_email || 'mangalamhealthyfood@zohomail.in'}</p>
                                 </div>
                             </div>
 
@@ -325,7 +373,7 @@ export default function Home({
                                 <div>
                                     <h4 style={{ fontFamily: 'var(--font-sans)', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary)' }}>{t('factoryLabel')}</h4>
                                     <p style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>
-                                        {t('factoryAddr')}
+                                        {branding?.address || t('factoryAddr')}
                                     </p>
                                 </div>
                             </div>
@@ -336,51 +384,110 @@ export default function Home({
                     <div className="newsletter-wrapper" style={{ width: '100%', padding: '40px', textAlign: 'left' }}>
                         <h3 style={{ fontSize: '1.75rem', marginBottom: '20px' }}>{t('getInTouchTitle')}</h3>
 
+                        {contactError && (
+                            <div style={{
+                                padding: '10px 14px',
+                                marginBottom: '16px',
+                                borderRadius: 'var(--radius-md)',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#b91c1c',
+                                fontSize: '0.82rem',
+                                fontWeight: 600
+                            }}>
+                                {contactError}
+                            </div>
+                        )}
+
                         {!contactSubmitted ? (
                             <form onSubmit={handleContactSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t('contactNameHolder')}</label>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>{t('contactNameHolder')} *</label>
                                     <input
                                         type="text"
                                         required
+                                        placeholder="Your full name"
                                         className="newsletter-input"
                                         style={{ borderRadius: 'var(--radius-md)', width: '100%', border: '1px solid rgba(7, 56, 32, 0.1)' }}
                                         value={contactName}
                                         onChange={(e) => setContactName(e.target.value)}
+                                        disabled={contactSubmitting}
                                     />
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Email Address</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        className="newsletter-input"
-                                        style={{ borderRadius: 'var(--radius-md)', width: '100%', border: '1px solid rgba(7, 56, 32, 0.1)' }}
-                                        value={contactEmail}
-                                        onChange={(e) => setContactEmail(e.target.value)}
-                                    />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Email Address *</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            placeholder="you@example.com"
+                                            className="newsletter-input"
+                                            style={{ borderRadius: 'var(--radius-md)', width: '100%', border: '1px solid rgba(7, 56, 32, 0.1)' }}
+                                            value={contactEmail}
+                                            onChange={(e) => setContactEmail(e.target.value)}
+                                            disabled={contactSubmitting}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Phone Number (Optional)</label>
+                                        <input
+                                            type="tel"
+                                            placeholder="+91 98765 43210"
+                                            className="newsletter-input"
+                                            style={{ borderRadius: 'var(--radius-md)', width: '100%', border: '1px solid rgba(7, 56, 32, 0.1)' }}
+                                            value={contactPhone}
+                                            onChange={(e) => setContactPhone(e.target.value)}
+                                            disabled={contactSubmitting}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Message</label>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Message *</label>
                                     <textarea
                                         required
                                         rows="4"
+                                        placeholder="Write your message, question, or feedback here..."
                                         className="newsletter-input"
                                         style={{ borderRadius: 'var(--radius-md)', width: '100%', border: '1px solid rgba(7, 56, 32, 0.1)', minHeight: '100px', resize: 'vertical', fontFamily: 'inherit' }}
                                         value={contactMessage}
                                         onChange={(e) => setContactMessage(e.target.value)}
+                                        disabled={contactSubmitting}
                                     />
                                 </div>
 
-                                <button type="submit" className="btn btn-primary" style={{ alignSelf: 'flex-start', padding: '12px 24px' }}>
-                                    Send Message
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    disabled={contactSubmitting}
+                                    style={{
+                                        alignSelf: 'flex-start',
+                                        padding: '12px 28px',
+                                        opacity: contactSubmitting ? 0.7 : 1,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    {contactSubmitting ? 'Sending Message...' : 'Send Message'}
                                 </button>
                             </form>
                         ) : (
-                            <div className="newsletter-success" style={{ margin: '0', display: 'block' }}>
-                                Thank you, {contactName}! Your message has been dispatched successfully. We'll be in touch shortly.
+                            <div className="newsletter-success" style={{ margin: '0', padding: '24px', background: 'rgba(7, 56, 32, 0.06)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(7, 56, 32, 0.15)' }}>
+                                <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✓</div>
+                                <h4 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: 'var(--color-primary)' }}>Message Sent Successfully!</h4>
+                                <p style={{ margin: '0 0 16px 0', fontSize: '0.88rem', color: '#4b5563', lineHeight: '1.5' }}>
+                                    Thank you for reaching out to us. Our team has received your inquiry and will contact you promptly.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setContactSubmitted(false)}
+                                    className="btn btn-outline"
+                                    style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+                                >
+                                    Send Another Message
+                                </button>
                             </div>
                         )}
                     </div>

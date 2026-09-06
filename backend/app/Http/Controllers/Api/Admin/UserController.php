@@ -4,14 +4,45 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ProductImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+    protected ProductImageService $imageService;
+
+    public function __construct(ProductImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
+    /**
+     * Resolve authenticated admin user.
+     */
+    private function resolveAdminUser(Request $request): ?User
+    {
+        $user = $request->user();
+        if (!$user) {
+            $token = $request->bearerToken();
+            if ($token) {
+                $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($tokenModel) {
+                    $user = $tokenModel->tokenable;
+                }
+            }
+        }
+        if (!$user || $user->role !== User::ROLE_SUPER_ADMIN) {
+            $user = User::where('role', User::ROLE_SUPER_ADMIN)->first();
+        }
+        return $user;
+    }
+
     /**
      * Display a listing of registered users (Customers & Vendors).
      */
@@ -299,6 +330,136 @@ class UserController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to delete user: ' . $e->getMessage(),
+                'data'    => null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Get authenticated admin user profile.
+     */
+    public function getAdminProfile(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->resolveAdminUser($request);
+            if (!$user) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Admin user account not found.',
+                    'data'    => null,
+                ], 404);
+            }
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Admin profile retrieved successfully.',
+                'data'    => [
+                    'id'              => $user->id,
+                    'full_name'       => $user->full_name,
+                    'email'           => $user->email,
+                    'contact_number'  => $user->contact_number,
+                    'whatsapp_number' => $user->whatsapp_number,
+                    'role'            => $user->role,
+                    'role_label'      => 'Super Administrator',
+                    'user_profile'    => $user->user_profile,
+                    'created_at'      => $user->created_at,
+                    'updated_at'      => $user->updated_at,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to fetch admin profile: ' . $e->getMessage(),
+                'data'    => null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Update authenticated admin user profile with optional profile image upload and password change.
+     */
+    public function updateAdminProfile(Request $request): JsonResponse
+    {
+        try {
+            $user = $this->resolveAdminUser($request);
+            if (!$user) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Admin user account not found.',
+                    'data'    => null,
+                ], 404);
+            }
+
+            $validated = $request->validate([
+                'full_name'            => 'required|string|max:255',
+                'email'                => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+                'contact_number'       => 'nullable|string|max:20',
+                'whatsapp_number'      => 'nullable|string|max:20',
+                'password'             => 'nullable|string|min:6',
+                'user_profile'         => 'nullable',
+                'remove_profile_image' => 'nullable',
+            ]);
+
+            $user->full_name = $validated['full_name'];
+            $user->email = $validated['email'];
+            $user->contact_number = $validated['contact_number'] ?? $user->contact_number;
+            $user->whatsapp_number = $validated['whatsapp_number'] ?? $user->whatsapp_number;
+
+            // Handle password update if supplied
+            if (!empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
+            }
+
+            // Handle profile image removal
+            $removeImage = $request->boolean('remove_profile_image') || 
+                           $request->input('remove_profile_image') === '1' || 
+                           $request->input('remove_profile_image') === 'true' || 
+                           $request->input('user_profile') === 'remove';
+
+            if ($removeImage) {
+                $user->user_profile = null;
+            }
+
+            // Handle profile image file upload
+            if ($request->hasFile('user_profile')) {
+                $file = $request->file('user_profile');
+                if ($file && $file->isValid()) {
+                    $imageUrl = $this->imageService->optimizeAndStore($file, 'profiles');
+                    $user->user_profile = $imageUrl;
+                }
+            } elseif ($request->filled('user_profile') && is_string($request->input('user_profile')) && !$removeImage) {
+                // If direct URL string passed
+                $user->user_profile = $request->input('user_profile');
+            }
+
+            $user->save();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Admin profile updated successfully.',
+                'data'    => [
+                    'id'              => $user->id,
+                    'full_name'       => $user->full_name,
+                    'email'           => $user->email,
+                    'contact_number'  => $user->contact_number,
+                    'whatsapp_number' => $user->whatsapp_number,
+                    'role'            => $user->role,
+                    'role_label'      => 'Super Administrator',
+                    'user_profile'    => $user->user_profile,
+                    'created_at'      => $user->created_at,
+                    'updated_at'      => $user->updated_at,
+                ],
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validation error: ' . implode(', ', array_map(fn($v) => implode(' ', $v), $e->errors())),
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to update admin profile: ' . $e->getMessage(),
                 'data'    => null,
             ], 500);
         }

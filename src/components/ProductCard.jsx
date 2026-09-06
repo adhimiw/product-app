@@ -11,20 +11,22 @@ import { useLanguage } from '../context/LanguageContext';
  * 5. Weight selector dropdown pill in Row 4
  */
 export default function ProductCard({
-    id = 1,
-    name = "Amutham Sprouted Health Mix",
+    id,
+    name,
     price,
     actual_price,
     inrPrice,
-    subtitle = "100% Sprouted | Bio-Activated",
-    rating = 4.9,
-    reviewCount = 1240,
-    badge = "Best Seller",
+    subtitle,
+    tags,
+    category,
+    rating,
+    reviewCount,
+    badge,
     badgeType = "green", // "green" or "orange"
     image,
     images = [],
     imageStyle = {},
-    weights = ["300g", "500g"],
+    weights,
     package_sizes = [],
     gramOptions = [],
     onProductView,
@@ -36,33 +38,43 @@ export default function ProductCard({
 
     const availableWeights = (Array.isArray(package_sizes) && package_sizes.length > 0)
         ? package_sizes.map(ps => `${ps.size_number}${ps.size_unit || 'g'}`)
-        : (Array.isArray(weights) && weights.length > 0 ? weights : ["300g", "500g"]);
+        : (Array.isArray(gramOptions) && gramOptions.length > 0
+            ? gramOptions.map(g => g.sizeWeight || g.size)
+            : (Array.isArray(weights) && weights.length > 0 ? weights : []));
 
-    const [selectedWeight, setSelectedWeight] = useState(availableWeights[0] || "300g");
+    const [selectedWeight, setSelectedWeight] = useState(availableWeights[0] || "");
     const [localWishlisted, setLocalWishlisted] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const isLiked = isFavorite || localWishlisted;
-    const basePrice = price || actual_price || (inrPrice ? parseInt(String(inrPrice).replace(/\D/g, ''), 10) : 110);
-    const displayImage = image || (Array.isArray(images) && images.length > 0 ? images[0] : "/mangalam_logo.png");
+    const basePrice = price || actual_price || (inrPrice ? parseInt(String(inrPrice).replace(/\D/g, ''), 10) : 0);
+    const displayImage = image || (Array.isArray(images) && images.length > 0 ? images[0] : "/assets/images/categories/organic-food-ingredients.png");
+    const displaySubtitle = subtitle || (Array.isArray(tags) && tags.length > 0 ? tags.filter(Boolean).slice(0, 2).join(' • ') : (category || ''));
 
     let activePrice = basePrice;
     let packageSizeId = null;
 
     if (Array.isArray(package_sizes) && package_sizes.length > 0) {
-        const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === selectedWeight);
+        const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === selectedWeight) || package_sizes[0];
         if (found) {
-            if (found.id && typeof found.id === 'number') {
-                packageSizeId = found.id;
+            const pId = found.id ?? found.db_id ?? found.package_id;
+            if (pId !== undefined && pId !== null) {
+                packageSizeId = !isNaN(Number(pId)) ? Number(pId) : pId;
             }
             if (found.variant_price !== undefined && found.variant_price !== null) {
                 activePrice = Number(found.variant_price);
             }
         }
     } else if (Array.isArray(gramOptions) && gramOptions.length > 0) {
-        const foundOpt = gramOptions.find(opt => opt.size && opt.size.startsWith(selectedWeight));
-        if (foundOpt && foundOpt.price) {
-            activePrice = Number(foundOpt.price);
+        const foundOpt = gramOptions.find(opt => opt.size && opt.size.startsWith(selectedWeight)) || gramOptions[0];
+        if (foundOpt) {
+            const pId = foundOpt.id ?? foundOpt.db_id ?? foundOpt.package_id;
+            if (pId !== undefined && pId !== null) {
+                packageSizeId = !isNaN(Number(pId)) ? Number(pId) : pId;
+            }
+            if (foundOpt.price) {
+                activePrice = Number(foundOpt.price);
+            }
         }
     }
 
@@ -175,58 +187,76 @@ export default function ProductCard({
                 </div>
 
                 {/* Row 2: Subtitle / Spec Highlights */}
-                <div className="tb-card-subtitle">
-                    {subtitle}
-                </div>
+                {displaySubtitle ? (
+                    <div className="tb-card-subtitle">
+                        {displaySubtitle}
+                    </div>
+                ) : null}
 
                 {/* Row 3: Rating Stars + Review Count */}
-                <div className="tb-card-rating-row">
-                    <span className="tb-stars">★★★★★</span>
-                    <span className="tb-rating-val">{rating}</span>
-                    <span className="tb-rating-sep">|</span>
-                    <span className="tb-reviews-count">{reviewCount} Reviews</span>
-                </div>
+                {(rating || reviewCount) ? (
+                    <div className="tb-card-rating-row">
+                        <span className="tb-stars">★★★★★</span>
+                        <span className="tb-rating-val">{rating || '5.0'}</span>
+                        {reviewCount ? (
+                            <>
+                                <span className="tb-rating-sep">|</span>
+                                <span className="tb-reviews-count">{reviewCount} Reviews</span>
+                            </>
+                        ) : null}
+                    </div>
+                ) : null}
 
                 {/* Row 4: Weight Selector Dropdown Pill */}
-                <div className="tb-weight-selector-wrap">
-                    <button
-                        type="button"
-                        className="tb-weight-dropdown-btn"
-                        onClick={() => setDropdownOpen(!dropdownOpen)}
-                    >
-                        <span>{selectedWeight}</span>
-                        <svg className={`tb-chevron ${dropdownOpen ? 'open' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-
-                    {/* Weight Options Dropdown Menu */}
-                    {dropdownOpen && (
-                        <div className="tb-weight-dropdown-menu">
-                            {availableWeights.map((w) => (
+                {availableWeights.length > 0 && (
+                    <div className="tb-weight-selector-wrap">
+                        {availableWeights.length > 1 ? (
+                            <>
                                 <button
                                     type="button"
-                                    key={w}
-                                    className={`tb-weight-option ${w === selectedWeight ? 'active' : ''}`}
-                                    onClick={() => {
-                                        setSelectedWeight(w);
-                                        setDropdownOpen(false);
-                                    }}
+                                    className="tb-weight-dropdown-btn"
+                                    onClick={() => setDropdownOpen(!dropdownOpen)}
                                 >
-                                    {w}
+                                    <span>{selectedWeight}</span>
+                                    <svg className={`tb-chevron ${dropdownOpen ? 'open' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
                                 </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+
+                                {/* Weight Options Dropdown Menu */}
+                                {dropdownOpen && (
+                                    <div className="tb-weight-dropdown-menu">
+                                        {availableWeights.map((w) => (
+                                            <button
+                                                type="button"
+                                                key={w}
+                                                className={`tb-weight-option ${w === selectedWeight ? 'active' : ''}`}
+                                                onClick={() => {
+                                                    setSelectedWeight(w);
+                                                    setDropdownOpen(false);
+                                                }}
+                                            >
+                                                {w}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="tb-weight-dropdown-btn" style={{ cursor: 'default', pointerEvents: 'none' }}>
+                                <span>{selectedWeight}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Quick Add to Cart Action */}
                 <button
                     type="button"
                     className="tb-add-cart-btn"
                     onClick={() => {
-                        const cleanBaseName = String(name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+g[^\)]*\)/i, '');
-                        const variantName = `${cleanBaseName} (${selectedWeight})`;
+                        const cleanBaseName = String(name || '').replace(/\s*\(\d+g[^\)]*\)/i, '').trim();
+                        const variantName = selectedWeight ? `${cleanBaseName} (${selectedWeight})` : cleanBaseName;
 
                         if (onAddToCart) {
                             onAddToCart(id, variantName, activePrice, '1 Pack', 1, packageSizeId);

@@ -313,6 +313,34 @@ p {
     line-height: 1;
 }
 
+.marquee-item-span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s ease;
+}
+
+.marquee-item-span:hover {
+    color: #ffffff;
+}
+
+.marquee-item-icon {
+    font-size: 0.82rem;
+    display: inline-block;
+}
+
+.marquee-item-badge {
+    background: #e8ab10;
+    color: #073820;
+    font-size: 0.58rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    line-height: 1.3;
+}
+
 @keyframes marqueeScroll {
     0% {
         transform: translate3d(0, 0, 0);
@@ -804,7 +832,12 @@ body {
    HERO / PROMO BANNER COMPONENT & GRID (MATCHING REFERENCE STRUCTURE)
    ========================================================================== */
 
-.hero-main-wrapper,
+.hero-main-wrapper {
+    padding-top: var(--header-height);
+    padding-bottom: 32px;
+    width: 100%;
+}
+
 .pdp-page,
 .shop-page,
 .science-page,
@@ -815,124 +848,133 @@ body {
 }
 
 /* ==========================================================================
-   2-COLUMN SPLIT HERO BANNER & 4 PASTEL FEATURE BADGES (EXACT REFERENCE DESIGN)
+   FULL-WIDTH EDGE-TO-EDGE HERO BANNER (TWO BROTHERS STYLE)
    ========================================================================== */
 
-.hero-grid-split {
-    display: grid;
-    grid-template-columns: 1.62fr 1fr;
-    gap: 22px;
-    align-items: stretch;
-    margin-bottom: 24px;
+.hero-edge-to-edge-banner {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    line-height: 0;
+    border-radius: 0;
 }
 
-/* Left Main Hero Banner */
-.hero-main-carousel-col {
-    position: relative;
-    border-radius: 24px;
-    overflow: hidden;
-    min-height: 390px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
-    transition: background 0.5s ease;
+.hero-edge-to-edge-banner img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
 }
 
 .hero-main-slide-inner {
-    padding: 44px 40px;
-    display: flex;
+    padding: 56px 64px 68px 64px;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
     align-items: center;
-    justify-content: space-between;
-    gap: 24px;
+    gap: 48px;
+    width: 100%;
     height: 100%;
     position: relative;
     z-index: 2;
 }
 
 .hero-main-slide-content {
-    flex: 1.2;
-    max-width: 58%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 580px;
     color: #ffffff;
     z-index: 3;
 }
 
 .hero-offer-badge {
-    display: inline-block;
-    font-size: 0.76rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.95);
-    margin-bottom: 12px;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    color: #fce895;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 6px 16px;
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
+    margin-bottom: 18px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .hero-main-title {
     font-family: var(--font-sans);
-    font-size: 2.35rem;
+    font-size: 2.85rem;
     font-weight: 800;
-    line-height: 1.16;
+    line-height: 1.14;
     color: #ffffff;
-    margin-bottom: 14px;
-    letter-spacing: -0.02em;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 18px;
+    letter-spacing: -0.025em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .hero-main-desc {
-    font-size: 0.92rem;
+    font-size: 1.05rem;
     color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 24px;
-    line-height: 1.45;
+    margin-bottom: 30px;
+    line-height: 1.55;
+    max-width: 500px;
 }
 
 .hero-main-shop-btn {
     background: #ffffff !important;
-    color: #e04a1f !important;
+    color: #073820 !important;
     font-family: var(--font-sans);
     font-weight: 800;
-    font-size: 0.92rem;
-    padding: 12px 30px;
-    border-radius: 8px;
+    font-size: 0.96rem;
+    padding: 14px 36px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .hero-main-shop-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    background: #f8faf9 !important;
 }
 
 .hero-main-slide-img-wrap {
-    flex: 0.9;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     z-index: 2;
+    width: 100%;
 }
 
 .hero-main-slide-img {
-    max-height: 270px;
+    max-height: 380px;
     max-width: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.25));
+    filter: drop-shadow(0 20px 36px rgba(0, 0, 0, 0.35));
     transition: transform 0.4s ease;
 }
 
 .hero-main-carousel-col:hover .hero-main-slide-img {
-    transform: scale(1.04);
+    transform: scale(1.03);
 }
 
 /* Bottom Center Arrows */
 .hero-main-nav-arrows {
     position: absolute;
-    bottom: 20px;
+    bottom: 22px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -942,8 +984,8 @@ body {
 }
 
 .hero-nav-arrow-btn {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     color: #ffffff;
@@ -958,121 +1000,15 @@ body {
 
 .hero-nav-arrow-btn:hover {
     background: rgba(255, 255, 255, 0.4);
-    transform: scale(1.1);
-}
-
-/* Right Side: 2 Stacked Promo Cards */
-.hero-side-promos-col {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    height: 100%;
-}
-
-.hero-promo-card {
-    flex: 1;
-    border-radius: 20px;
-    padding: 24px 26px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    cursor: pointer;
-    overflow: hidden;
-    position: relative;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-}
-
-.hero-promo-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
-}
-
-.promo-card-green {
-    background: #eaf4ee;
-}
-
-.promo-card-rose {
-    background: #fdf0ee;
-}
-
-.hero-promo-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.hero-promo-tag {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #e04a1f;
-    margin-bottom: 6px;
-    letter-spacing: 0.02em;
-}
-
-.hero-promo-title {
-    font-family: var(--font-sans);
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #1a2e22;
-    line-height: 1.25;
-    margin-bottom: 14px;
-}
-
-.hero-promo-btn {
-    font-family: var(--font-sans);
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 7px 18px;
-    border-radius: 6px;
-    border: none;
-    color: #ffffff;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.hero-promo-btn:hover {
-    opacity: 0.9;
-}
-
-.hero-promo-btn.btn-green {
-    background: #16a34a;
-}
-
-.hero-promo-btn.btn-coral {
-    background: #dc2626;
-}
-
-.hero-promo-img-wrap {
-    width: 105px;
-    height: 105px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.hero-promo-img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.12));
-    transition: transform 0.3s ease;
-}
-
-.hero-promo-card:hover .hero-promo-img {
     transform: scale(1.08);
 }
 
-/* 4 Feature / Trust Badges in Pastel Boxes (Matching Screenshot) */
+/* 4 Feature / Trust Badges in Pastel Boxes */
 .hero-feature-badges-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin-top: 24px;
+    margin-top: 16px;
 }
 
 .hero-feature-badge-card {
@@ -1155,16 +1091,18 @@ body {
 }
 
 /* Responsive Media Queries for Hero Banner */
-@media (max-width: 992px) {
-    .hero-grid-split {
-        grid-template-columns: 1fr;
-        gap: 16px;
+@media (max-width: 1024px) {
+    .hero-main-slide-inner {
+        padding: 44px 40px 64px 40px;
+        gap: 32px;
     }
 
-    .hero-side-promos-col {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 14px;
+    .hero-main-title {
+        font-size: 2.35rem;
+    }
+
+    .hero-main-slide-img {
+        max-height: 320px;
     }
 
     .hero-feature-badges-grid {
@@ -1172,23 +1110,37 @@ body {
     }
 }
 
-@media (max-width: 640px) {
-    .hero-side-promos-col {
-        grid-template-columns: 1fr;
+@media (max-width: 768px) {
+    .hero-fullwidth-banner,
+    .hero-main-carousel-col {
+        min-height: auto;
     }
 
     .hero-main-slide-inner {
+        display: flex;
         flex-direction: column;
-        padding: 32px 24px 44px;
+        padding: 40px 24px 60px 24px;
         text-align: center;
+        gap: 28px;
     }
 
     .hero-main-slide-content {
+        align-items: center;
         max-width: 100%;
     }
 
     .hero-main-title {
-        font-size: 1.75rem;
+        font-size: 1.9rem;
+    }
+
+    .hero-main-desc {
+        font-size: 0.94rem;
+        margin-bottom: 22px;
+        max-width: 100%;
+    }
+
+    .hero-main-slide-img {
+        max-height: 240px;
     }
 
     .hero-feature-badges-grid {

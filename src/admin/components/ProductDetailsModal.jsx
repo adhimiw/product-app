@@ -177,11 +177,15 @@ export default function ProductDetailsModal({ product, onClose, onEdit }) {
                                 {/* Base Price */}
                                 <div style={{ background: 'var(--admin-surface-subtle)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--admin-border-color)' }}>
                                     <div style={{ fontSize: '0.68rem', color: 'var(--admin-text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                                        <Tag size={12} /> SALE PRICE
+                                        <Tag size={12} /> {packageSizes.length > 1 ? 'PRICE RANGE' : 'SALE PRICE'}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                                         <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--admin-text-main)' }}>
-                                            ₹{product.actual_price}
+                                            ₹{packageSizes.length > 0 
+                                                ? (packageSizes.length === 1 
+                                                    ? packageSizes[0].variant_price 
+                                                    : `${Math.min(...packageSizes.map(s => Number(s.variant_price) || 0))} - ₹${Math.max(...packageSizes.map(s => Number(s.variant_price) || 0))}`)
+                                                : (product.actual_price || product.price || 0)}
                                         </span>
                                         {product.regular_price && Number(product.regular_price) > Number(product.actual_price) && (
                                             <span style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', textDecoration: 'line-through' }}>

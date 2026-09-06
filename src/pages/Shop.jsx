@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchCategoriesApi, fetchProductsApi } from '../services/api';
+import { fetchCategoriesApi, fetchProductsApi, subscribeToCacheInvalidation } from '../services/api';
 
 export default function Shop({
     products: propProducts,
@@ -36,17 +36,35 @@ export default function Shop({
         }
     }, [propProducts]);
 
-    useEffect(() => {
-        async function loadDynamicCategories() {
-            const res = await fetchCategoriesApi();
-            if (res.success && res.data) {
-                setCategories([
-                    { id: 'all', name: 'All Products' },
-                    ...res.data
-                ]);
-            }
+    const loadDynamicCategories = async (forceRefresh = false) => {
+        const res = await fetchCategoriesApi(forceRefresh);
+        if (res.success && res.data) {
+            setCategories([
+                { id: 'all', name: 'All Products' },
+                ...res.data
+            ]);
         }
+    };
+
+    useEffect(() => {
         loadDynamicCategories();
+    }, []);
+
+    // Subscribe to real-time cache updates
+    useEffect(() => {
+        const unsubCat = subscribeToCacheInvalidation('categories', () => {
+            loadDynamicCategories(true);
+        });
+        const unsubProd = subscribeToCacheInvalidation('products', async () => {
+            const res = await fetchProductsApi(true);
+            if (res.success && res.data) {
+                setProductList(res.data);
+            }
+        });
+        return () => {
+            unsubCat();
+            unsubProd();
+        };
     }, []);
 
     const activeCategory = setSelectedCategory ? selectedCategory : localCategory;
