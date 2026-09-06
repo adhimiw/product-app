@@ -193,6 +193,10 @@ Route::prefix('admin')->group(function () {
         Route::get('settings', [AdminWhatsAppController::class, 'getSettings']);
         Route::put('settings', [AdminWhatsAppController::class, 'updateSettings']);
         Route::post('settings', [AdminWhatsAppController::class, 'updateSettings']);
+        Route::delete('conversations/{id}', [AdminWhatsAppController::class, 'deleteConversation']);
+        Route::post('conversations/{id}/clear', [AdminWhatsAppController::class, 'clearMessages']);
+        Route::delete('conversations', [AdminWhatsAppController::class, 'purgeAllConversations']);
+        Route::post('conversations/purge', [AdminWhatsAppController::class, 'purgeAllConversations']);
         Route::post('test-notification', [AdminWhatsAppController::class, 'sendTestNotification']);
         Route::post('session/request-logout-otp', [AdminWhatsAppController::class, 'requestLogoutOtp']);
         Route::post('session/verify-logout-otp', [AdminWhatsAppController::class, 'verifyLogoutOtp']);
