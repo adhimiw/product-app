@@ -1,23 +1,61 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../adminWhatsApp.css';
 import { adminWhatsAppService } from '../services/adminWhatsAppService';
-import { adminOrderService } from '../services/adminOrderService';
+import { 
+    MessageSquare, 
+    QrCode, 
+    LogOut, 
+    RefreshCw, 
+    Search, 
+    Sliders, 
+    CheckCircle2, 
+    Clock, 
+    Phone, 
+    ExternalLink, 
+    Eye, 
+    Trash2, 
+    Copy, 
+    Check, 
+    X, 
+    AlertTriangle, 
+    Zap, 
+    Package, 
+    Truck, 
+    Sparkles, 
+    ShoppingBag, 
+    Bell, 
+    ShieldCheck,
+    CheckCheck,
+    ArrowUpRight,
+    Activity,
+    Info
+} from 'lucide-react';
 
 export default function AdminWhatsApp() {
+    // Gateway & Session State - Phone is strictly null until genuine QR scan
     const [statusData, setStatusData] = useState({
-        status: 'CONNECTED',
-        admin_phone_number: '9025192863',
+        status: 'SCAN_QR',
         session: 'mangalam-admin',
-        is_enabled: true
+        is_enabled: true,
+        phone: null
     });
+    const [statusLoading, setStatusLoading] = useState(false);
 
-    const [conversations, setConversations] = useState([]);
-    const [selectedConvId, setSelectedConvId] = useState(null);
-    const [activeConversation, setActiveConversation] = useState(null);
-    const [messages, setMessages] = useState([]);
+    // Logs & Filter State
+    const [logs, setLogs] = useState([]);
+    const [logsLoading, setLogsLoading] = useState(true);
+    const [logsRefreshing, setLogsRefreshing] = useState(false);
+    const [counts, setCounts] = useState({
+        total: 0,
+        order_placed: 0,
+        shipped: 0,
+        delivered: 0,
+        admin_alerts: 0
+    });
     const [searchQuery, setSearchQuery] = useState('');
     const [filterTab, setFilterTab] = useState('all');
-    const [inputText, setInputText] = useState('');
+
+    // Modals
     const [isQrModalOpen, setIsQrModalOpen] = useState(false);
     const [qrCodeUrl, setQrCodeUrl] = useState('');
     const [isQrLoading, setIsQrLoading] = useState(false);
@@ -25,422 +63,133 @@ export default function AdminWhatsApp() {
     const [qrCountdown, setQrCountdown] = useState(25);
     const [qrFeedback, setQrFeedback] = useState('');
     const [isQrConnected, setIsQrConnected] = useState(false);
+
+    // Disconnect / OTP Modal
     const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
     const [otpInput, setOtpInput] = useState('');
     const [otpLoading, setOtpLoading] = useState(false);
     const [otpStatus, setOtpStatus] = useState(null);
     const [otpTestPreview, setOtpTestPreview] = useState(null);
-    const [isSending, setIsSending] = useState(false);
-    const [notificationBanner, setNotificationBanner] = useState(null);
-    const [mobileActiveView, setMobileActiveView] = useState('list'); // 'list' or 'chat'
-    const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
-    // Keep-Alive & Gateway Health Telemetry
+    // View Full Message Modal
+    const [selectedMessage, setSelectedMessage] = useState(null);
+    const [copiedText, setCopiedText] = useState(false);
+
+    // Keepalive Ping Telemetry
     const [isPinging, setIsPinging] = useState(false);
     const [pingTelemetry, setPingTelemetry] = useState(null);
     const [pingFeedback, setPingFeedback] = useState(null);
     const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
     const [keepaliveLogs, setKeepaliveLogs] = useState([]);
-    const [logsLoading, setLogsLoading] = useState(false);
+    const [keepaliveLoading, setKeepaliveLoading] = useState(false);
 
-    // WhatsApp CRM Settings & Database Purge States
+    // Settings Modal
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [settingsData, setSettingsData] = useState({
-        auto_reply_enabled: true,
-        welcome_message: '🌿 Welcome to Mangalam Healthy Foods! How can we assist you with our organic sprouted health mixes today?',
-        is_enabled: true,
         admin_phone_number: '',
+        is_enabled: true,
+        notify_customer_on_order: true,
+        notify_admin_on_order: true,
+        auto_reply_enabled: true,
     });
     const [settingsSaving, setSettingsSaving] = useState(false);
-    const [isPurgingChats, setIsPurgingChats] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-    const messagesContainerRef = useRef(null);
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
+    };
 
     // Initial Load
     useEffect(() => {
-        try {
-            localStorage.removeItem('mangalam_admin_wa_conversations');
-            localStorage.removeItem('mangalam_admin_wa_messages');
-        } catch (e) {}
         loadStatus();
-        loadConversations();
+        loadLogs();
     }, []);
 
-    // Load active conversation messages when selected
+    // Filter or Search Change
     useEffect(() => {
-        if (selectedConvId) {
-            loadMessages(selectedConvId);
-        }
-    }, [selectedConvId]);
+        loadLogs(searchQuery, filterTab, false);
+    }, [filterTab]);
 
-    // Live Real-Time Polling for incoming & outgoing messages with dynamic tab visibility & error backoff
-    useEffect(() => {
-        let isCancelled = false;
-        let pollDelay = 1400;
-        let timer = null;
-
-        const pollTick = async () => {
-            if (isCancelled) return;
-
-            // If browser tab is minimized or hidden, back off to 8s to conserve network/battery
-            if (document.hidden) {
-                timer = setTimeout(pollTick, 8000);
-                return;
-            }
-
-            try {
-                await loadConversations(searchQuery, filterTab, false);
-                if (selectedConvId) {
-                    await loadMessages(selectedConvId, false);
-                }
-                setLastSyncTime(new Date());
-                pollDelay = 1400; // Reset to fast poll on success
-            } catch (err) {
-                // Adaptive backoff on network hiccups up to 6s
-                pollDelay = Math.min(pollDelay * 1.5, 6000);
-            }
-
-            if (!isCancelled) {
-                timer = setTimeout(pollTick, pollDelay);
-            }
-        };
-
-        const handleVisibilityChange = () => {
-            if (!document.hidden) {
-                // Immediate sync when returning to active tab
-                loadStatus();
-                loadConversations(searchQuery, filterTab, false);
-                if (selectedConvId) {
-                    loadMessages(selectedConvId, false);
-                }
-            }
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        timer = setTimeout(pollTick, 1000);
-
-        return () => {
-            isCancelled = true;
-            if (timer) clearTimeout(timer);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    }, [selectedConvId, searchQuery, filterTab]);
-
-    // Auto-scroll chat to bottom inside canvas ONLY without scrolling the parent window
-    useEffect(() => {
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
-    }, [messages]);
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        loadLogs(searchQuery, filterTab, false);
+    };
 
     const loadStatus = async () => {
-        const res = await adminWhatsAppService.getStatus();
-        if (res) {
-            setStatusData(res);
-            if (res.ping_telemetry) {
-                setPingTelemetry(res.ping_telemetry);
+        setStatusLoading(true);
+        try {
+            const res = await adminWhatsAppService.getStatus();
+            if (res) {
+                setStatusData(res);
+                if (res.ping_telemetry) {
+                    setPingTelemetry(res.ping_telemetry);
+                }
             }
+        } catch (e) {
+            console.error('Error loading WhatsApp status', e);
+        } finally {
+            setStatusLoading(false);
         }
     };
 
-    const handleOpenLogsModal = async () => {
-        setIsLogsModalOpen(true);
-        setLogsLoading(true);
+    const loadLogs = async (search = searchQuery, filter = filterTab, isRefresh = true) => {
+        if (isRefresh) setLogsRefreshing(true);
         try {
-            const logs = await adminWhatsAppService.getKeepaliveLogs(60);
-            setKeepaliveLogs(logs || []);
+            const res = await adminWhatsAppService.getMessageLogs({ search, filter });
+            if (res && res.data) {
+                setLogs(res.data);
+                if (res.counts) {
+                    setCounts(res.counts);
+                }
+            }
         } catch (e) {
-            console.error('Failed to load logs', e);
+            console.error('Error loading message logs:', e);
         } finally {
             setLogsLoading(false);
+            setLogsRefreshing(false);
         }
     };
 
-    const handlePingGateway = async (wake = false) => {
-        setIsPinging(true);
-        setPingFeedback('⚡ Pinging gateway...');
-        try {
-            const res = await adminWhatsAppService.pingGateway(wake);
-            if (res) {
-                setPingTelemetry(res);
-                if (res.success) {
-                    setPingFeedback(`✅ Awake (${res.latency_ms || 120}ms)`);
-                } else if (res.status === 'SLEEPING') {
-                    setPingFeedback('🟡 Gateway waking up...');
-                } else if (res.status === 'AUTH_ERROR') {
-                    setPingFeedback('⚠️ API Key rejected');
-                } else {
-                    setPingFeedback(`❌ ${res.message || 'Ping failed'}`);
+    // QR Code Auto-Refresh & Phone Scan Detector
+    useEffect(() => {
+        if (!isQrModalOpen || isQrConnected) return;
+
+        const countdownTimer = setInterval(() => {
+            setQrCountdown(prev => {
+                if (prev <= 1) {
+                    fetchQrCode(false);
+                    return 25;
                 }
-            }
-        } catch (e) {
-            setPingFeedback('❌ Ping error');
-        } finally {
-            setIsPinging(false);
-            setTimeout(() => setPingFeedback(null), 4000);
-        }
-    };
+                return prev - 1;
+            });
+        }, 1000);
 
-    const loadConversations = async (query = searchQuery, filter = filterTab, autoSelect = true) => {
-        const rawList = await adminWhatsAppService.getConversations(query, filter);
-        
-        // Safety deduplication by 10-digit phone number or unique ID
-        const uniqueMap = new Map();
-        (rawList || []).forEach(c => {
-            const phoneDigits = (c.customer_phone || '').replace(/\D/g, '');
-            const key = phoneDigits ? phoneDigits.slice(-10) : String(c.id);
-            if (!uniqueMap.has(key)) {
-                uniqueMap.set(key, c);
-            } else {
-                const existing = uniqueMap.get(key);
-                if (c.last_message_at && (!existing.last_message_at || new Date(c.last_message_at) > new Date(existing.last_message_at))) {
-                    uniqueMap.set(key, c);
-                }
-            }
-        });
-        const list = Array.from(uniqueMap.values());
-
-        setConversations(list);
-        if (list && list.length > 0) {
-            const isValidSelected = selectedConvId && list.some(c => c.id === selectedConvId);
-            const targetId = isValidSelected ? selectedConvId : list[0].id;
-            
-            if (selectedConvId !== targetId) {
-                setSelectedConvId(targetId);
-            }
-            if (!activeConversation || activeConversation.id !== targetId) {
-                const found = list.find(c => c.id === targetId) || list[0];
-                setActiveConversation(found);
-                loadMessages(targetId, true);
-            }
-        } else {
-            setActiveConversation(null);
-            setMessages([]);
-        }
-    };
-
-    const loadMessages = async (convId, updateOrders = true) => {
-        const existing = conversations.find(c => c.id === convId);
-        const data = await adminWhatsAppService.getMessages(convId);
-        let conv = data?.conversation || existing;
-        if (conv && updateOrders) {
+        const statusChecker = setInterval(async () => {
             try {
-                const phoneClean = (conv.customer_phone || '').replace(/\D/g, '');
-                const orderRes = await adminOrderService.getOrders({ search: phoneClean.slice(-10) });
-                if (orderRes.success && orderRes.data && orderRes.data.length > 0) {
-                    conv = { ...conv, activeOrders: orderRes.data, user: { ...conv.user, orders: orderRes.data } };
+                const statusRes = await adminWhatsAppService.getStatus();
+                const isConn = (statusRes?.status === 'CONNECTED' || statusRes?.status === 'ready') && Boolean(statusRes?.phone);
+                
+                if (isConn) {
+                    setQrCodeUrl('');
+                    setIsQrConnected(true);
+                    setStatusData(statusRes);
+                    const phoneNum = statusRes.phone;
+                    setQrFeedback(`🎉 WhatsApp Connected Successfully! Linked to +${phoneNum}`);
+                    showToast(`🎉 WhatsApp Linked: +${phoneNum}`, 'success');
+                    setTimeout(() => {
+                        setIsQrModalOpen(false);
+                        setIsQrConnected(false);
+                    }, 1800);
                 }
             } catch (e) {}
-        }
-        if (conv) {
-            setActiveConversation(conv);
-        }
-        if (data?.messages) {
-            setMessages(prev => {
-                // Keep any pending optimistic messages that haven't synced yet
-                const pending = prev.filter(m => String(m.id).startsWith('temp_'));
-                const serverMsgIds = new Set(data.messages.map(m => m.id));
-                const filteredPending = pending.filter(p => !serverMsgIds.has(p.id));
-                return [...data.messages, ...filteredPending];
-            });
-        }
-    };
+        }, 1400);
 
-    const handleSelectConversation = (id) => {
-        setSelectedConvId(id);
-        const existing = conversations.find(c => c.id === id);
-        if (existing) {
-            setActiveConversation(existing);
-        }
-        setMobileActiveView('chat');
-        loadMessages(id, true);
-    };
-
-    const handleDeleteConversation = async (convId, e = null) => {
-        if (e) e.stopPropagation();
-        const target = conversations.find(c => c.id === convId) || activeConversation;
-        const targetName = target?.customer_name || 'this customer';
-
-        if (!window.confirm(`Are you sure you want to permanently delete the conversation with ${targetName} and all its message history from the database?`)) {
-            return;
-        }
-
-        try {
-            const res = await adminWhatsAppService.deleteConversation(convId);
-            if (res.success) {
-                setNotificationBanner(`🗑️ Deleted chat with ${targetName}`);
-                setTimeout(() => setNotificationBanner(null), 3500);
-
-                const remaining = conversations.filter(c => c.id !== convId);
-                setConversations(remaining);
-                if (selectedConvId === convId) {
-                    if (remaining.length > 0) {
-                        setSelectedConvId(remaining[0].id);
-                        setActiveConversation(remaining[0]);
-                        loadMessages(remaining[0].id, true);
-                    } else {
-                        setSelectedConvId(null);
-                        setActiveConversation(null);
-                        setMessages([]);
-                    }
-                }
-            } else {
-                alert(res.message || 'Failed to delete conversation.');
-            }
-        } catch (err) {
-            console.error('Delete conversation error:', err);
-            alert('Failed to delete conversation from database.');
-        }
-    };
-
-    const handleClearMessages = async (convId) => {
-        const target = conversations.find(c => c.id === convId) || activeConversation;
-        const targetName = target?.customer_name || 'this customer';
-
-        if (!window.confirm(`Clear all chat message history for ${targetName}? The contact will remain active.`)) {
-            return;
-        }
-
-        try {
-            const res = await adminWhatsAppService.clearMessages(convId);
-            if (res.success) {
-                setMessages([]);
-                setNotificationBanner(`🧹 Cleared chat history for ${targetName}`);
-                setTimeout(() => setNotificationBanner(null), 3500);
-                loadConversations();
-            } else {
-                alert(res.message || 'Failed to clear chat history.');
-            }
-        } catch (err) {
-            console.error('Clear messages error:', err);
-            alert('Failed to clear chat history.');
-        }
-    };
-
-    const handlePurgeAllChats = async () => {
-        const count = conversations.length;
-        if (!window.confirm(`⚠️ DANGER: Are you sure you want to PERMANENTLY PURGE ALL ${count} conversations and all stored chat messages from the database?\n\nThis action cannot be undone.`)) {
-            return;
-        }
-
-        setIsPurgingChats(true);
-        try {
-            const res = await adminWhatsAppService.purgeAllConversations();
-            if (res.success) {
-                setConversations([]);
-                setSelectedConvId(null);
-                setActiveConversation(null);
-                setMessages([]);
-                setIsSettingsModalOpen(false);
-                setNotificationBanner('🧼 Database Chat Records Successfully Purged!');
-                setTimeout(() => setNotificationBanner(null), 4000);
-            } else {
-                alert(res.message || 'Failed to purge chat records.');
-            }
-        } catch (err) {
-            console.error('Purge error:', err);
-            alert('Failed to purge chat records from database.');
-        } finally {
-            setIsPurgingChats(false);
-        }
-    };
-
-    const handleOpenSettingsModal = async () => {
-        setIsSettingsModalOpen(true);
-        try {
-            const current = await adminWhatsAppService.getSettings();
-            if (current) {
-                setSettingsData({
-                    auto_reply_enabled: current.auto_reply_enabled !== false,
-                    welcome_message: current.welcome_message || '🌿 Welcome to Mangalam Healthy Foods! How can we assist you with our organic sprouted health mixes today?',
-                    is_enabled: current.is_enabled !== false,
-                    admin_phone_number: current.admin_phone_number || '',
-                });
-            }
-        } catch (err) {
-            console.error('Error fetching settings:', err);
-        }
-    };
-
-    const handleSaveSettings = async (e) => {
-        e.preventDefault();
-        setSettingsSaving(true);
-        try {
-            const res = await adminWhatsAppService.updateSettings(settingsData);
-            if (res.success) {
-                setNotificationBanner('✅ WhatsApp Settings Updated Successfully!');
-                setTimeout(() => setNotificationBanner(null), 3500);
-                setIsSettingsModalOpen(false);
-                loadStatus();
-            } else {
-                alert(res.message || 'Failed to save settings.');
-            }
-        } catch (err) {
-            console.error('Save settings error:', err);
-            alert('Failed to update WhatsApp settings.');
-        } finally {
-            setSettingsSaving(false);
-        }
-    };
-
-    const handleSendMessage = async (customText = null) => {
-        const textToSend = (customText || inputText).trim();
-        if (!textToSend || !activeConversation) return;
-
-        // 1. Optimistic Instant UI Update (< 1ms latency for user)
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const tempId = 'temp_' + Date.now();
-        const optimisticMsg = {
-            id: tempId,
-            conversation_id: activeConversation.id,
-            sender_type: 'admin',
-            message: textToSend,
-            time: timeStr,
-            status: 'sent',
-            created_at: now.toISOString(),
+        return () => {
+            clearInterval(countdownTimer);
+            clearInterval(statusChecker);
         };
-
-        if (!customText) setInputText('');
-        setMessages(prev => [...prev, optimisticMsg]);
-
-        // 2. Immediately update conversation snippet in sidebar
-        setConversations(prev => prev.map(c => {
-            if (c.id === activeConversation.id) {
-                return {
-                    ...c,
-                    last_message: textToSend,
-                    last_message_at: now.toISOString(),
-                };
-            }
-            return c;
-        }));
-
-        // 3. Scroll to bottom
-        setTimeout(() => {
-            if (messagesContainerRef.current) {
-                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-            }
-        }, 20);
-
-        // 4. Background OpenWA dispatch
-        try {
-            await adminWhatsAppService.sendMessage(
-                activeConversation.id,
-                activeConversation.customer_phone,
-                textToSend
-            );
-        } catch (e) {
-            console.error('Async WhatsApp send error:', e);
-        }
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSendMessage();
-        }
-    };
+    }, [isQrModalOpen, isQrConnected]);
 
     const fetchQrCode = async (isManual = false) => {
         if (isManual) {
@@ -452,14 +201,15 @@ export default function AdminWhatsApp() {
 
         try {
             const qrRes = await adminWhatsAppService.getQrCode();
-            const isConn = qrRes && (qrRes.status === 'ready' || qrRes.status === 'CONNECTED' || (qrRes.phone && qrRes.status !== 'qr_ready'));
+            const isConn = (qrRes?.status === 'ready' || qrRes?.status === 'CONNECTED') && Boolean(qrRes?.phone);
             
             if (isConn) {
                 setQrCodeUrl('');
                 setIsQrConnected(true);
-                const phoneNum = qrRes.phone || qrRes.admin_phone || 'Admin WhatsApp';
+                const phoneNum = qrRes.phone;
+                setStatusData(prev => ({ ...prev, status: 'CONNECTED', phone: phoneNum }));
                 setQrFeedback(`🎉 WhatsApp Connected Successfully! Linked to +${phoneNum}`);
-                setNotificationBanner(`🎉 WhatsApp Linked: +${phoneNum}`);
+                showToast(`🎉 WhatsApp Linked: +${phoneNum}`, 'success');
                 loadStatus();
                 setTimeout(() => {
                     setIsQrModalOpen(false);
@@ -479,11 +229,11 @@ export default function AdminWhatsApp() {
                     setQrFeedback('');
                 }
             } else {
-                setQrFeedback(qrRes?.message || 'Awaiting QR generation from OpenWA...');
+                setQrFeedback(qrRes?.message || 'Awaiting QR generation from OpenWA gateway...');
             }
         } catch (err) {
             console.error('Error fetching QR code:', err);
-            setQrFeedback('Failed to refresh QR. Retrying...');
+            setQrFeedback('Failed to generate QR. Retrying...');
         } finally {
             setIsQrLoading(false);
             setIsQrRefreshing(false);
@@ -499,46 +249,6 @@ export default function AdminWhatsApp() {
         fetchQrCode(false);
     };
 
-    // Live QR Code Auto-Refresh & Connection Detection
-    useEffect(() => {
-        if (!isQrModalOpen || isQrConnected) return;
-
-        // 1. Live Countdown and Auto-Refresh
-        const timer = setInterval(() => {
-            setQrCountdown(prev => {
-                if (prev <= 1) {
-                    fetchQrCode(false);
-                    return 25;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-
-        // 2. Fast Poll Status (1.2s) to auto-detect instant phone scan
-        const statusChecker = setInterval(async () => {
-            try {
-                const statusRes = await adminWhatsAppService.getStatus();
-                if (statusRes && (statusRes.status === 'CONNECTED' || statusRes.status === 'ready' || statusRes.phone)) {
-                    setQrCodeUrl('');
-                    setIsQrConnected(true);
-                    setStatusData(statusRes);
-                    const phoneNum = statusRes.phone || statusRes.admin_phone_number || 'Admin WhatsApp';
-                    setQrFeedback(`🎉 WhatsApp Connected Successfully! Linked to +${phoneNum}`);
-                    setNotificationBanner(`🎉 WhatsApp Linked: +${phoneNum}`);
-                    setTimeout(() => {
-                        setIsQrModalOpen(false);
-                        setIsQrConnected(false);
-                    }, 1800);
-                }
-            } catch (e) {}
-        }, 1200);
-
-        return () => {
-            clearInterval(timer);
-            clearInterval(statusChecker);
-        };
-    }, [isQrModalOpen, isQrConnected]);
-
     const handleOpenLogoutModal = async () => {
         setIsOtpModalOpen(true);
         setOtpInput('');
@@ -548,9 +258,10 @@ export default function AdminWhatsApp() {
         try {
             const res = await adminWhatsAppService.requestLogoutOtp();
             if (res.success) {
+                const phoneLabel = res.admin_phone ? `+${res.admin_phone}` : 'your linked phone';
                 setOtpStatus({
                     type: 'info',
-                    text: `OTP dispatched to Admin WhatsApp (+91 ${res.admin_phone || '9025192863'}). Check your WhatsApp app.`
+                    text: `OTP dispatched to Admin WhatsApp (${phoneLabel}). Check your WhatsApp app.`
                 });
                 if (res.test_otp_preview) {
                     setOtpTestPreview(res.test_otp_preview);
@@ -579,8 +290,10 @@ export default function AdminWhatsApp() {
                     text: `✅ ${res.message}`
                 });
                 if (performDisconnect) {
+                    showToast('🚪 WhatsApp session disconnected.', 'info');
+                    setStatusData(prev => ({ ...prev, status: 'SCAN_QR', phone: null }));
                     loadStatus();
-                    setTimeout(() => setIsOtpModalOpen(false), 2000);
+                    setTimeout(() => setIsOtpModalOpen(false), 1800);
                 }
             } else {
                 setOtpStatus({
@@ -595,1160 +308,971 @@ export default function AdminWhatsApp() {
         }
     };
 
-    // Quick Action Templates
-    const sendTemplate = (templateType) => {
-        if (!activeConversation) return;
-
-        const customerName = activeConversation.customer_name || 'Valued Customer';
-        let templateText = '';
-
-        switch (templateType) {
-            case 'receipt':
-                templateText = `🌾 *Mangalam Healthy Foods - Order Update* 🌾\n\nDear *${customerName}*,\n\nThank you for your order! Your fresh batch of Amutham Sprouted Health Mix is being prepared with utmost traditional hygiene.\n\n📞 For any questions, call our helpline: *+91 7094074655*.\n🌿 *Mangalam Healthy Foods*`;
-                break;
-            case 'tracking':
-                templateText = `🚚 *Shipment Dispatched!* 🚚\n\nDear *${customerName}*,\nYour fresh package is on its way via express delivery.\n\n🔗 *Track Order:* https://mahealthyfoods.in/profile\n📞 Helpline: *+91 7094074655*`;
-                break;
-            case 'recipe':
-                templateText = `🥣 *How to Prepare Amutham Sprouted Porridge:*\n\n1. Mix 2 tbsp (30g) in 250ml water/milk without lumps.\n2. Boil on medium flame for 3-5 mins while stirring.\n3. Add country jaggery, honey, or a pinch of salt & buttermilk.\n\nEnjoy pure organic vitality! 🌿\n📞 Support: *+91 7094074655*`;
-                break;
-            case 'helpline':
-                templateText = `📞 *Mangalam Healthy Foods Customer Support*\n\nDear *${customerName}*,\nIf you have any questions, delivery inquiries, or bulk orders, please feel free to reach our official helpline directly at *+91 7094074655*. We are happy to serve you! 🌾`;
-                break;
-            default:
-                break;
-        }
-
-        if (templateText) {
-            handleSendMessage(templateText);
+    const handlePingGateway = async (wake = false) => {
+        setIsPinging(true);
+        setPingFeedback('⚡ Pinging gateway...');
+        try {
+            const res = await adminWhatsAppService.pingGateway(wake);
+            if (res) {
+                setPingTelemetry(res);
+                if (res.success) {
+                    setPingFeedback(`✅ Awake (${res.latency_ms || 120}ms)`);
+                    showToast(`Gateway healthy: ${res.latency_ms || 120}ms`, 'success');
+                } else if (res.status === 'SLEEPING') {
+                    setPingFeedback('🟡 Gateway waking up...');
+                    showToast('Gateway waking up from standby...', 'info');
+                } else {
+                    setPingFeedback(`❌ ${res.message || 'Ping failed'}`);
+                }
+            }
+        } catch (e) {
+            setPingFeedback('❌ Ping error');
+        } finally {
+            setIsPinging(false);
+            setTimeout(() => setPingFeedback(null), 4000);
         }
     };
 
-    const activeOrder = activeConversation?.activeOrders?.[0] || activeConversation?.user?.orders?.[0] || null;
+    const handleOpenKeepaliveLogs = async () => {
+        setIsLogsModalOpen(true);
+        setKeepaliveLoading(true);
+        try {
+            const logs = await adminWhatsAppService.getKeepaliveLogs(50);
+            setKeepaliveLogs(logs || []);
+        } catch (e) {
+            console.error('Failed to load keepalive logs', e);
+        } finally {
+            setKeepaliveLoading(false);
+        }
+    };
+
+    const handleOpenSettingsModal = async () => {
+        setIsSettingsModalOpen(true);
+        try {
+            const current = await adminWhatsAppService.getSettings();
+            if (current) {
+                setSettingsData({
+                    admin_phone_number: current.admin_phone_number || '',
+                    is_enabled: current.is_enabled !== false,
+                    notify_customer_on_order: current.notify_customer_on_order !== false,
+                    notify_admin_on_order: current.notify_admin_on_order !== false,
+                    auto_reply_enabled: current.auto_reply_enabled !== false,
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching settings:', err);
+        }
+    };
+
+    const handleSaveSettings = async (e) => {
+        e.preventDefault();
+        setSettingsSaving(true);
+        try {
+            const res = await adminWhatsAppService.updateSettings(settingsData);
+            if (res.success) {
+                showToast('WhatsApp notification settings updated!', 'success');
+                setIsSettingsModalOpen(false);
+                loadStatus();
+            } else {
+                alert(res.message || 'Failed to save settings.');
+            }
+        } catch (err) {
+            console.error('Save settings error:', err);
+            alert('Failed to update WhatsApp settings.');
+        } finally {
+            setSettingsSaving(false);
+        }
+    };
+
+    const handleDeleteLog = async (id) => {
+        if (!window.confirm('Delete this dispatched message log record?')) return;
+        try {
+            const res = await adminWhatsAppService.deleteMessage(id);
+            if (res.success) {
+                setLogs(prev => prev.filter(l => l.id !== id));
+                showToast('Log record removed.', 'info');
+            }
+        } catch (e) {
+            console.error('Delete log error:', e);
+        }
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        setCopiedText(true);
+        setTimeout(() => setCopiedText(false), 2000);
+    };
+
+    // Helper to render event badge
+    const renderEventBadge = (type, label) => {
+        switch (type) {
+            case 'order_placed':
+                return (
+                    <span className="wa-event-pill wa-event-order">
+                        <ShoppingBag size={12} />
+                        {label || 'Order Placed'}
+                    </span>
+                );
+            case 'shipped':
+                return (
+                    <span className="wa-event-pill wa-event-shipped">
+                        <Truck size={12} />
+                        {label || 'Shipped'}
+                    </span>
+                );
+            case 'delivered':
+                return (
+                    <span className="wa-event-pill wa-event-delivered">
+                        <CheckCircle2 size={12} />
+                        {label || 'Delivered'}
+                    </span>
+                );
+            case 'processing':
+                return (
+                    <span className="wa-event-pill wa-event-processing">
+                        <Package size={12} />
+                        {label || 'Processing'}
+                    </span>
+                );
+            case 'admin_alert':
+            case 'status_updated':
+                return (
+                    <span className="wa-event-pill wa-event-admin">
+                        <Bell size={12} />
+                        {label || 'Admin Alert'}
+                    </span>
+                );
+            case 'otp':
+                return (
+                    <span className="wa-event-pill wa-event-otp">
+                        <ShieldCheck size={12} />
+                        {label || 'OTP Security'}
+                    </span>
+                );
+            default:
+                return (
+                    <span className="wa-event-pill wa-event-general">
+                        <MessageSquare size={12} />
+                        {label || 'Notification'}
+                    </span>
+                );
+        }
+    };
+
+    // Format bold WhatsApp markdown (*bold*)
+    const formatWhatsAppMarkdown = (text) => {
+        if (!text) return null;
+        const lines = text.split('\n');
+        return lines.map((line, lIdx) => {
+            const parts = line.split(/(\*[^*]+\*)/g);
+            return (
+                <div key={lIdx} style={{ minHeight: '1.25em', marginBottom: '2px' }}>
+                    {parts.map((part, pIdx) => {
+                        if (part.startsWith('*') && part.endsWith('*')) {
+                            return <strong key={pIdx} style={{ fontWeight: 700 }}>{part.slice(1, -1)}</strong>;
+                        }
+                        return <span key={pIdx}>{part}</span>;
+                    })}
+                </div>
+            );
+        });
+    };
+
+    // A session is strictly connected ONLY if status is ready/connected AND a genuine scanned phone is present
+    const isConnected = (statusData.status === 'CONNECTED' || statusData.status === 'ready') && Boolean(statusData.phone);
 
     return (
-        <div className="admin-whatsapp-container">
-            {/* Top Toolbar */}
-            <div className="wa-toolbar">
-                <div className="wa-toolbar-left">
-                    <div className={`wa-status-pill ${statusData.status?.toLowerCase() || 'scan_qr'}`}>
-                        <span className="wa-status-dot"></span>
-                        <span>
-                            {statusData.status === 'CONNECTED'
-                                ? `WhatsApp Live (+${statusData.phone || statusData.admin_phone_number || 'Connected'})`
-                                : (statusData.status === 'SCAN_QR'
-                                    ? 'Awaiting Connection (Scan QR)'
-                                    : 'WhatsApp Gateway Offline')}
-                        </span>
+        <div className="wa-gateway-dashboard">
+            {/* Toast Banner */}
+            {toast.show && (
+                <div className={`wa-toast-banner ${toast.type}`}>
+                    <CheckCircle2 size={16} />
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
+            {/* Header Toolbar */}
+            <div className="wa-top-header">
+                <div className="wa-header-brand">
+                    <div className="wa-brand-icon-wrapper">
+                        <MessageSquare size={24} className="wa-brand-icon" />
                     </div>
-                    <button
-                        className={`forge-ping-pill ${isPinging ? 'pinging' : (pingTelemetry?.status?.toLowerCase() || 'online')}`}
-                        onClick={() => handlePingGateway(true)}
-                        disabled={isPinging}
-                        title="Render Keep-Alive Telemetry (Click to Ping & Wake)"
-                    >
-                        <span className="forge-pulse-dot" style={{ background: pingTelemetry?.success ? '#10b981' : (pingTelemetry?.status === 'SLEEPING' ? '#f59e0b' : '#0284c7') }}></span>
-                        <span>
-                            {isPinging ? 'Pinging...' : (pingFeedback || `Keep-Alive: ${pingTelemetry?.latency_ms ? pingTelemetry.latency_ms + 'ms' : '10m Auto'}`)}
-                        </span>
-                    </button>
-                    <span className="forge-live-indicator">
-                        <span className="forge-pulse-dot"></span>
-                        Live Stream Sync
-                    </span>
-                    {notificationBanner && (
-                        <span className="forge-notify-banner">
-                            {notificationBanner}
-                        </span>
-                    )}
+                    <div>
+                        <div className="wa-title-row">
+                            <h1 className="wa-main-title">WhatsApp Notification Gateway</h1>
+                            <span className={`wa-conn-badge ${isConnected ? 'connected' : (statusData.status === 'SCAN_QR' ? 'scan_qr' : 'offline')}`}>
+                                <span className="wa-pulse-circle"></span>
+                                {isConnected 
+                                    ? `Live (+${statusData.phone})` 
+                                    : (statusData.status === 'SCAN_QR' ? 'Awaiting QR Scan' : 'Gateway Standby')}
+                            </span>
+                        </div>
+                        <p className="wa-subtitle">
+                            Automated dispatch logs for customer order confirmations, shipping tracking updates, and delivery alerts.
+                        </p>
+                    </div>
                 </div>
 
-                <div className="wa-toolbar-actions">
+                <div className="wa-header-actions">
                     <button
-                        className="wa-btn wa-btn-secondary"
-                        onClick={handleOpenSettingsModal}
-                        style={{ fontWeight: 600, fontSize: '12.5px' }}
-                        title="Configure WhatsApp Auto-Replies and Database Storage"
-                    >
-                        ⚙️ Settings
-                    </button>
-                    <button
-                        className="wa-btn wa-btn-secondary"
-                        onClick={handleOpenLogsModal}
-                        style={{ fontWeight: 600, fontSize: '12.5px' }}
-                        title="View live automated keepalive ping logs"
-                    >
-                        📜 Ping Logs
-                    </button>
-                    <button
-                        className="wa-btn wa-btn-secondary"
+                        className="wa-action-btn wa-btn-outline"
                         onClick={() => handlePingGateway(true)}
                         disabled={isPinging}
-                        style={{ fontWeight: 600, fontSize: '12.5px' }}
                         title="Ping and wake OpenWA Render Gateway"
                     >
-                        {isPinging ? '⚡ Pinging...' : '⚡ Ping Gateway'}
+                        <Zap size={15} className={isPinging ? 'wa-icon-spin' : ''} />
+                        <span>{isPinging ? 'Pinging...' : (pingFeedback || 'Ping Gateway')}</span>
                     </button>
-                    {statusData.status === 'CONNECTED' ? (
+
+                    <button
+                        className="wa-action-btn wa-btn-outline"
+                        onClick={handleOpenKeepaliveLogs}
+                        title="View keep-alive ping history"
+                    >
+                        <Activity size={15} />
+                        <span>Telemetry</span>
+                    </button>
+
+                    <button
+                        className="wa-action-btn wa-btn-outline"
+                        onClick={handleOpenSettingsModal}
+                        title="Configure WhatsApp Auto-Replies & Hooks"
+                    >
+                        <Sliders size={15} />
+                        <span>Settings</span>
+                    </button>
+
+                    {isConnected ? (
                         <button
-                            className="wa-btn wa-btn-secondary"
+                            className="wa-action-btn wa-btn-danger"
                             onClick={handleOpenLogoutModal}
-                            style={{ borderColor: '#ef4444', color: '#ef4444', fontWeight: 600 }}
-                            title="Disconnect WhatsApp Gateway via Admin OTP"
+                            title="Disconnect WhatsApp session via Admin OTP"
                         >
-                            🚪 Disconnect Session
+                            <LogOut size={15} />
+                            <span>Disconnect</span>
                         </button>
                     ) : (
-                        <button className="wa-btn wa-btn-primary" onClick={handleOpenQrModal} title="Connect WhatsApp via QR Code Scan">
-                            📱 Scan QR Code
+                        <button
+                            className="wa-action-btn wa-btn-primary"
+                            onClick={handleOpenQrModal}
+                            title="Scan QR Code to link WhatsApp account"
+                        >
+                            <QrCode size={16} />
+                            <span>Scan QR to Connect</span>
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* 3-Pane Main ForgeChat Shell */}
-            <div className="forge-chat-shell">
-                {/* Pane 1: Conversations List */}
-                <div className={`forge-chat-sidebar ${mobileActiveView === 'chat' ? 'mobile-hide' : ''}`}>
-                    <div className="forge-search-box">
-                        <div className="forge-search-input-wrapper">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input
-                                type="text"
-                                className="forge-search-input"
-                                placeholder="Search customer, phone or chat..."
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value);
-                                    loadConversations(e.target.value, filterTab, false);
-                                }}
-                            />
-                        </div>
-
-                        {/* Filter Tabs */}
-                        <div className="forge-filter-tabs">
-                            <button
-                                className={`forge-filter-btn ${filterTab === 'all' ? 'active' : ''}`}
-                                onClick={() => {
-                                    setFilterTab('all');
-                                    loadConversations(searchQuery, 'all', false);
-                                }}
-                            >
-                                All Chats
-                            </button>
-                            <button
-                                className={`forge-filter-btn ${filterTab === 'unread' ? 'active' : ''}`}
-                                onClick={() => {
-                                    setFilterTab('unread');
-                                    loadConversations(searchQuery, 'unread', false);
-                                }}
-                            >
-                                Unread
-                            </button>
-                            <button
-                                className={`forge-filter-btn ${filterTab === 'customer' ? 'active' : ''}`}
-                                onClick={() => {
-                                    setFilterTab('customer');
-                                    loadConversations(searchQuery, 'customer', false);
-                                }}
-                            >
-                                Customers
-                            </button>
-                        </div>
+            {/* Gateway Status & Hook Overview Card */}
+            <div className="wa-session-overview-card">
+                <div className="wa-session-left">
+                    <div className={`wa-session-avatar ${isConnected ? 'connected' : ''}`}>
+                        <Phone size={22} />
                     </div>
-
-                    {/* Conversations Scrollable List */}
-                    <div className="forge-conversations-list">
-                        {conversations.length === 0 ? (
-                            <div className="forge-empty-convs">
-                                <div style={{ fontSize: '32px', marginBottom: '8px' }}>💬</div>
-                                <p>No WhatsApp conversations found.</p>
-                                <span style={{ fontSize: '12px', color: '#94a3b8' }}>Send a message to start live chat</span>
-                            </div>
-                        ) : (
-                            conversations.map((conv) => {
-                                const isSelected = selectedConvId === conv.id;
-                                const initials = (conv.customer_name || 'Customer')
-                                    .split(' ')
-                                    .map(w => w[0])
-                                    .join('')
-                                    .toUpperCase()
-                                    .slice(0, 2);
-
-                                return (
-                                    <div
-                                        key={conv.id}
-                                        className={`forge-conv-item ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => handleSelectConversation(conv.id)}
-                                    >
-                                        <div className="forge-avatar">
-                                            <span>{initials}</span>
-                                            <span className="forge-avatar-online"></span>
-                                        </div>
-
-                                        <div className="forge-conv-content">
-                                            <div className="forge-conv-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span className="forge-conv-name">{conv.customer_name || 'Valued Customer'}</span>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <span className="forge-conv-time">{conv.last_message_time || 'Just now'}</span>
-                                                    <button
-                                                        onClick={(e) => handleDeleteConversation(conv.id, e)}
-                                                        title="Delete conversation from database"
-                                                        style={{
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            cursor: 'pointer',
-                                                            padding: '2px 4px',
-                                                            fontSize: '11px',
-                                                            opacity: 0.6,
-                                                            transition: 'opacity 0.2s',
-                                                            borderRadius: '4px'
-                                                        }}
-                                                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
-                                                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = 'inherit'; }}
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="forge-conv-sub">
-                                                <span className="forge-conv-snippet">
-                                                    {conv.last_message ? (
-                                                        <>
-                                                            <span style={{ color: '#00a884', marginRight: '4px' }}>✓✓</span>
-                                                            {conv.last_message.length > 38 ? conv.last_message.substring(0, 38) + '...' : conv.last_message}
-                                                        </>
-                                                    ) : 'WhatsApp conversation active'}
-                                                </span>
-                                                {conv.unread_count > 0 && (
-                                                    <span className="forge-unread-badge">{conv.unread_count}</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
+                    <div className="wa-session-info">
+                        <div className="wa-session-label">Linked WhatsApp Business Device</div>
+                        <div className="wa-session-phone">
+                            {isConnected && statusData.phone ? (
+                                <>
+                                    <span>+{statusData.phone}</span>
+                                    <span className="wa-verified-pill">
+                                        <ShieldCheck size={13} /> Active Session
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="wa-no-device-text">
+                                    No Device Linked (Scan QR to Connect)
+                                </span>
+                            )}
+                        </div>
+                        <div className="wa-session-meta">
+                            {isConnected && statusData.phone ? (
+                                <>Gateway: OpenWA v4.4 • Session: <code>{statusData.session || 'mangalam-admin'}</code> • Mode: REST API Multi-Tenant</>
+                            ) : (
+                                <>Awaiting device scan. Click "Scan QR to Connect" and scan the code with WhatsApp to link your number.</>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Pane 2: Live WhatsApp Chat Window */}
-                <div className={`forge-chat-main ${mobileActiveView === 'list' ? 'mobile-hide' : ''}`}>
-                    {activeConversation ? (
-                        <>
-                            {/* Chat Header */}
-                            <div className="forge-chat-header">
-                                <div className="forge-chat-header-left">
-                                    <button
-                                        className="forge-back-btn"
-                                        onClick={() => setMobileActiveView('list')}
-                                    >
-                                        ←
-                                    </button>
-                                    <div className="forge-avatar" style={{ width: '40px', height: '40px' }}>
-                                        <span>
-                                            {(activeConversation.customer_name || 'C')
-                                                .split(' ')
-                                                .map(w => w[0])
-                                                .join('')
-                                                .toUpperCase()
-                                                .slice(0, 2)}
-                                        </span>
-                                        <span className="forge-avatar-online"></span>
-                                    </div>
-                                    <div className="forge-chat-header-info">
-                                        <h4>{activeConversation.customer_name || 'Valued Customer'}</h4>
-                                        <span className="forge-chat-phone">
-                                            +{activeConversation.customer_phone} • <span style={{ color: '#00a884', fontWeight: 600 }}>🟢 Online (Live WhatsApp)</span>
-                                        </span>
-                                    </div>
-                                </div>
+                <div className="wa-session-hooks">
+                    <div className="wa-hook-item">
+                        <div className={`wa-hook-dot ${isConnected ? 'active' : ''}`}></div>
+                        <span>🛒 Order Placed: <strong>{isConnected ? 'Auto-Dispatch Active' : 'Standby'}</strong></span>
+                    </div>
+                    <div className="wa-hook-item">
+                        <div className={`wa-hook-dot ${isConnected ? 'active' : ''}`}></div>
+                        <span>🚚 Order Shipped: <strong>{isConnected ? 'Tracking Dispatch Active' : 'Standby'}</strong></span>
+                    </div>
+                    <div className="wa-hook-item">
+                        <div className={`wa-hook-dot ${isConnected ? 'active' : ''}`}></div>
+                        <span>🎉 Order Delivered: <strong>{isConnected ? 'Tip Dispatch Active' : 'Standby'}</strong></span>
+                    </div>
+                    <div className="wa-hook-item">
+                        <div className={`wa-hook-dot ${isConnected ? 'active' : ''}`}></div>
+                        <span>🚨 Admin Alerts: <strong>{isConnected ? 'Instant SMS/WA Enabled' : 'Standby'}</strong></span>
+                    </div>
+                </div>
+            </div>
 
-                                <div className="forge-chat-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <button
-                                        onClick={() => handleClearMessages(activeConversation.id)}
-                                        title="Clear all messages in this conversation from DB"
-                                        style={{
-                                            background: '#f8fafc',
-                                            border: '1px solid #cbd5e1',
-                                            borderRadius: '6px',
-                                            padding: '4px 9px',
-                                            fontSize: '11.5px',
-                                            cursor: 'pointer',
-                                            color: '#475569',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            fontWeight: 500
-                                        }}
-                                    >
-                                        🧹 Clear
-                                    </button>
-                                    <button
-                                        onClick={(e) => handleDeleteConversation(activeConversation.id, e)}
-                                        title="Permanently delete conversation thread from DB"
-                                        style={{
-                                            background: '#fef2f2',
-                                            border: '1px solid #fecaca',
-                                            borderRadius: '6px',
-                                            padding: '4px 9px',
-                                            fontSize: '11.5px',
-                                            cursor: 'pointer',
-                                            color: '#dc2626',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            fontWeight: 600
-                                        }}
-                                    >
-                                        🗑️ Delete
-                                    </button>
-                                </div>
-                            </div>
+            {/* Metrics KPI Cards */}
+            <div className="wa-kpi-grid">
+                <div className={`wa-kpi-card ${filterTab === 'all' ? 'active' : ''}`} onClick={() => setFilterTab('all')}>
+                    <div className="wa-kpi-header">
+                        <span className="wa-kpi-title">Total Dispatches</span>
+                        <div className="wa-kpi-icon-wrap" style={{ background: '#f1f5f9', color: '#475569' }}>
+                            <MessageSquare size={16} />
+                        </div>
+                    </div>
+                    <div className="wa-kpi-value">{counts.total || logs.length || 0}</div>
+                    <div className="wa-kpi-hint">All automated WhatsApp alerts</div>
+                </div>
 
-                            {/* Fault Tolerance & Cold Start Ambient Banner */}
-                            {statusData.status === 'WAKING_UP' && (
-                                <div style={{ background: '#fef3c7', borderBottom: '1px solid #fde68a', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: '#92400e' }}>
-                                    <span>🟡 <strong>OpenWA Gateway is waking up (cold start)...</strong> Cloud microservice is spinning up. Chat messages will sync automatically in ~10s.</span>
-                                    <button
-                                        onClick={() => handlePingGateway(true)}
-                                        disabled={isPinging}
-                                        style={{ background: '#d97706', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}
-                                    >
-                                        {isPinging ? 'Waking...' : '⚡ Wake Gateway'}
-                                    </button>
-                                </div>
-                            )}
+                <div className={`wa-kpi-card ${filterTab === 'order_placed' ? 'active' : ''}`} onClick={() => setFilterTab('order_placed')}>
+                    <div className="wa-kpi-header">
+                        <span className="wa-kpi-title">Order Placed</span>
+                        <div className="wa-kpi-icon-wrap" style={{ background: '#ecfdf5', color: '#059669' }}>
+                            <ShoppingBag size={16} />
+                        </div>
+                    </div>
+                    <div className="wa-kpi-value">{counts.order_placed || 0}</div>
+                    <div className="wa-kpi-hint">Instant order confirmations</div>
+                </div>
 
-                            {/* WhatsApp Doodle Wallpaper Messages Canvas */}
-                            <div className="forge-messages-canvas" ref={messagesContainerRef}>
-                                <div className="forge-date-divider">
-                                    <span>TODAY</span>
-                                </div>
+                <div className={`wa-kpi-card ${filterTab === 'shipped' ? 'active' : ''}`} onClick={() => setFilterTab('shipped')}>
+                    <div className="wa-kpi-header">
+                        <span className="wa-kpi-title">Dispatched</span>
+                        <div className="wa-kpi-icon-wrap" style={{ background: '#e0e7ff', color: '#4338ca' }}>
+                            <Truck size={16} />
+                        </div>
+                    </div>
+                    <div className="wa-kpi-value">{counts.shipped || 0}</div>
+                    <div className="wa-kpi-hint">Courier & shipment updates</div>
+                </div>
 
-                                {messages.length === 0 ? (
-                                    <div className="forge-empty-messages">
-                                        <div style={{ fontSize: '36px', marginBottom: '8px' }}>🌾</div>
-                                        <h4>Begin Conversation with {activeConversation.customer_name || 'Customer'}</h4>
-                                        <p>Messages sent here dispatch directly to WhatsApp via OpenWA Baileys Gateway.</p>
-                                    </div>
-                                ) : (
-                                    messages.map((msg) => {
-                                        const isOutgoing = msg.sender_type === 'admin' || msg.sender_type === 'system';
-                                        return (
-                                            <div
-                                                key={msg.id}
-                                                className={`forge-bubble-row ${isOutgoing ? 'outgoing' : 'incoming'}`}
-                                            >
-                                                <div className={`forge-message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`}>
-                                                    <div className="forge-bubble-text">
-                                                        {msg.message}
-                                                    </div>
-                                                    <div className="forge-bubble-footer">
-                                                        <span className="forge-bubble-time">{msg.time || '12:00 PM'}</span>
-                                                        {isOutgoing && (
-                                                            <span className="forge-bubble-ticks" title="Delivered to WhatsApp">
-                                                                ✓✓
-                                                            </span>
+                <div className={`wa-kpi-card ${filterTab === 'delivered' ? 'active' : ''}`} onClick={() => setFilterTab('delivered')}>
+                    <div className="wa-kpi-header">
+                        <span className="wa-kpi-title">Delivered</span>
+                        <div className="wa-kpi-icon-wrap" style={{ background: '#dcfce7', color: '#15803d' }}>
+                            <CheckCircle2 size={16} />
+                        </div>
+                    </div>
+                    <div className="wa-kpi-value">{counts.delivered || 0}</div>
+                    <div className="wa-kpi-hint">Delivery & vitality recipes</div>
+                </div>
+
+                <div className={`wa-kpi-card ${filterTab === 'admin' ? 'active' : ''}`} onClick={() => setFilterTab('admin')}>
+                    <div className="wa-kpi-header">
+                        <span className="wa-kpi-title">Admin Alerts</span>
+                        <div className="wa-kpi-icon-wrap" style={{ background: '#f3e8ff', color: '#7e22ce' }}>
+                            <Bell size={16} />
+                        </div>
+                    </div>
+                    <div className="wa-kpi-value">{counts.admin_alerts || 0}</div>
+                    <div className="wa-kpi-hint">Store owner alerts & security</div>
+                </div>
+            </div>
+
+            {/* Filter Tabs and Search Bar */}
+            <div className="wa-table-controls">
+                <div className="wa-filter-pills">
+                    <button
+                        className={`wa-tab-btn ${filterTab === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterTab('all')}
+                    >
+                        All Dispatches ({counts.total || logs.length || 0})
+                    </button>
+                    <button
+                        className={`wa-tab-btn ${filterTab === 'order_placed' ? 'active' : ''}`}
+                        onClick={() => setFilterTab('order_placed')}
+                    >
+                        🛒 Order Placed ({counts.order_placed || 0})
+                    </button>
+                    <button
+                        className={`wa-tab-btn ${filterTab === 'shipped' ? 'active' : ''}`}
+                        onClick={() => setFilterTab('shipped')}
+                    >
+                        🚚 Shipped ({counts.shipped || 0})
+                    </button>
+                    <button
+                        className={`wa-tab-btn ${filterTab === 'delivered' ? 'active' : ''}`}
+                        onClick={() => setFilterTab('delivered')}
+                    >
+                        🎉 Delivered ({counts.delivered || 0})
+                    </button>
+                    <button
+                        className={`wa-tab-btn ${filterTab === 'processing' ? 'active' : ''}`}
+                        onClick={() => setFilterTab('processing')}
+                    >
+                        ⚙️ Processing
+                    </button>
+                    <button
+                        className={`wa-tab-btn ${filterTab === 'admin' ? 'active' : ''}`}
+                        onClick={() => setFilterTab('admin')}
+                    >
+                        🚨 Admin Alerts ({counts.admin_alerts || 0})
+                    </button>
+                </div>
+
+                <div className="wa-search-and-refresh">
+                    <form onSubmit={handleSearchSubmit} className="wa-search-form">
+                        <Search size={15} className="wa-search-icon" />
+                        <input
+                            type="text"
+                            className="wa-search-field"
+                            placeholder="Search recipient, phone, order #..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                className="wa-clear-search-btn"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    loadLogs('', filterTab, false);
+                                }}
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
+                    </form>
+
+                    <button
+                        className="wa-refresh-btn"
+                        onClick={() => loadLogs(searchQuery, filterTab, true)}
+                        disabled={logsRefreshing}
+                        title="Refresh Dispatched Message Logs"
+                    >
+                        <RefreshCw size={15} className={logsRefreshing ? 'wa-icon-spin' : ''} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Dispatched Messages Logs Table */}
+            <div className="wa-logs-card">
+                {logsLoading ? (
+                    <div className="wa-table-loading">
+                        <div className="wa-spinner"></div>
+                        <span>Loading dispatched message audit records...</span>
+                    </div>
+                ) : logs.length === 0 ? (
+                    <div className="wa-empty-state">
+                        <div className="wa-empty-icon-wrap">
+                            <MessageSquare size={32} />
+                        </div>
+                        <h3>No Dispatched Messages Found</h3>
+                        <p>
+                            {searchQuery 
+                                ? `No logs match your search "${searchQuery}". Try clearing filters.` 
+                                : 'Automated WhatsApp alerts sent on order placement or status changes will appear here.'}
+                        </p>
+                        {searchQuery && (
+                            <button
+                                className="wa-btn wa-btn-outline"
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    loadLogs('', filterTab, false);
+                                }}
+                            >
+                                Clear Search Filter
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="wa-table-responsive">
+                        <table className="wa-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '150px' }}>Timestamp</th>
+                                    <th style={{ width: '135px' }}>Event Type</th>
+                                    <th style={{ width: '210px' }}>Recipient</th>
+                                    <th style={{ width: '130px' }}>Order Ref</th>
+                                    <th>Message Snippet</th>
+                                    <th style={{ width: '90px' }}>Status</th>
+                                    <th style={{ width: '100px', textAlign: 'right' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {logs.map((log) => {
+                                    const cleanPhone = (log.recipient_phone || '').replace(/\D/g, '');
+                                    const waLink = cleanPhone ? `https://wa.me/${cleanPhone}` : null;
+                                    const firstLine = (log.message || '').split('\n').filter(Boolean)[0] || 'Message dispatched';
+
+                                    return (
+                                        <tr key={log.id} className="wa-table-row">
+                                            {/* Timestamp */}
+                                            <td>
+                                                <div className="wa-time-cell">
+                                                    <Clock size={13} className="wa-time-icon" />
+                                                    <span className="wa-time-text">{log.formatted_time || new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                            </td>
+
+                                            {/* Event Type Badge */}
+                                            <td>
+                                                {renderEventBadge(log.event_type, log.event_label)}
+                                            </td>
+
+                                            {/* Recipient */}
+                                            <td>
+                                                <div className="wa-recipient-cell">
+                                                    <span className="wa-recipient-name">{log.recipient_name || 'Customer'}</span>
+                                                    <div className="wa-recipient-phone-row">
+                                                        <span className="wa-recipient-phone">
+                                                            {log.recipient_phone ? `+${log.recipient_phone}` : '—'}
+                                                        </span>
+                                                        {waLink && (
+                                                            <a
+                                                                href={waLink}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="wa-direct-link"
+                                                                title="Open in WhatsApp"
+                                                            >
+                                                                <ArrowUpRight size={12} />
+                                                            </a>
                                                         )}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </div>
+                                            </td>
 
-                            {/* Quick Action Response Ribbon */}
-                            <div className="forge-quick-templates">
-                                <span className="forge-quick-label">⚡ Quick Templates:</span>
-                                <button className="forge-template-pill" onClick={() => sendTemplate('receipt')}>
-                                    📦 Order Confirmed
-                                </button>
-                                <button className="forge-template-pill" onClick={() => sendTemplate('tracking')}>
-                                    🚚 Tracking Link
-                                </button>
-                                <button className="forge-template-pill" onClick={() => sendTemplate('recipe')}>
-                                    🥣 Health Mix Recipe
-                                </button>
-                                <button className="forge-template-pill" onClick={() => sendTemplate('helpline')}>
-                                    📞 Helpline (+91 7094074655)
-                                </button>
-                            </div>
+                                            {/* Order Reference */}
+                                            <td>
+                                                {log.order_number ? (
+                                                    <div className="wa-order-ref-cell">
+                                                        <span className="wa-order-pill">#{log.order_number}</span>
+                                                        {log.total_amount && (
+                                                            <span className="wa-order-amount">₹{Number(log.total_amount).toFixed(0)}</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="wa-text-muted">—</span>
+                                                )}
+                                            </td>
 
-                            {/* Message Input Footer */}
-                            <div className="forge-chat-input-bar">
-                                <button className="forge-icon-btn" title="Emoji (OpenWA)">
-                                    😊
-                                </button>
-                                <button className="forge-icon-btn" title="Attach Document / Media">
-                                    📎
-                                </button>
-
-                                <input
-                                    type="text"
-                                    className="forge-input-field"
-                                    placeholder="Type a message to customer (Press Enter to send)..."
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    disabled={isSending}
-                                />
-
-                                <button
-                                    className="forge-send-btn"
-                                    onClick={() => handleSendMessage()}
-                                    disabled={!inputText.trim() || isSending}
-                                    title="Send WhatsApp Message"
-                                >
-                                    {isSending ? (
-                                        <span className="forge-spinner"></span>
-                                    ) : (
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                        </svg>
-                                    )}
-                                </button>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="forge-no-chat-selected">
-                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱</div>
-                            <h3>Mangalam WhatsApp CRM</h3>
-                            <p>Select a customer conversation from the left to view live messages and communicate in real time.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Pane 3: Customer Profile & Order Info (Clean Drawer - No Status Buttons) */}
-                {activeConversation && (
-                    <div className="forge-chat-crm-panel">
-                        <div className="forge-crm-header">
-                            <h5>Customer Profile</h5>
-                        </div>
-
-                        <div className="forge-crm-body">
-                            {/* Profile Card */}
-                            <div className="forge-crm-card">
-                                <div className="forge-crm-user-profile">
-                                    <div className="forge-avatar" style={{ width: '56px', height: '56px', fontSize: '20px' }}>
-                                        <span>
-                                            {(activeConversation.customer_name || 'C')
-                                                .split(' ')
-                                                .map(w => w[0])
-                                                .join('')
-                                                .toUpperCase()
-                                                .slice(0, 2)}
-                                        </span>
-                                    </div>
-                                    <h4 style={{ margin: '10px 0 2px 0', fontSize: '15px', color: '#1e293b' }}>
-                                        {activeConversation.customer_name || 'Valued Customer'}
-                                    </h4>
-                                    <span style={{ fontSize: '13px', color: '#64748b' }}>
-                                        +{activeConversation.customer_phone}
-                                    </span>
-                                </div>
-
-                                <div className="forge-crm-row" style={{ marginTop: '12px' }}>
-                                    <span className="forge-crm-label">WhatsApp:</span>
-                                    <span className="forge-crm-val" style={{ color: '#00a884', fontWeight: 600 }}>
-                                        ✓ Verified Mobile
-                                    </span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Account:</span>
-                                    <span className="forge-crm-val" style={{ color: '#16a34a' }}>Registered Shopper</span>
-                                </div>
-                            </div>
-
-                            {/* Active Order Summary (Context Only) */}
-                            {activeOrder ? (
-                                <div className="forge-crm-card">
-                                    <h5 className="forge-crm-title">
-                                        📦 Recent Order Details
-                                    </h5>
-                                    <div className="forge-order-box">
-                                        <div className="forge-order-header">
-                                            <span>#{activeOrder.order_number}</span>
-                                            <span className={`forge-order-status-badge ${activeOrder.status}`}>
-                                                {activeOrder.status}
-                                            </span>
-                                        </div>
-                                        <div className="forge-crm-row">
-                                            <span className="forge-crm-label">Total Value:</span>
-                                            <span className="forge-crm-val" style={{ color: '#15803d', fontWeight: 700 }}>
-                                                ₹{Number(activeOrder.total_amount || activeOrder.subtotal || 0).toFixed(2)}
-                                            </span>
-                                        </div>
-                                        <div className="forge-crm-row">
-                                            <span className="forge-crm-label">Payment:</span>
-                                            <span className="forge-crm-val">{activeOrder.payment_method || 'COD'}</span>
-                                        </div>
-                                        
-                                        {activeOrder.items && activeOrder.items.length > 0 && (
-                                            <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #e2e8f0' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Items:</span>
-                                                <div style={{ marginTop: '4px', fontSize: '12px', color: '#1e293b' }}>
-                                                    {activeOrder.items.map((it, idx) => (
-                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-                                                            <span>• {it.product_name || it.name} ({it.package_size || '500g'}) × {it.quantity}</span>
-                                                            <span style={{ fontWeight: 600 }}>₹{it.total_price || (it.price * it.quantity)}</span>
-                                                        </div>
-                                                    ))}
+                                            {/* Message Snippet */}
+                                            <td>
+                                                <div className="wa-message-snippet-cell" onClick={() => setSelectedMessage(log)} title="Click to view full message">
+                                                    <span className="wa-snippet-highlight">{firstLine}</span>
+                                                    <span className="wa-snippet-sub">
+                                                        {(log.message || '').slice(0, 110).replace(/[*_~`]/g, '')}...
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        )}
+                                            </td>
 
-                                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
-                                            📍 {activeOrder.address_snapshot?.city || 'Sethiyathope'}, {activeOrder.address_snapshot?.pincode || '608702'}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="forge-crm-card">
-                                    <h5 className="forge-crm-title">📦 Order History</h5>
-                                    <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>No previous orders found for this contact.</p>
-                                </div>
-                            )}
+                                            {/* Status */}
+                                            <td>
+                                                <span className="wa-status-badge sent">
+                                                    <CheckCheck size={13} /> Sent
+                                                </span>
+                                            </td>
 
-                            {/* Official Support Contact Card */}
-                            <div className="forge-crm-card" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-                                <h5 className="forge-crm-title" style={{ color: '#166534' }}>📞 Official Support Contact</h5>
-                                <div style={{ fontSize: '13px', color: '#166534', marginTop: '4px' }}>
-                                    Helpline: <strong>+91 7094074655</strong>
-                                </div>
-                                <div style={{ fontSize: '11px', color: '#15803d', marginTop: '4px' }}>
-                                    Direct customer inquiry & escalation line for Mangalam Healthy Foods.
-                                </div>
-                            </div>
-
-                            {/* Gateway Connection Details */}
-                            <div className="forge-crm-card">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <h5 className="forge-crm-title" style={{ margin: 0 }}>⚙️ OpenWA Gateway</h5>
-                                    <div style={{ display: 'flex', gap: '4px' }}>
-                                        <button
-                                            onClick={handleOpenLogsModal}
-                                            style={{
-                                                background: '#f8fafc',
-                                                border: '1px solid #cbd5e1',
-                                                color: '#475569',
-                                                fontSize: '11px',
-                                                fontWeight: 600,
-                                                borderRadius: '6px',
-                                                padding: '2px 7px',
-                                                cursor: 'pointer'
-                                            }}
-                                            title="View Keep-Alive Ping Logs"
-                                        >
-                                            📜 Logs
-                                        </button>
-                                        <button
-                                            onClick={() => handlePingGateway(true)}
-                                            disabled={isPinging}
-                                            style={{
-                                                background: '#f0fdf4',
-                                                border: '1px solid #bbf7d0',
-                                                color: '#166534',
-                                                fontSize: '11px',
-                                                fontWeight: 600,
-                                                borderRadius: '6px',
-                                                padding: '2px 8px',
-                                                cursor: 'pointer'
-                                            }}
-                                            title="Ping and wake gateway now"
-                                        >
-                                            {isPinging ? '⚡ Pinging...' : '⚡ Ping'}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Admin Phone:</span>
-                                    <span className="forge-crm-val">
-                                        {statusData.status === 'CONNECTED'
-                                            ? `+${statusData.phone || statusData.admin_phone_number}`
-                                            : 'Not linked yet (Scan QR)'}
-                                    </span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Session:</span>
-                                    <span className="forge-crm-val">mangalam-admin</span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Status:</span>
-                                    <span className="forge-crm-val" style={{
-                                        color: statusData.status === 'CONNECTED' ? '#00a884' : (statusData.status === 'SCAN_QR' ? '#d97706' : '#ef4444'),
-                                        fontWeight: 600
-                                    }}>
-                                        {statusData.status === 'CONNECTED' ? '🟢 Online & Linked' : (statusData.status === 'SCAN_QR' ? '🟡 Awaiting QR Scan' : '🔴 Gateway Offline')}
-                                    </span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Keep-Alive:</span>
-                                    <span className="forge-crm-val" style={{ color: '#059669', fontWeight: 600 }}>
-                                        Every 5m Daemon (Active)
-                                    </span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Latency:</span>
-                                    <span className="forge-crm-val" style={{ fontWeight: 600 }}>
-                                        {pingTelemetry?.latency_ms ? `${pingTelemetry.latency_ms} ms` : '124 ms'}
-                                    </span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Master API Key:</span>
-                                    <span className="forge-crm-val" style={{ color: '#0f766e', fontSize: '11px', fontFamily: 'monospace', fontWeight: 600 }}>
-                                        {pingTelemetry?.masked_key || 'owa_k1_747b...4341'} (Verified)
-                                    </span>
-                                </div>
-                                <div className="forge-crm-row">
-                                    <span className="forge-crm-label">Engine:</span>
-                                    <span className="forge-crm-val" style={{ color: '#00a884', fontWeight: 600 }}>Baileys MD</span>
-                                </div>
-                            </div>
-                        </div>
+                                            {/* Actions */}
+                                            <td style={{ textAlign: 'right' }}>
+                                                <div className="wa-action-cell">
+                                                    <button
+                                                        className="wa-icon-action-btn"
+                                                        onClick={() => setSelectedMessage(log)}
+                                                        title="View Full WhatsApp Message"
+                                                    >
+                                                        <Eye size={15} />
+                                                    </button>
+                                                    <button
+                                                        className="wa-icon-action-btn delete"
+                                                        onClick={() => handleDeleteLog(log.id)}
+                                                        title="Delete Log"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
 
-            {/* Authentic QR Code Modal with Live Refresh & Auto-Countdown */}
-            {isQrModalOpen && (
-                <div className="forge-modal-overlay" onClick={() => setIsQrModalOpen(false)}>
-                    <div className="forge-qr-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-                        <div className="forge-modal-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '20px' }}>📱</span>
+            {/* ------------------------------------------------------------- */}
+            {/* MODAL 1: VIEW FULL WHATSAPP MESSAGE (AUTHENTIC GREEN BUBBLE)  */}
+            {/* ------------------------------------------------------------- */}
+            {selectedMessage && (
+                <div className="forge-modal-overlay" onClick={() => setSelectedMessage(null)}>
+                    <div className="wa-message-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="wa-modal-header">
+                            <div className="wa-modal-header-left">
+                                <div className="wa-modal-avatar">
+                                    <Phone size={18} />
+                                </div>
                                 <div>
-                                    <h4 style={{ margin: 0, fontSize: '16px', color: '#1e293b', fontWeight: 700 }}>
-                                        Link WhatsApp to Admin Panel
-                                    </h4>
-                                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                        {statusData.status === 'CONNECTED'
-                                            ? `Currently Linked: +${statusData.phone || statusData.admin_phone_number}`
-                                            : 'Scan with any Admin WhatsApp account to link automatically'}
-                                    </span>
+                                    <h3 className="wa-modal-title">{selectedMessage.recipient_name || 'Recipient'}</h3>
+                                    <p className="wa-modal-subtitle">
+                                        +{selectedMessage.recipient_phone || ''} • {renderEventBadge(selectedMessage.event_type, selectedMessage.event_label)}
+                                    </p>
                                 </div>
                             </div>
-                            <button className="forge-modal-close" onClick={() => setIsQrModalOpen(false)} title="Close">×</button>
+                            <button
+                                className="forge-modal-close"
+                                onClick={() => setSelectedMessage(null)}
+                                title="Close"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
-                        <div className="forge-modal-body" style={{ textAlign: 'center', padding: '20px' }}>
-                            {isQrConnected ? (
-                                <div style={{ padding: '30px 20px', animation: 'fadeIn 0.3s ease' }}>
-                                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
-                                    <h4 style={{ margin: '0 0 8px 0', color: '#16a34a', fontSize: '18px', fontWeight: 700 }}>
-                                        WhatsApp Linked Successfully!
-                                    </h4>
-                                    <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                                        Admin phone detected & verified. Welcome alert dispatched!
-                                    </p>
+                        <div className="wa-modal-chat-body">
+                            <div className="wa-chat-date-separator">
+                                <span>{selectedMessage.formatted_time || 'WhatsApp Dispatch'}</span>
+                            </div>
+
+                            <div className="wa-full-bubble">
+                                <div className="wa-bubble-content">
+                                    {formatWhatsAppMarkdown(selectedMessage.message)}
                                 </div>
-                            ) : (
-                                <>
-                                    <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 14px 0', lineHeight: 1.5, textAlign: 'left' }}>
-                                        1. Open <strong>WhatsApp</strong> on your admin phone.<br/>
-                                        2. Go to <strong>Settings</strong> ➔ <strong>Linked Devices</strong> ➔ <strong>Link a Device</strong>.<br/>
-                                        3. Point your camera at the QR code below. Your number will be detected and linked automatically!
-                                    </p>
+                                <div className="wa-bubble-meta">
+                                    <span className="wa-bubble-time">
+                                        {selectedMessage.formatted_time || 'Just now'}
+                                    </span>
+                                    <CheckCheck size={14} className="wa-bubble-ticks" />
+                                </div>
+                            </div>
+                        </div>
 
-                                    <div className="forge-qr-container" style={{
-                                        background: '#f8fafc',
-                                        border: '1.5px dashed #cbd5e1',
-                                        borderRadius: '16px',
-                                        padding: '16px',
-                                        display: 'inline-flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        minHeight: '260px',
-                                        minWidth: '260px',
-                                        position: 'relative',
-                                        margin: '0 auto 14px auto'
-                                    }}>
-                                        {qrCodeUrl && !isQrLoading ? (
-                                            <div style={{ position: 'relative' }}>
-                                                <img
-                                                    src={qrCodeUrl.startsWith('data:') ? qrCodeUrl : `data:image/png;base64,${qrCodeUrl}`}
-                                                    alt="WhatsApp Linking QR Code"
-                                                    className="forge-qr-image"
-                                                    style={{
-                                                        width: '220px',
-                                                        height: '220px',
-                                                        borderRadius: '8px',
-                                                        display: 'block',
-                                                        opacity: isQrRefreshing ? 0.35 : 1,
-                                                        transition: 'opacity 0.2s ease'
-                                                    }}
-                                                />
-                                                {isQrRefreshing && (
-                                                    <div style={{
-                                                        position: 'absolute',
-                                                        inset: 0,
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        background: 'rgba(255,255,255,0.75)',
-                                                        borderRadius: '8px'
-                                                    }}>
-                                                        <div className="forge-spinner" style={{ width: '28px', height: '28px', borderTopColor: '#00a884' }}></div>
-                                                        <span style={{ fontSize: '11px', color: '#00a884', fontWeight: 600, marginTop: '6px' }}>Refreshing...</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div className="forge-qr-loader" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                <div className="forge-spinner" style={{ width: '32px', height: '32px', borderTopColor: '#00a884' }}></div>
-                                                <span style={{ fontSize: '12px', color: '#64748b', marginTop: '12px' }}>
-                                                    Generating cryptographic Baileys QR code...
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
+                        <div className="wa-modal-footer">
+                            <button
+                                className="wa-btn wa-btn-outline"
+                                onClick={() => copyToClipboard(selectedMessage.message)}
+                            >
+                                {copiedText ? <Check size={15} /> : <Copy size={15} />}
+                                <span>{copiedText ? 'Copied to Clipboard!' : 'Copy Text'}</span>
+                            </button>
 
-                                    {/* Refresh Controls & Auto-Countdown Ribbon */}
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        background: '#f1f5f9',
-                                        borderRadius: '10px',
-                                        padding: '8px 12px',
-                                        marginBottom: '6px'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748b' }}>
-                                            <span style={{
-                                                display: 'inline-block',
-                                                width: '8px',
-                                                height: '8px',
-                                                borderRadius: '50%',
-                                                background: qrCountdown > 5 ? '#00a884' : '#f59e0b'
-                                            }}></span>
-                                            <span>Auto-refresh in <strong style={{ color: '#0f172a' }}>{qrCountdown}s</strong></span>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => fetchQrCode(true)}
-                                            disabled={isQrRefreshing || isQrLoading}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '5px',
-                                                background: '#ffffff',
-                                                border: '1px solid #cbd5e1',
-                                                borderRadius: '6px',
-                                                padding: '5px 10px',
-                                                fontSize: '12px',
-                                                fontWeight: 600,
-                                                color: '#0f172a',
-                                                cursor: (isQrRefreshing || isQrLoading) ? 'not-allowed' : 'pointer',
-                                                transition: 'all 0.15s ease',
-                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                            }}
-                                            title="Generate a brand new QR Code"
-                                        >
-                                            <svg
-                                                width="13"
-                                                height="13"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2.5"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                style={{ animation: isQrRefreshing ? 'spin 1s linear infinite' : 'none' }}
-                                            >
-                                                <polyline points="23 4 23 10 17 10"></polyline>
-                                                <polyline points="1 20 1 14 7 14"></polyline>
-                                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                            </svg>
-                                            <span>{isQrRefreshing ? 'Refreshing...' : 'Refresh QR'}</span>
-                                        </button>
-                                    </div>
-
-                                    {qrFeedback && (
-                                        <div style={{
-                                            fontSize: '12px',
-                                            color: qrFeedback.includes('Failed') ? '#ef4444' : '#00a884',
-                                            fontWeight: 500,
-                                            marginTop: '4px'
-                                        }}>
-                                            {qrFeedback}
-                                        </div>
-                                    )}
-                                </>
+                            {selectedMessage.recipient_phone && (
+                                <a
+                                    href={`https://wa.me/${selectedMessage.recipient_phone.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="wa-btn wa-btn-primary"
+                                >
+                                    <ExternalLink size={15} />
+                                    <span>Open WhatsApp Web</span>
+                                </a>
                             )}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Disconnect Session Security OTP Modal */}
-            {isOtpModalOpen && (
-                <div className="forge-modal-overlay" onClick={() => !otpLoading && setIsOtpModalOpen(false)}>
-                    <div className="forge-qr-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            {/* ------------------------------------------------------------- */}
+            {/* MODAL 2: SCAN QR CODE TO CONNECT                              */}
+            {/* ------------------------------------------------------------- */}
+            {isQrModalOpen && (
+                <div className="forge-modal-overlay" onClick={() => setIsQrModalOpen(false)}>
+                    <div className="forge-qr-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="forge-modal-header">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '20px' }}>🔐</span>
-                                <h4 style={{ margin: 0, fontSize: '16px', color: '#1e293b' }}>Security Verification OTP</h4>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+                                    📱 Scan WhatsApp QR Code
+                                </h3>
+                                <p style={{ margin: '3px 0 0 0', fontSize: '12.5px', color: '#64748b' }}>
+                                    Link your WhatsApp device with Mangalam Automation Gateway
+                                </p>
                             </div>
-                            <button className="forge-modal-close" onClick={() => !otpLoading && setIsOtpModalOpen(false)}>×</button>
+                            <button className="forge-modal-close" onClick={() => setIsQrModalOpen(false)}>
+                                <X size={20} />
+                            </button>
                         </div>
-                        <div className="forge-modal-body" style={{ padding: '20px' }}>
-                            <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 14px 0', lineHeight: 1.5 }}>
-                                Enter the 6-digit One-Time Password (OTP) dispatched to Admin WhatsApp (<strong>+91 {statusData.admin_phone_number || '9025192863'}</strong>) to authenticate session disconnection.
-                            </p>
 
+                        <div className="forge-qr-container">
+                            {isQrLoading ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '30px' }}>
+                                    <div className="forge-spinner"></div>
+                                    <span style={{ fontSize: '13px', color: '#475569', fontWeight: 600 }}>
+                                        Generating cryptographic QR code...
+                                    </span>
+                                </div>
+                            ) : isQrConnected ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '30px', textAlign: 'center' }}>
+                                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#166534' }}>
+                                        <CheckCircle2 size={32} />
+                                    </div>
+                                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#166534' }}>
+                                        Connection Established!
+                                    </h4>
+                                    <p style={{ margin: 0, fontSize: '12.5px', color: '#15803d' }}>
+                                        Linked to WhatsApp device successfully.
+                                    </p>
+                                </div>
+                            ) : qrCodeUrl ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                                    <img src={qrCodeUrl} alt="WhatsApp QR Code" className="forge-qr-image" />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#64748b' }}>
+                                        <Clock size={13} />
+                                        <span>Auto-refreshes in <strong>{qrCountdown}s</strong></span>
+                                        <button
+                                            onClick={() => fetchQrCode(true)}
+                                            disabled={isQrRefreshing}
+                                            style={{ background: 'none', border: 'none', color: '#0284c7', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                        >
+                                            <RefreshCw size={11} className={isQrRefreshing ? 'wa-icon-spin' : ''} /> Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>
+                                    <AlertTriangle size={32} color="#f59e0b" style={{ margin: '0 auto 8px auto' }} />
+                                    <p style={{ margin: 0, fontSize: '13px' }}>{qrFeedback || 'Unable to load QR. Check gateway status.'}</p>
+                                    <button
+                                        className="wa-btn wa-btn-outline"
+                                        style={{ marginTop: '12px' }}
+                                        onClick={() => fetchQrCode(true)}
+                                    >
+                                        <RefreshCw size={14} /> Retry Generation
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {qrFeedback && !isQrConnected && (
+                            <div style={{ fontSize: '12px', color: '#0284c7', textAlign: 'center', marginTop: '8px' }}>
+                                {qrFeedback}
+                            </div>
+                        )}
+
+                        <div className="wa-qr-instructions">
+                            <h5 style={{ margin: '0 0 8px 0', fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
+                                How to connect:
+                            </h5>
+                            <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+                                <li>Open <strong>WhatsApp</strong> on your mobile phone</li>
+                                <li>Tap <strong>Menu (⋮)</strong> on Android or <strong>Settings (⚙️)</strong> on iPhone</li>
+                                <li>Tap <strong>Linked Devices</strong> and then <strong>Link a Device</strong></li>
+                                <li>Point your phone camera at this QR code to confirm linking</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* MODAL 3: DISCONNECT SESSION VIA ADMIN OTP                     */}
+            {/* ------------------------------------------------------------- */}
+            {isOtpModalOpen && (
+                <div className="forge-modal-overlay" onClick={() => setIsOtpModalOpen(false)}>
+                    <div className="forge-qr-modal" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="forge-modal-header">
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>
+                                    🔐 Verify Disconnect
+                                </h3>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                                    Security confirmation required to unbind device
+                                </p>
+                            </div>
+                            <button className="forge-modal-close" onClick={() => setIsOtpModalOpen(false)}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div style={{ padding: '16px 0' }}>
                             {otpStatus && (
                                 <div style={{
                                     padding: '10px 14px',
                                     borderRadius: '8px',
-                                    marginBottom: '16px',
-                                    fontSize: '13px',
-                                    backgroundColor: otpStatus.type === 'success' ? '#f0fdf4' : otpStatus.type === 'error' ? '#fef2f2' : '#f8fafc',
-                                    color: otpStatus.type === 'success' ? '#166534' : otpStatus.type === 'error' ? '#991b1b' : '#334155',
-                                    border: `1px solid ${otpStatus.type === 'success' ? '#bbf7d0' : otpStatus.type === 'error' ? '#fecaca' : '#e2e8f0'}`
+                                    fontSize: '12.5px',
+                                    lineHeight: 1.5,
+                                    marginBottom: '14px',
+                                    background: otpStatus.type === 'error' ? '#fee2e2' : (otpStatus.type === 'success' ? '#dcfce7' : '#eff6ff'),
+                                    color: otpStatus.type === 'error' ? '#991b1b' : (otpStatus.type === 'success' ? '#166534' : '#1e40af'),
+                                    border: `1px solid ${otpStatus.type === 'error' ? '#fca5a5' : (otpStatus.type === 'success' ? '#bbf7d0' : '#bfdbfe')}`
                                 }}>
                                     {otpStatus.text}
                                 </div>
                             )}
 
                             {otpTestPreview && (
-                                <div style={{
-                                    padding: '8px 12px',
-                                    borderRadius: '6px',
-                                    backgroundColor: '#eff6ff',
-                                    border: '1px solid #bfdbfe',
-                                    color: '#1e40af',
-                                    fontSize: '12px',
-                                    marginBottom: '14px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between'
-                                }}>
-                                    <span>📨 Admin Phone Test OTP: <strong>{otpTestPreview}</strong></span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setOtpInput(otpTestPreview)}
-                                        style={{
-                                            background: '#3b82f6',
-                                            color: '#fff',
-                                            border: 'none',
-                                            padding: '3px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '11px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Auto-Fill
-                                    </button>
+                                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#475569', marginBottom: '12px', textAlign: 'center' }}>
+                                    <span>Dev OTP Helper: <strong>{otpTestPreview}</strong></span>
                                 </div>
                             )}
 
-                            <div style={{ marginBottom: '18px' }}>
-                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
-                                    6-Digit OTP Code
-                                </label>
-                                <input
-                                    type="text"
-                                    maxLength={6}
-                                    placeholder="• • • • • •"
-                                    value={otpInput}
-                                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        fontSize: '20px',
-                                        letterSpacing: '8px',
-                                        textAlign: 'center',
-                                        fontFamily: 'monospace',
-                                        borderRadius: '8px',
-                                        border: '1.5px solid #cbd5e1',
-                                        outline: 'none',
-                                        boxSizing: 'border-box'
-                                    }}
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button
-                                    type="button"
-                                    className="wa-btn wa-btn-primary"
-                                    onClick={() => handleVerifyLogoutOtp(false)}
-                                    disabled={otpLoading || otpInput.length !== 6}
-                                    style={{ flex: 1, justifyContent: 'center', padding: '10px' }}
-                                >
-                                    {otpLoading ? 'Verifying...' : '✅ Verify OTP (Test)'}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="wa-btn wa-btn-secondary"
-                                    onClick={handleOpenLogoutModal}
-                                    disabled={otpLoading}
-                                    style={{ padding: '10px 14px' }}
-                                >
-                                    🔄 Resend
-                                </button>
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '12px', textAlign: 'center' }}>
-                                🛡️ Test Mode: Verifies OTP with live Admin WhatsApp message without tearing down active gateway session.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 📜 Keep-Alive Automated Ping Logs Modal */}
-            {isLogsModalOpen && (
-                <div className="wa-modal-overlay" onClick={() => setIsLogsModalOpen(false)}>
-                    <div
-                        className="wa-modal"
-                        style={{ maxWidth: '640px', width: '92%' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="wa-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h3 className="wa-modal-title" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span>📜</span> Automated Keep-Alive Ping Logs
-                                </h3>
-                                <p className="wa-modal-subtitle" style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
-                                    5-minute background daemon telemetry & keepalive history on Hostinger
-                                </p>
-                            </div>
-                            <button
-                                className="wa-modal-close"
-                                onClick={() => setIsLogsModalOpen(false)}
-                                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div className="wa-modal-body" style={{ padding: '16px 20px', maxHeight: '420px', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <span style={{ fontSize: '12px', color: '#64748b' }}>
-                                    Showing latest ping events • Interval: <strong>Every 5 mins</strong>
-                                </span>
-                                <button
-                                    onClick={handleOpenLogsModal}
-                                    disabled={logsLoading}
-                                    style={{
-                                        background: '#f1f5f9',
-                                        border: '1px solid #cbd5e1',
-                                        padding: '4px 10px',
-                                        borderRadius: '6px',
-                                        fontSize: '12px',
-                                        cursor: 'pointer',
-                                        fontWeight: 600
-                                    }}
-                                >
-                                    {logsLoading ? 'Refreshing...' : '🔄 Refresh Logs'}
-                                </button>
-                            </div>
-
-                            {logsLoading ? (
-                                <div style={{ textAlign: 'center', padding: '30px 0', color: '#64748b' }}>
-                                    <div className="admin-auth-spinner" style={{ margin: '0 auto 10px auto' }}></div>
-                                    Loading keep-alive log stream...
-                                </div>
-                            ) : keepaliveLogs.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-                                    No logs recorded yet. The daemon pings every 5 minutes.
-                                </div>
-                            ) : (
-                                <div style={{
-                                    background: '#0f172a',
+                            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                                Enter 6-Digit Verification OTP:
+                            </label>
+                            <input
+                                type="text"
+                                maxLength={6}
+                                value={otpInput}
+                                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                                placeholder="• • • • • •"
+                                style={{
+                                    width: '100%',
+                                    boxSizing: 'border-box',
+                                    fontSize: '22px',
+                                    fontWeight: 700,
+                                    textAlign: 'center',
+                                    letterSpacing: '8px',
+                                    padding: '10px',
                                     borderRadius: '8px',
-                                    padding: '12px 14px',
-                                    fontFamily: 'Consolas, Monaco, monospace',
-                                    fontSize: '12px',
-                                    lineHeight: '1.6',
-                                    color: '#e2e8f0',
-                                    maxHeight: '320px',
-                                    overflowY: 'auto'
-                                }}>
-                                    {keepaliveLogs.map((logLine, idx) => {
-                                        const isOnline = logLine.includes('ONLINE') || logLine.includes('✅');
-                                        const isCycle = logLine.includes('--- Running');
-                                        const isArtisan = logLine.includes('Artisan Telemetry');
-                                        const isWarn = logLine.includes('⚠️') || logLine.includes('FAIL');
-                                        
-                                        let color = '#e2e8f0';
-                                        if (isOnline) color = '#4ade80';
-                                        else if (isCycle) color = '#38bdf8';
-                                        else if (isArtisan) color = '#a78bfa';
-                                        else if (isWarn) color = '#f87171';
-
-                                        return (
-                                            <div key={idx} style={{ color, wordBreak: 'break-all', marginBottom: '2px' }}>
-                                                {logLine}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                                    border: '2px solid #cbd5e1',
+                                    outline: 'none',
+                                    background: '#ffffff',
+                                    fontFamily: 'monospace'
+                                }}
+                            />
                         </div>
 
-                        <div className="wa-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 20px', borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                             <button
-                                type="button"
-                                className="wa-btn wa-btn-secondary"
-                                onClick={() => setIsLogsModalOpen(false)}
-                                style={{ padding: '6px 14px', fontSize: '12.5px' }}
+                                className="wa-btn wa-btn-outline"
+                                onClick={() => setIsOtpModalOpen(false)}
                             >
-                                Close
+                                Cancel
+                            </button>
+                            <button
+                                className="wa-btn wa-btn-danger"
+                                onClick={() => handleVerifyLogoutOtp(true)}
+                                disabled={otpLoading || otpInput.trim().length !== 6}
+                            >
+                                {otpLoading ? 'Verifying...' : 'Confirm Disconnect'}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ⚙️ WhatsApp Settings & Database Chat Management Modal */}
+            {/* ------------------------------------------------------------- */}
+            {/* MODAL 4: SETTINGS MODAL                                       */}
+            {/* ------------------------------------------------------------- */}
             {isSettingsModalOpen && (
-                <div className="wa-modal-overlay" onClick={() => setIsSettingsModalOpen(false)}>
-                    <div
-                        className="wa-modal"
-                        style={{ maxWidth: '580px', width: '92%' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="wa-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="forge-modal-overlay" onClick={() => setIsSettingsModalOpen(false)}>
+                    <div className="forge-qr-modal" style={{ maxWidth: '480px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="forge-modal-header">
                             <div>
-                                <h3 className="wa-modal-title" style={{ margin: 0, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span>⚙️</span> WhatsApp Gateway & DB Settings
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>
+                                    ⚙️ WhatsApp Automation Settings
                                 </h3>
-                                <p className="wa-modal-subtitle" style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
-                                    Automated replies, welcome greeting & database chat management
+                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                                    Manage automated customer notifications and admin alerts
                                 </p>
                             </div>
-                            <button
-                                className="wa-modal-close"
-                                onClick={() => setIsSettingsModalOpen(false)}
-                                style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}
-                            >
-                                ×
+                            <button className="forge-modal-close" onClick={() => setIsSettingsModalOpen(false)}>
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="wa-modal-body" style={{ padding: '18px 20px', maxHeight: '460px', overflowY: 'auto' }}>
-                            <form onSubmit={handleSaveSettings}>
-                                {/* Auto Reply Toggle */}
-                                <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>🤖 Automated Auto-Reply</div>
-                                        <div style={{ fontSize: '11.5px', color: '#64748b' }}>Send instant welcome greeting to customers when they message</div>
-                                    </div>
-                                    <label style={{ position: 'relative', display: 'inline-block', width: '44px', height: '24px', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={settingsData.auto_reply_enabled}
-                                            onChange={(e) => setSettingsData(prev => ({ ...prev, auto_reply_enabled: e.target.checked }))}
-                                            style={{ opacity: 0, width: 0, height: 0 }}
-                                        />
-                                        <span style={{
-                                            position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                                            backgroundColor: settingsData.auto_reply_enabled ? '#10b981' : '#cbd5e1',
-                                            transition: '.3s', borderRadius: '24px'
-                                        }}></span>
-                                        <span style={{
-                                            position: 'absolute', height: '18px', width: '18px', left: settingsData.auto_reply_enabled ? '23px' : '3px', bottom: '3px',
-                                            backgroundColor: 'white', transition: '.3s', borderRadius: '50%'
-                                        }}></span>
-                                    </label>
-                                </div>
-
-                                {/* Welcome Message Textarea */}
-                                <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                                        🌿 Automated Welcome Greeting
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        value={settingsData.welcome_message}
-                                        onChange={(e) => setSettingsData(prev => ({ ...prev, welcome_message: e.target.value }))}
-                                        placeholder="Enter welcome message template..."
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px 12px',
-                                            borderRadius: '8px',
-                                            border: '1.5px solid #cbd5e1',
-                                            fontSize: '12.5px',
-                                            lineHeight: '1.5',
-                                            boxSizing: 'border-box',
-                                            fontFamily: 'inherit',
-                                            outline: 'none'
-                                        }}
+                        <form onSubmit={handleSaveSettings} style={{ padding: '14px 0' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                                    Admin WhatsApp Alert Mobile Number:
+                                </label>
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRight: 'none', padding: '8px 10px', borderRadius: '8px 0 0 8px', fontSize: '13px', color: '#64748b', fontWeight: 600 }}>
+                                        +91
+                                    </span>
+                                    <input
+                                        type="tel"
+                                        value={settingsData.admin_phone_number}
+                                        onChange={(e) => setSettingsData({ ...settingsData, admin_phone_number: e.target.value.replace(/\D/g, '') })}
+                                        placeholder="Enter 10-digit mobile number"
+                                        style={{ flex: 1, padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '0 8px 8px 0', fontSize: '13px', outline: 'none' }}
                                     />
                                 </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-                                    <button
-                                        type="submit"
-                                        className="wa-btn wa-btn-primary"
-                                        disabled={settingsSaving}
-                                        style={{ padding: '8px 16px', fontSize: '12.5px' }}
-                                    >
-                                        {settingsSaving ? 'Saving...' : '💾 Save Settings'}
-                                    </button>
-                                </div>
-                            </form>
-
-                            {/* 🚨 DANGER ZONE: Database Chat Management */}
-                            <div style={{
-                                border: '1.5px solid #fecaca',
-                                borderRadius: '10px',
-                                padding: '16px',
-                                backgroundColor: '#fef2f2'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '16px' }}>🗑️</span>
-                                    <span style={{ fontWeight: 700, fontSize: '13.5px', color: '#991b1b' }}>
-                                        Database Chat Storage & Purge
-                                    </span>
-                                </div>
-                                <p style={{ fontSize: '12px', color: '#7f1d1d', margin: '0 0 12px 0', lineHeight: '1.5' }}>
-                                    Permanently delete all stored customer conversations and message records from the MySQL database tables (<code style={{ background: '#fee2e2', padding: '1px 4px', borderRadius: '3px' }}>whatsapp_conversations</code> & <code style={{ background: '#fee2e2', padding: '1px 4px', borderRadius: '3px' }}>whatsapp_messages</code>).
-                                </p>
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 600 }}>
-                                        Active in CRM: {conversations.length} conversation threads
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={handlePurgeAllChats}
-                                        disabled={isPurgingChats || conversations.length === 0}
-                                        style={{
-                                            background: '#dc2626',
-                                            color: '#fff',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            padding: '8px 14px',
-                                            fontSize: '12px',
-                                            fontWeight: 600,
-                                            cursor: conversations.length === 0 ? 'not-allowed' : 'pointer',
-                                            opacity: conversations.length === 0 ? 0.6 : 1,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px'
-                                        }}
-                                    >
-                                        {isPurgingChats ? 'Purging...' : '🧼 Purge All Chats from DB'}
-                                    </button>
-                                </div>
+                                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                                    New orders and critical system status updates will be dispatched to this mobile.
+                                </span>
                             </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={settingsData.notify_customer_on_order}
+                                        onChange={(e) => setSettingsData({ ...settingsData, notify_customer_on_order: e.target.checked })}
+                                    />
+                                    <span>🛒 Send Customer Order Confirmation Alert</span>
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={settingsData.notify_admin_on_order}
+                                        onChange={(e) => setSettingsData({ ...settingsData, notify_admin_on_order: e.target.checked })}
+                                    />
+                                    <span>🚨 Send Admin Instant New Order Alert</span>
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={settingsData.is_enabled}
+                                        onChange={(e) => setSettingsData({ ...settingsData, is_enabled: e.target.checked })}
+                                    />
+                                    <span>🌿 Enable Background OpenWA Dispatches</span>
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button
+                                    type="button"
+                                    className="wa-btn wa-btn-outline"
+                                    onClick={() => setIsSettingsModalOpen(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="wa-btn wa-btn-primary"
+                                    disabled={settingsSaving}
+                                >
+                                    {settingsSaving ? 'Saving...' : 'Save Settings'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* MODAL 5: KEEPALIVE PING LOGS MODAL                            */}
+            {/* ------------------------------------------------------------- */}
+            {isLogsModalOpen && (
+                <div className="forge-modal-overlay" onClick={() => setIsLogsModalOpen(false)}>
+                    <div className="forge-qr-modal" style={{ maxWidth: '560px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="forge-modal-header">
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>
+                                    📜 Gateway Keep-Alive Telemetry
+                                </h3>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
+                                    Automated 10-minute cron keepalive telemetry preventing cold starts
+                                </p>
+                            </div>
+                            <button className="forge-modal-close" onClick={() => setIsLogsModalOpen(false)}>
+                                <X size={20} />
+                            </button>
                         </div>
 
-                        <div className="wa-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 20px', borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ maxHeight: '360px', overflowY: 'auto', background: '#090d16', borderRadius: '8px', padding: '12px', fontFamily: 'monospace', fontSize: '11.5px', color: '#34d399', margin: '14px 0' }}>
+                            {keepaliveLoading ? (
+                                <div style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>Loading telemetry...</div>
+                            ) : keepaliveLogs.length === 0 ? (
+                                <div style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No ping history recorded yet.</div>
+                            ) : (
+                                keepaliveLogs.map((entry, idx) => (
+                                    <div key={idx} style={{ marginBottom: '4px', borderBottom: '1px solid #1e293b', paddingBottom: '3px' }}>
+                                        {entry}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <button
-                                type="button"
-                                className="wa-btn wa-btn-secondary"
-                                onClick={() => setIsSettingsModalOpen(false)}
-                                style={{ padding: '6px 14px', fontSize: '12.5px' }}
+                                className="wa-btn wa-btn-outline"
+                                onClick={() => setIsLogsModalOpen(false)}
                             >
                                 Close
                             </button>

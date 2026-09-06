@@ -27,6 +27,28 @@ export default defineConfig({
       }
     }
   },
+  preview: {
+    port: 5180,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/storage': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/openwa-api': {
+        target: 'http://127.0.0.1:2785',
+        rewrite: (path) => path.replace(/^\/openwa-api/, '/api'),
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  },
   build: {
     target: 'es2020',
     cssCodeSplit: true,

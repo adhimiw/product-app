@@ -82,7 +82,7 @@ export default function AdminSidebar({
         },
         {
             id: 'whatsapp',
-            label: 'WhatsApp Chat',
+            label: 'WhatsApp Gateway',
             icon: <MessageSquare size={17} />,
             badge: 'Live'
         }
