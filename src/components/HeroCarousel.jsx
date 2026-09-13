@@ -180,10 +180,11 @@ export default function HeroCarousel({ setPage }) {
                     onMouseLeave={() => setIsPaused(false)}
                     title={`Click to open ${activeSlide?.button_link || '/shop'}`}
                 >
-                    <div style={{ width: '100%', position: 'relative', display: 'block', lineHeight: 0 }}>
+                    <div className="hero-banner-inner" style={{ width: '100%', position: 'relative', display: 'block', lineHeight: 0 }}>
                         <img
                             src={activeSlide?.image_url || '/assets/images/300g_amutham/amutham-01.jpg'}
                             alt={activeSlide?.title || 'Storefront Banner'}
+                            className="hero-banner-img"
                             style={{
                                 width: '100%',
                                 height: 'auto',
@@ -203,6 +204,7 @@ export default function HeroCarousel({ setPage }) {
                             {/* Left Arrow */}
                             <button
                                 type="button"
+                                className="hero-carousel-arrow hero-carousel-arrow-prev"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setCurrentIndex((currentIndex - 1 + banners.length) % banners.length);
@@ -238,6 +240,7 @@ export default function HeroCarousel({ setPage }) {
                             {/* Right Arrow */}
                             <button
                                 type="button"
+                                className="hero-carousel-arrow hero-carousel-arrow-next"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setCurrentIndex((currentIndex + 1) % banners.length);
@@ -272,6 +275,7 @@ export default function HeroCarousel({ setPage }) {
 
                             {/* Two Brothers Style Centered Slide Dots */}
                             <div 
+                                className="hero-carousel-dots"
                                 style={{
                                     position: 'absolute',
                                     bottom: '14px',
