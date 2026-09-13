@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { getBannersApi } from '../services/api';
 import { subscribeToCacheInvalidation } from '../utils/cacheManager';
-import { Sparkles, ShoppingBag, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, ShoppingBag, ArrowRight, Image as ImageIcon, Sprout, ShieldCheck, Award, BadgeCheck } from 'lucide-react';
 
 const STORAGE_KEY = 'mangalam_cached_banners_v1';
 
@@ -314,70 +314,53 @@ export default function HeroCarousel({ setPage }) {
                 </div>
             )}
 
-            {/* 4 Feature / Trust Badges in Container Below Banner */}
-            <div className="container" style={{ marginTop: '28px' }}>
+            {/* 4 Authentic Mangalam Site Pillars / Trust Badges */}
+            <div className="container hero-feature-badges-container" style={{ marginTop: '28px' }}>
                 <div className="hero-feature-badges-grid">
-                    {/* Card 1: Mega Discounts */}
-                    <div className="hero-feature-badge-card card-mint">
-                        <div className="hero-feature-badge-icon icon-mint">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                            </svg>
+                    {/* Pillar 1: 100% Sprout-Activated */}
+                    <div className="hero-feature-badge-card card-sprout">
+                        <div className="hero-feature-badge-icon icon-sprout">
+                            <Sprout size={22} strokeWidth={2.2} />
                         </div>
                         <div className="hero-feature-badge-text">
-                            <h4 className="hero-feature-badge-title">Mega Discounts</h4>
-                            <p className="hero-feature-badge-sub">When sign up</p>
+                            <h4 className="hero-feature-badge-title">{t('trustBadge1Title') || '100% Sprout-Activated'}</h4>
+                            <p className="hero-feature-badge-sub">{t('trustBadge1Sub') || 'Bio-activated grains for superior absorption'}</p>
                         </div>
                     </div>
 
-                    {/* Card 2: Free Delivery */}
-                    <div className="hero-feature-badge-card card-yellow">
-                        <div className="hero-feature-badge-icon icon-yellow">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="1" y="3" width="15" height="13"></rect>
-                                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                                <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                                <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                            </svg>
+                    {/* Pillar 2: 0% Chemicals & Preservatives */}
+                    <div className="hero-feature-badge-card card-pure">
+                        <div className="hero-feature-badge-icon icon-pure">
+                            <ShieldCheck size={22} strokeWidth={2.2} />
                         </div>
                         <div className="hero-feature-badge-text">
-                            <h4 className="hero-feature-badge-title">Free Delivery</h4>
-                            <p className="hero-feature-badge-sub">24/7 amazing services</p>
+                            <h4 className="hero-feature-badge-title">{t('trustBadge2Title') || '0% Chemicals & Preservatives'}</h4>
+                            <p className="hero-feature-badge-sub">{t('trustBadge2Sub') || 'Pure kitchen recipes with zero artificial additives'}</p>
                         </div>
                     </div>
 
-                    {/* Card 3: Secured Payment */}
-                    <div className="hero-feature-badge-card card-purple">
-                        <div className="hero-feature-badge-icon icon-purple">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="5" width="20" height="14" rx="2"></rect>
-                                <line x1="2" y1="10" x2="22" y2="10"></line>
-                                <circle cx="6" cy="15" r="1"></circle>
-                                <circle cx="10" cy="15" r="1"></circle>
-                            </svg>
+                    {/* Pillar 3: Traditional Stone-Ground */}
+                    <div className="hero-feature-badge-card card-stone">
+                        <div className="hero-feature-badge-icon icon-stone">
+                            <Award size={22} strokeWidth={2.2} />
                         </div>
                         <div className="hero-feature-badge-text">
-                            <h4 className="hero-feature-badge-title">Secured Payment</h4>
-                            <p className="hero-feature-badge-sub">We accept all credit cards</p>
+                            <h4 className="hero-feature-badge-title">{t('trustBadge3Title') || 'Traditional Stone-Ground'}</h4>
+                            <p className="hero-feature-badge-sub">{t('trustBadge3Sub') || 'Slow-crafted & cold wood-pressed heritage methods'}</p>
                         </div>
                     </div>
 
-                    {/* Card 4: Easy Returns */}
-                    <div className="hero-feature-badge-card card-pink">
-                        <div className="hero-feature-badge-icon icon-pink">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="1 4 1 10 7 10"></polyline>
-                                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                            </svg>
+                    {/* Pillar 4: FSSAI & UDYAM Certified */}
+                    <div className="hero-feature-badge-card card-certified">
+                        <div className="hero-feature-badge-icon icon-certified">
+                            <BadgeCheck size={22} strokeWidth={2.2} />
                         </div>
                         <div className="hero-feature-badge-text">
-                            <h4 className="hero-feature-badge-title">Easy Returns</h4>
-                            <p className="hero-feature-badge-sub">30-days free return policy</p>
+                            <h4 className="hero-feature-badge-title">{t('trustBadge4Title') || 'FSSAI & UDYAM Certified'}</h4>
+                            <p className="hero-feature-badge-sub">{t('trustBadge4Sub') || 'Sethiyathope Heritage Facility, Tamil Nadu'}</p>
                         </div>
                     </div>
                 </div>
-
             </div>
         </section>
     );

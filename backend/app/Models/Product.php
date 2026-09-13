@@ -29,6 +29,7 @@ class Product extends Model
         'ingredients',
         'tags',
         'images',
+        'product_badge',
     ];
 
     protected function casts(): array
@@ -41,6 +42,7 @@ class Product extends Model
             'stock'          => 'integer',
             'tags'           => 'array',
             'images'         => 'array',
+            'product_badge'  => 'integer',
         ];
     }
 

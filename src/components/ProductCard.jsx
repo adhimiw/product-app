@@ -5,7 +5,7 @@ import { getBadgeLabel } from '../services/api';
 const getBadgeClass = (badgeText) => {
     if (!badgeText) return '';
     const norm = String(badgeText).toLowerCase().replace(/[\s-_]+/g, '');
-    if (norm.includes('trend')) return 'trending';
+    if (norm.includes('popular') || norm.includes('trend')) return 'popular';
     if (norm.includes('new') || norm.includes('launch')) return 'newlaunch';
     if (norm.includes('limit') || norm.includes('stock')) return 'limitedstock';
     return 'bestseller';
@@ -33,6 +33,7 @@ export default function ProductCard({
     rating,
     reviewCount,
     badge,
+    product_badge,
     badgeType = "green", // "green" or "orange"
     image,
     images = [],
@@ -80,9 +81,24 @@ export default function ProductCard({
             if (found.variant_price !== undefined && found.variant_price !== null) {
                 activePrice = Number(found.variant_price);
             }
+
+            // High-priority resolution for selected variant's badge
             if (found.variant_badge !== undefined && found.variant_badge !== null) {
-                currentBadge = getBadgeLabel(found.variant_badge);
+                const vNum = Number(found.variant_badge);
+                if (vNum > 0) {
+                    currentBadge = getBadgeLabel(vNum);
+                } else {
+                    // Explicitly 0: "No Badge (None)" chosen for this variant
+                    currentBadge = '';
+                }
+            } else if (found.badge) {
+                currentBadge = getBadgeLabel(found.badge);
+            } else if (product_badge && Number(product_badge) > 0) {
+                currentBadge = getBadgeLabel(product_badge, true);
+            } else if (badge) {
+                currentBadge = getBadgeLabel(badge);
             }
+
             const vImgs = Array.isArray(found.variant_images) && found.variant_images.length > 0
                 ? found.variant_images
                 : (Array.isArray(found.images) && found.images.length > 0 ? found.images : []);
@@ -101,14 +117,30 @@ export default function ProductCard({
                 activePrice = Number(foundOpt.price);
             }
             const vBadgeVal = foundOpt.variant_badge !== undefined ? foundOpt.variant_badge : foundOpt.badge;
-            currentBadge = getBadgeLabel(vBadgeVal);
+            if (vBadgeVal !== undefined && vBadgeVal !== null) {
+                const vNum = Number(vBadgeVal);
+                if (vNum > 0) {
+                    currentBadge = getBadgeLabel(vNum);
+                } else {
+                    currentBadge = '';
+                }
+            } else if (product_badge && Number(product_badge) > 0) {
+                currentBadge = getBadgeLabel(product_badge, true);
+            } else if (badge) {
+                currentBadge = getBadgeLabel(badge);
+            }
+
             const vImgs = Array.isArray(foundOpt.variant_images) && foundOpt.variant_images.length > 0 ? foundOpt.variant_images : [];
             if (vImgs.length > 0 && vImgs[0]) {
                 variantImage = vImgs[0];
             }
         }
-    } else if (badge) {
-        currentBadge = getBadgeLabel(badge);
+    } else {
+        if (product_badge && Number(product_badge) > 0) {
+            currentBadge = getBadgeLabel(product_badge, true);
+        } else if (badge) {
+            currentBadge = getBadgeLabel(badge);
+        }
     }
 
     const activeDisplayImage = variantImage || displayImage;

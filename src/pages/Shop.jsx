@@ -36,8 +36,7 @@ export default function Shop({
 
     // Filter and Sort states
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedPriceTier, setSelectedPriceTier] = useState('all'); // 'all', 'under150', '150-300', '300-500', 'above500', 'custom'
-    const [customMaxPrice, setCustomMaxPrice] = useState(600);
+    const [priceRange, setPriceRange] = useState(null); // [min, max] or null when unconstrained
     const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price_asc', 'price_desc', 'rating', 'name_asc', 'name_desc'
     const [inStockOnly, setInStockOnly] = useState(false);
     const [onDiscountOnly, setOnDiscountOnly] = useState(false);
@@ -145,6 +144,11 @@ export default function Shop({
         };
     }, [productList]);
 
+    // Active price range bounds
+    const currentMin = priceRange ? priceRange[0] : minPrice;
+    const currentMax = priceRange ? priceRange[1] : maxProductPrice;
+    const isPriceFiltered = priceRange !== null && (priceRange[0] > minPrice || priceRange[1] < maxProductPrice);
+
     // Filter and sort products
     const filteredProducts = useMemo(() => {
         return productList
@@ -174,12 +178,15 @@ export default function Shop({
                 // Get base price for filtering
                 const price = Number(product.actual_price || product.price || 0);
 
-                // 3. Price Tier / Slider Filter
-                if (selectedPriceTier === 'under150' && price > 150) return false;
-                if (selectedPriceTier === '150-300' && (price < 150 || price > 300)) return false;
-                if (selectedPriceTier === '300-500' && (price < 300 || price > 500)) return false;
-                if (selectedPriceTier === 'above500' && price < 500) return false;
-                if (selectedPriceTier === 'custom' && price > customMaxPrice) return false;
+                // 3. Dynamic Price Range Filter
+                if (isPriceFiltered) {
+                    const inBaseRange = price >= currentMin && price <= currentMax;
+                    const inVariantRange = Array.isArray(product.package_sizes) && product.package_sizes.some(ps => {
+                        const vp = Number(ps.variant_price || 0);
+                        return vp >= currentMin && vp <= currentMax;
+                    });
+                    if (!inBaseRange && !inVariantRange) return false;
+                }
 
                 // 4. In Stock Filter
                 if (inStockOnly && Number(product.stock || 0) <= 0) return false;
@@ -215,16 +222,15 @@ export default function Shop({
                 // Default: featured / id asc or desc
                 return (a.id || 0) - (b.id || 0);
             });
-    }, [productList, activeCategory, searchQuery, selectedPriceTier, customMaxPrice, inStockOnly, onDiscountOnly, sortBy]);
+    }, [productList, activeCategory, searchQuery, isPriceFiltered, currentMin, currentMax, inStockOnly, onDiscountOnly, sortBy]);
 
     // Check if any filter is actively applied
-    const hasActiveFilters = activeCategory !== 'All Products' || searchQuery !== '' || selectedPriceTier !== 'all' || inStockOnly || onDiscountOnly || sortBy !== 'featured';
+    const hasActiveFilters = (activeCategory && activeCategory !== 'All Products' && activeCategory !== 'All') || searchQuery !== '' || isPriceFiltered || inStockOnly || onDiscountOnly || sortBy !== 'featured';
 
     const handleClearAllFilters = () => {
         handleCategoryClick('All Products');
         setSearchQuery('');
-        setSelectedPriceTier('all');
-        setCustomMaxPrice(maxProductPrice);
+        setPriceRange(null);
         setInStockOnly(false);
         setOnDiscountOnly(false);
         setSortBy('featured');
@@ -271,137 +277,169 @@ export default function Shop({
 
                 {/* Modern Filter Toolbar */}
                 <div className="shop-toolbar-card">
-                    {/* Top Row: Search + Sort + Quick Toggles */}
-                    <div className="shop-toolbar-top-row">
-                        {/* Live Search Input */}
-                        <div className="shop-search-box">
-                            <Search size={17} className="search-icon" />
-                            <input
-                                type="text"
-                                className="shop-search-input"
-                                placeholder={t('searchPlaceholderShop')}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                            {searchQuery && (
-                                <button
-                                    className="search-clear-btn"
-                                    onClick={() => setSearchQuery('')}
-                                    title="Clear search"
-                                >
-                                    <X size={14} />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Action Group: Sort By + Price Slider Button */}
-                        <div className="shop-toolbar-controls">
-                            {/* Sort Dropdown */}
-                            <div className="shop-select-wrap">
-                                <ArrowUpDown size={15} className="select-icon" />
-                                <select
-                                    className="shop-select-input"
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                >
-                                    <option value="featured">{t('sortFeatured')}</option>
-                                    <option value="price_asc">{t('sortPriceLowHigh')}</option>
-                                    <option value="price_desc">{t('sortPriceHighLow')}</option>
-                                    <option value="rating">{t('sortRating')}</option>
-                                    <option value="name_asc">{t('sortNameAZ')}</option>
-                                    <option value="name_desc">{t('sortNameZA')}</option>
-                                </select>
-                                <ChevronDown size={14} className="select-arrow" />
-                            </div>
-
-                            {/* Price Slider Toggle Button */}
+                    {/* Top Row: Luxury Search Box */}
+                    <div className="shop-search-box">
+                        <Search size={18} className="search-icon" />
+                        <input
+                            type="text"
+                            className="shop-search-input"
+                            placeholder={t('searchPlaceholderShop')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
                             <button
-                                className={`shop-filter-toggle-btn ${selectedPriceTier === 'custom' || showPriceSlider ? 'active' : ''}`}
-                                onClick={() => setShowPriceSlider(!showPriceSlider)}
-                                title="Custom Price Filter"
+                                className="search-clear-btn"
+                                onClick={() => setSearchQuery('')}
+                                title="Clear search"
+                                type="button"
                             >
-                                <SlidersHorizontal size={15} />
-                                <span>{t('priceRange')}</span>
+                                <X size={14} />
                             </button>
-                        </div>
+                        )}
                     </div>
 
-                    {/* Expandable Custom Price Range Slider */}
-                    {showPriceSlider && (
-                        <div className="shop-custom-slider-drawer">
-                            <div className="slider-header">
-                                <span className="slider-label">Max Price: <strong>₹{customMaxPrice}</strong></span>
-                                <span className="slider-limits">₹{minPrice} — ₹{maxProductPrice}</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={minPrice}
-                                max={maxProductPrice}
-                                step={10}
-                                value={customMaxPrice}
-                                onChange={(e) => {
-                                    setCustomMaxPrice(Number(e.target.value));
-                                    setSelectedPriceTier('custom');
-                                }}
-                                className="shop-range-slider"
-                            />
-                        </div>
-                    )}
-
-                    {/* Bottom Row: Quick Price Range Chips + In-Stock & Offers */}
-                    <div className="shop-toolbar-bottom-row">
-                        <div className="shop-quick-price-chips">
-                            <span className="quick-label">Price:</span>
-                            <button
-                                className={`quick-price-chip ${selectedPriceTier === 'all' ? 'active' : ''}`}
-                                onClick={() => setSelectedPriceTier('all')}
+                    {/* Controls Row: Sort, Price Range, In Stock, Offers */}
+                    <div className="shop-toolbar-controls-row">
+                        {/* Sort Dropdown */}
+                        <div className="shop-select-wrap">
+                            <ArrowUpDown size={15} className="select-icon" />
+                            <select
+                                className="shop-select-input"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                aria-label="Sort products"
                             >
-                                {t('filterPriceAll')}
-                            </button>
-                            <button
-                                className={`quick-price-chip ${selectedPriceTier === 'under150' ? 'active' : ''}`}
-                                onClick={() => setSelectedPriceTier('under150')}
-                            >
-                                {t('filterPriceUnder150')}
-                            </button>
-                            <button
-                                className={`quick-price-chip ${selectedPriceTier === '150-300' ? 'active' : ''}`}
-                                onClick={() => setSelectedPriceTier('150-300')}
-                            >
-                                {t('filterPrice150to300')}
-                            </button>
-                            <button
-                                className={`quick-price-chip ${selectedPriceTier === '300-500' ? 'active' : ''}`}
-                                onClick={() => setSelectedPriceTier('300-500')}
-                            >
-                                {t('filterPrice300to500')}
-                            </button>
-                            <button
-                                className={`quick-price-chip ${selectedPriceTier === 'above500' ? 'active' : ''}`}
-                                onClick={() => setSelectedPriceTier('above500')}
-                            >
-                                {t('filterPriceAbove500')}
-                            </button>
+                                <option value="featured">{t('sortFeatured')}</option>
+                                <option value="price_asc">{t('sortPriceLowHigh')}</option>
+                                <option value="price_desc">{t('sortPriceHighLow')}</option>
+                                <option value="rating">{t('sortRating')}</option>
+                                <option value="name_asc">{t('sortNameAZ')}</option>
+                                <option value="name_desc">{t('sortNameZA')}</option>
+                            </select>
+                            <ChevronDown size={14} className="select-arrow" />
                         </div>
 
-                        {/* In-Stock & On Discount Badges */}
+                        {/* Price Range Button */}
+                        <button
+                            type="button"
+                            className={`shop-filter-toggle-btn ${isPriceFiltered || showPriceSlider ? 'active' : ''}`}
+                            onClick={() => setShowPriceSlider(!showPriceSlider)}
+                            title="Filter by Price Range"
+                        >
+                            <SlidersHorizontal size={15} />
+                            <span>{t('priceRange')}</span>
+                            {isPriceFiltered ? (
+                                <span className="price-active-pill">₹{currentMin}–₹{currentMax}</span>
+                            ) : (
+                                <span className="price-range-hint">₹{minPrice}–₹{maxProductPrice}</span>
+                            )}
+                        </button>
+
+                        {/* In-Stock & Special Offers Quick Toggles */}
                         <div className="shop-quick-toggles">
                             <button
+                                type="button"
                                 className={`shop-toggle-pill ${inStockOnly ? 'active' : ''}`}
                                 onClick={() => setInStockOnly(!inStockOnly)}
                             >
                                 <span className={`toggle-dot ${inStockOnly ? 'checked' : ''}`} />
-                                {t('inStockOnly')}
+                                <span>{t('inStockOnly')}</span>
                             </button>
                             <button
+                                type="button"
                                 className={`shop-toggle-pill ${onDiscountOnly ? 'active' : ''}`}
                                 onClick={() => setOnDiscountOnly(!onDiscountOnly)}
                             >
                                 <Tag size={13} />
-                                {t('onDiscountOnly')}
+                                <span>{t('onDiscountOnly')}</span>
                             </button>
                         </div>
                     </div>
+
+                    {/* Expandable Price Range Slider Drawer */}
+                    {showPriceSlider && (
+                        <div className="shop-price-slider-panel">
+                            <div className="price-panel-header">
+                                <div className="price-panel-title">
+                                    <span className="price-badge-icon">₹</span>
+                                    <div>
+                                        <h4 className="price-panel-heading">{t('priceRange')}</h4>
+                                        <p className="price-panel-sub">Slide to set your custom budget</p>
+                                    </div>
+                                </div>
+                                <div className="price-panel-actions">
+                                    <div className="price-current-display">
+                                        <strong>₹{currentMin}</strong>
+                                        <span className="price-sep">—</span>
+                                        <strong>₹{currentMax}</strong>
+                                    </div>
+                                    {isPriceFiltered && (
+                                        <button
+                                            type="button"
+                                            className="price-panel-reset-btn"
+                                            onClick={() => setPriceRange(null)}
+                                            title="Reset price range"
+                                        >
+                                            <RotateCcw size={12} />
+                                            <span>Reset</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="shop-price-sliders-grid">
+                                <div className="price-slider-field">
+                                    <div className="slider-label-bar">
+                                        <span className="slider-col-title">Min Price</span>
+                                        <span className="slider-col-val">₹{currentMin}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={minPrice}
+                                        max={maxProductPrice}
+                                        step={10}
+                                        value={currentMin}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            const safeMin = Math.min(val, currentMax);
+                                            setPriceRange([safeMin, currentMax]);
+                                        }}
+                                        className="shop-range-slider"
+                                    />
+                                </div>
+
+                                <div className="price-slider-field">
+                                    <div className="slider-label-bar">
+                                        <span className="slider-col-title">Max Price</span>
+                                        <span className="slider-col-val">₹{currentMax}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={minPrice}
+                                        max={maxProductPrice}
+                                        step={10}
+                                        value={currentMax}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            const safeMax = Math.max(val, currentMin);
+                                            setPriceRange([currentMin, safeMax]);
+                                        }}
+                                        className="shop-range-slider"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="price-panel-footer">
+                                <span className="price-limits-note">
+                                    Catalog Range: ₹{minPrice} to ₹{maxProductPrice}
+                                </span>
+                                <span className="price-match-count">
+                                    <strong>{filteredProducts.length}</strong> {t('productsWord')} match
+                                </span>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Active Filter Summary Bar */}
@@ -418,39 +456,35 @@ export default function Shop({
                             {activeCategory !== 'All Products' && (
                                 <span className="active-tag-chip">
                                     {activeCategory}
-                                    <button onClick={() => handleCategoryClick('All Products')}><X size={12} /></button>
+                                    <button type="button" onClick={() => handleCategoryClick('All Products')}><X size={12} /></button>
                                 </span>
                             )}
                             {searchQuery && (
                                 <span className="active-tag-chip">
                                     "{searchQuery}"
-                                    <button onClick={() => setSearchQuery('')}><X size={12} /></button>
+                                    <button type="button" onClick={() => setSearchQuery('')}><X size={12} /></button>
                                 </span>
                             )}
-                            {selectedPriceTier !== 'all' && (
-                                <span className="active-tag-chip">
-                                    {selectedPriceTier === 'under150' && '< ₹150'}
-                                    {selectedPriceTier === '150-300' && '₹150 - ₹300'}
-                                    {selectedPriceTier === '300-500' && '₹300 - ₹500'}
-                                    {selectedPriceTier === 'above500' && '> ₹500'}
-                                    {selectedPriceTier === 'custom' && `≤ ₹${customMaxPrice}`}
-                                    <button onClick={() => setSelectedPriceTier('all')}><X size={12} /></button>
+                            {isPriceFiltered && (
+                                <span className="active-tag-chip price-filter-tag">
+                                    ₹{currentMin} — ₹{currentMax}
+                                    <button type="button" onClick={() => setPriceRange(null)} title="Clear price filter"><X size={12} /></button>
                                 </span>
                             )}
                             {inStockOnly && (
                                 <span className="active-tag-chip">
                                     In Stock
-                                    <button onClick={() => setInStockOnly(false)}><X size={12} /></button>
+                                    <button type="button" onClick={() => setInStockOnly(false)}><X size={12} /></button>
                                 </span>
                             )}
                             {onDiscountOnly && (
                                 <span className="active-tag-chip">
                                     On Offer
-                                    <button onClick={() => setOnDiscountOnly(false)}><X size={12} /></button>
+                                    <button type="button" onClick={() => setOnDiscountOnly(false)}><X size={12} /></button>
                                 </span>
                             )}
 
-                            <button className="reset-all-filters-btn" onClick={handleClearAllFilters}>
+                            <button type="button" className="reset-all-filters-btn" onClick={handleClearAllFilters}>
                                 <RotateCcw size={13} />
                                 <span>{t('clearFilters')}</span>
                             </button>

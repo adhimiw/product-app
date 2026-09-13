@@ -98,6 +98,7 @@ class ProductController extends Controller
                     'discount_value' => (float) $request->input('discount_value', 0),
                     'discount'       => $request->input('discount'),
                     'status'         => (int) $request->input('status', 1),
+                    'product_badge'  => (int) $request->input('product_badge', $request->input('badge', 0)),
                     'stock'          => (int) $request->input('stock', 0),
                     'how_to_use'     => $request->input('how_to_use'),
                     'benefits'       => $request->input('benefits'),
@@ -214,6 +215,9 @@ class ProductController extends Controller
                     'discount_value' => (float) $request->input('discount_value', $product->discount_value),
                     'discount'       => $request->input('discount', $product->discount),
                     'status'         => (int) $request->input('status', $product->status),
+                    'product_badge'  => $request->has('product_badge') 
+                                        ? (int) $request->input('product_badge') 
+                                        : ($request->has('badge') ? (int) $request->input('badge') : $product->product_badge),
                     'stock'          => (int) $request->input('stock', $product->stock),
                     'how_to_use'     => $request->input('how_to_use', $product->how_to_use),
                     'benefits'       => $request->input('benefits', $product->benefits),
@@ -251,6 +255,45 @@ class ProductController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Failed to update product: ' . $e->getMessage(),
+                'data'    => null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Quick update product badge (0: none, 1: New Launched, 2: Popular).
+     */
+    public function updateBadge(Request $request, $id): JsonResponse
+    {
+        try {
+            $product = Product::find($id);
+
+            if (!$product) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Product not found',
+                    'data'    => null,
+                ], 404);
+            }
+
+            $badge = (int) $request->input('product_badge', $request->input('badge', 0));
+            $product->product_badge = $badge;
+            $product->save();
+
+            $product->load([
+                'category:id,name,slug',
+                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+            ]);
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Product badge updated successfully',
+                'data'    => new ProductResource($product),
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Failed to update badge: ' . $e->getMessage(),
                 'data'    => null,
             ], 500);
         }

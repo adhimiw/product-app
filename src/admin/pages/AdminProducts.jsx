@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { adminProductService, BADGE_OPTIONS, getBadgeLabel } from '../services/adminProductService';
+import { adminProductService, BADGE_OPTIONS, getBadgeLabel, PRODUCT_BADGE_OPTIONS } from '../services/adminProductService';
 import { fetchCategoriesApi } from '../../services/api';
 import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
@@ -291,6 +291,7 @@ export default function AdminProducts() {
             stock: '100',
             is_unlimited_stock: false,
             status: 1,
+            product_badge: 0,
             images: [],
             image_files: [],
             package_sizes: [
@@ -368,6 +369,7 @@ export default function AdminProducts() {
             stock: product.stock !== null && product.stock !== undefined ? String(product.stock) : '',
             is_unlimited_stock: product.stock === null || product.stock === undefined,
             status: Number(product.status),
+            product_badge: Number(product.product_badge ?? product.badge ?? 0),
             images: galImages,
             image_files: Array.isArray(product.image_files) ? product.image_files : galImages,
             package_sizes: normalizedPackages,
@@ -618,6 +620,8 @@ export default function AdminProducts() {
             discount: formData.discount,
             stock: formData.is_unlimited_stock ? null : (formData.stock !== '' ? formData.stock : null),
             status: Number(formData.status),
+            product_badge: Number(formData.product_badge || 0),
+            badge: Number(formData.product_badge || 0),
             images: formData.images,
             image_files: formData.image_files, // Binary files array
             package_sizes: formData.package_sizes,
@@ -659,6 +663,21 @@ export default function AdminProducts() {
         await adminProductService.toggleProductStatus(id);
         await loadProducts();
         showToast('Product status updated');
+    };
+
+    const handleUpdateBadge = async (id, newBadge) => {
+        const numericBadge = Number(newBadge) || 0;
+        // Optimistic UI update
+        setProducts(prev => prev.map(p => p.id === id ? { ...p, product_badge: numericBadge, badge: numericBadge } : p));
+        try {
+            await adminProductService.updateProductBadge(id, numericBadge);
+            const badgeLabel = numericBadge === 1 ? 'New Launched' : numericBadge === 2 ? 'Popular' : 'None';
+            showToast(`Badge updated to "${badgeLabel}"`);
+        } catch (err) {
+            console.error('Failed to update product badge:', err);
+            showToast('Failed to update product badge');
+            await loadProducts();
+        }
     };
 
     const handleSelectAll = (e) => {
@@ -751,7 +770,7 @@ export default function AdminProducts() {
 
                 {/* Table / Skeleton / Empty State */}
                 {loading ? (
-                    <TableSkeleton columns={9} rows={6} />
+                    <TableSkeleton columns={7} rows={6} />
                 ) : filteredProducts.length === 0 ? (
                     <EmptyState
                         icon="🌿"
@@ -765,141 +784,122 @@ export default function AdminProducts() {
                         <table className="admin-table">
                             <thead>
                                 <tr>
-                                    <th style={{ width: '36px', textAlign: 'center', paddingLeft: '14px' }}>
+                                    <th style={{ width: '38px', textAlign: 'center', paddingLeft: '14px' }}>
                                         <input
                                             type="checkbox"
                                             onChange={handleSelectAll}
                                             checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                                            aria-label="Select all products"
                                         />
                                     </th>
-                                    <th style={{ width: '48px' }}>Media</th>
-                                    <th>Product Name</th>
-                                    <th>Category</th>
-                                    <th>Price & Sizes</th>
-                                    <th>Stock</th>
-                                    <th>Status</th>
-                                    <th style={{ textAlign: 'right', paddingRight: '14px' }}>Actions</th>
+                                    <th style={{ minWidth: '260px' }}>Product</th>
+                                    <th style={{ minWidth: '150px' }}>Category</th>
+                                    <th style={{ minWidth: '120px' }}>Units</th>
+                                    <th style={{ minWidth: '145px' }}>Badge</th>
+                                    <th style={{ minWidth: '100px' }}>Status</th>
+                                    <th style={{ textAlign: 'right', paddingRight: '16px', minWidth: '110px' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredProducts.map((prod) => {
-                                    const hasSizes = Array.isArray(prod.package_sizes) && prod.package_sizes.length > 0;
-                                    const primarySize = hasSizes ? `${prod.package_sizes[0].size_number}${prod.package_sizes[0].size_unit}` : '';
-                                    const displayPrice = hasSizes
-                                        ? (prod.package_sizes.length === 1
-                                            ? prod.package_sizes[0].variant_price
-                                            : `${Math.min(...prod.package_sizes.map(s => Number(s.variant_price) || 0))} - ₹${Math.max(...prod.package_sizes.map(s => Number(s.variant_price) || 0))}`)
-                                        : (prod.actual_price || prod.price || 0);
+                                    const badgeVal = Number(prod.product_badge ?? prod.badge ?? 0);
                                     return (
                                         <tr key={prod.id} className={selectedProductIds.includes(prod.id) ? 'selected' : ''}>
-                                            <td style={{ textAlign: 'center', width: '36px', paddingLeft: '14px' }}>
+                                            {/* 1. Checkbox */}
+                                            <td style={{ textAlign: 'center', width: '38px', paddingLeft: '14px' }}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedProductIds.includes(prod.id)}
                                                     onChange={() => handleSelectOne(prod.id)}
+                                                    aria-label={`Select ${prod.name}`}
                                                 />
                                             </td>
+
+                                            {/* 2. Product (Image & Name unified) */}
                                             <td>
-                                                <div 
-                                                    style={{
-                                                        width: '38px',
-                                                        height: '38px',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid var(--admin-border-color)',
-                                                        background: 'var(--admin-surface-subtle)',
-                                                        overflow: 'hidden',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                    onClick={() => setSelectedProductForDetails(prod)}
-                                                    title="Click to view details"
-                                                >
-                                                    <img
-                                                        src={(Array.isArray(prod.images) && prod.images[0]) || '/assets/images/categories/organic-food-ingredients.png'}
-                                                        alt={prod.name}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        onError={(e) => {
-                                                            e.target.onerror = null;
-                                                            e.target.src = '/assets/images/categories/organic-food-ingredients.png';
-                                                        }}
-                                                    />
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div 
-                                                    style={{ fontWeight: 700, color: 'var(--admin-text-main)', fontSize: '0.84rem', cursor: 'pointer', lineHeight: '1.3' }}
-                                                    onClick={() => setSelectedProductForDetails(prod)}
-                                                    title="Click to view full details"
-                                                >
-                                                    {prod.name}
-                                                </div>
-                                                {Array.isArray(prod.tags) && prod.tags.length > 0 && (
-                                                    <div style={{ display: 'flex', gap: '4px', marginTop: '3px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                                        {prod.tags.slice(0, 2).map((t, idx) => (
-                                                            <span key={idx} style={{ fontSize: '0.68rem', color: 'var(--admin-text-muted)', background: 'var(--admin-surface-subtle)', padding: '1px 5px', borderRadius: '4px' }}>
-                                                                #{t}
-                                                            </span>
-                                                        ))}
-                                                        {prod.tags.length > 2 && (
-                                                            <span style={{ fontSize: '0.68rem', color: 'var(--admin-text-faint)' }}>
-                                                                +{prod.tags.length - 2}
-                                                            </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                    <div 
+                                                        className="admin-product-thumb"
+                                                        onClick={() => setSelectedProductForDetails(prod)}
+                                                        title="Click to view full details"
+                                                    >
+                                                        <img
+                                                            src={(Array.isArray(prod.images) && prod.images[0]) || '/assets/images/categories/organic-food-ingredients.png'}
+                                                            alt={prod.name}
+                                                            loading="lazy"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.src = '/assets/images/categories/organic-food-ingredients.png';
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                                        <div 
+                                                            className="admin-product-table-name"
+                                                            onClick={() => setSelectedProductForDetails(prod)}
+                                                            title="Click to view full details"
+                                                        >
+                                                            {prod.name}
+                                                        </div>
+                                                        {Array.isArray(prod.tags) && prod.tags.length > 0 && (
+                                                            <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                                {prod.tags.slice(0, 3).map((t, idx) => (
+                                                                    <span key={idx} className="admin-product-tag-chip">
+                                                                        #{t}
+                                                                    </span>
+                                                                ))}
+                                                                {prod.tags.length > 3 && (
+                                                                    <span style={{ fontSize: '0.66rem', color: 'var(--admin-text-faint)', fontWeight: 600 }}>
+                                                                        +{prod.tags.length - 3}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <span style={{
-                                                    background: 'var(--admin-surface-subtle)',
-                                                    color: 'var(--admin-text-secondary)',
-                                                    fontSize: '0.72rem',
-                                                    fontWeight: 700,
-                                                    padding: '3px 8px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid var(--admin-border-color)',
-                                                    whiteSpace: 'nowrap',
-                                                    display: 'inline-block'
-                                                }}>
-                                                    {prod.category || 'Standard'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span style={{ fontWeight: 800, color: 'var(--admin-text-main)', fontSize: '0.86rem' }}>
-                                                        ₹{displayPrice}
-                                                    </span>
-                                                    {hasSizes && (
-                                                        <span style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', background: 'var(--admin-surface-subtle)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--admin-border-color)' }}>
-                                                            {prod.package_sizes.length === 1 ? primarySize : `${prod.package_sizes.length} sizes`}
-                                                        </span>
-                                                    )}
-                                                    {prod.discount && (
-                                                        <span className="admin-badge admin-badge-success" style={{ fontSize: '0.65rem', padding: '1px 5px' }}>
-                                                            {prod.discount}
-                                                        </span>
-                                                    )}
                                                 </div>
                                             </td>
+
+                                            {/* 3. Category */}
                                             <td>
-                                                <span style={{
-                                                    fontSize: '0.78rem',
-                                                    fontWeight: 700,
-                                                    color: prod.stock !== null ? (prod.stock > 10 ? 'var(--admin-success-text)' : 'var(--admin-danger-text)') : 'var(--admin-text-muted)',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px'
-                                                }}>
-                                                    <span style={{
-                                                        width: '6px',
-                                                        height: '6px',
-                                                        borderRadius: '50%',
-                                                        background: prod.stock !== null ? (prod.stock > 10 ? 'var(--admin-primary)' : '#EF4444') : 'var(--admin-text-muted)'
-                                                    }} />
-                                                    {prod.stock !== null && prod.stock !== undefined ? `${prod.stock} units` : 'Unlimited'}
+                                                <span className="admin-category-pill">
+                                                    {prod.category || 'Organic Foods'}
                                                 </span>
                                             </td>
+
+                                            {/* 4. Units */}
+                                            <td>
+                                                <div className="admin-units-cell">
+                                                    <span 
+                                                        className="admin-units-dot" 
+                                                        style={{ 
+                                                            background: (prod.stock !== null && prod.stock > 10) 
+                                                                ? '#10B981' 
+                                                                : ((prod.stock !== null && prod.stock > 0) ? '#F59E0B' : '#EF4444') 
+                                                        }} 
+                                                    />
+                                                    <span className="admin-units-text">
+                                                        {prod.stock !== null && prod.stock !== undefined ? `${prod.stock} units` : '0 units'}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* 5. Badge Select Dropdown (1 = New Launched, 2 = Popular) */}
+                                            <td>
+                                                <div className="admin-badge-select-wrapper">
+                                                    <select
+                                                        className={`admin-badge-select ${badgeVal === 1 ? 'badge-select-new' : badgeVal === 2 ? 'badge-select-popular' : 'badge-select-none'}`}
+                                                        value={badgeVal}
+                                                        onChange={(e) => handleUpdateBadge(prod.id, e.target.value)}
+                                                        title="Mark product as New Launched or Popular"
+                                                    >
+                                                        <option value="0">None</option>
+                                                        <option value="1">New Launched</option>
+                                                        <option value="2">Popular</option>
+                                                    </select>
+                                                </div>
+                                            </td>
+
+                                            {/* 6. Status */}
                                             <td>
                                                 <button
                                                     type="button"
@@ -912,17 +912,19 @@ export default function AdminProducts() {
                                                     {Number(prod.status) === 1 ? 'Active' : 'Inactive'}
                                                 </button>
                                             </td>
-                                            <td style={{ textAlign: 'right', paddingRight: '14px' }}>
-                                                <div style={{ display: 'inline-flex', gap: '5px', alignItems: 'center' }}>
+
+                                            {/* 7. Actions */}
+                                            <td style={{ textAlign: 'right', paddingRight: '16px' }}>
+                                                <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                                                     {/* View Details Button */}
                                                     <button
                                                         type="button"
                                                         className="admin-btn-icon"
                                                         title="View Product Details"
                                                         onClick={() => setSelectedProductForDetails(prod)}
-                                                        style={{ width: '28px', height: '28px', color: '#2563eb', background: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.2)' }}
+                                                        style={{ width: '30px', height: '30px', color: '#2563eb', background: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.2)' }}
                                                     >
-                                                        <Eye size={13} strokeWidth={2.2} />
+                                                        <Eye size={14} strokeWidth={2.2} />
                                                     </button>
                                                     {/* Edit Button */}
                                                     <button
@@ -930,9 +932,9 @@ export default function AdminProducts() {
                                                         className="admin-btn-icon"
                                                         title="Edit product"
                                                         onClick={() => handleOpenEditModal(prod)}
-                                                        style={{ width: '28px', height: '28px' }}
+                                                        style={{ width: '30px', height: '30px' }}
                                                     >
-                                                        <Pencil size={13} strokeWidth={2} />
+                                                        <Pencil size={14} strokeWidth={2} />
                                                     </button>
                                                     {/* Delete Button */}
                                                     <button
@@ -940,9 +942,9 @@ export default function AdminProducts() {
                                                         className="admin-btn-icon"
                                                         title="Delete product"
                                                         onClick={() => handleDeleteProduct(prod)}
-                                                        style={{ width: '28px', height: '28px', color: 'var(--admin-danger-text)' }}
+                                                        style={{ width: '30px', height: '30px', color: 'var(--admin-danger-text)' }}
                                                     >
-                                                        <Trash2 size={13} strokeWidth={2} />
+                                                        <Trash2 size={14} strokeWidth={2} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -1040,6 +1042,19 @@ export default function AdminProducts() {
                                             {categories.map(cat => (
                                                 <option key={cat.id} value={cat.name}>{cat.name}</option>
                                             ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="admin-form-group">
+                                        <label className="admin-label">Product Badge / Highlight</label>
+                                        <select
+                                            className="admin-input"
+                                            value={formData.product_badge || 0}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, product_badge: Number(e.target.value) }))}
+                                        >
+                                            <option value={0}>None (Standard)</option>
+                                            <option value={1}>New Launched</option>
+                                            <option value={2}>Popular</option>
                                         </select>
                                     </div>
 

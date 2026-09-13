@@ -43,6 +43,8 @@ class ProductResource extends JsonResource
             'discount_value' => $this->discount_value,
             'discount'       => $this->discount,
             'status'         => $this->status,
+            'product_badge'  => (int) ($this->product_badge ?? 0),
+            'badge'          => (int) ($this->product_badge ?? 0),
             'stock'          => $this->stock,
             'how_to_use'     => $this->how_to_use,
             'benefits'       => $this->benefits,

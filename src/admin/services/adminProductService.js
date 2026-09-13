@@ -13,6 +13,19 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/admin/pro
 const FALLBACK_API_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/products';
 const STORAGE_KEY = 'mangalam_admin_products_v6';
 
+export const PRODUCT_BADGE_OPTIONS = [
+    { value: 0, label: 'None' },
+    { value: 1, label: 'New Launched' },
+    { value: 2, label: 'Popular' }
+];
+
+export const getProductBadgeInfo = (val) => {
+    const num = Number(val);
+    if (num === 1) return { label: 'New Launched', className: 'badge-new-launched' };
+    if (num === 2) return { label: 'Popular', className: 'badge-popular' };
+    return { label: 'None', className: 'badge-none' };
+};
+
 export const BADGE_OPTIONS = [
     { value: 0, label: 'No Badge (None)' },
     { value: 1, label: 'Newly Launched' },
@@ -21,9 +34,15 @@ export const BADGE_OPTIONS = [
     { value: 4, label: 'Limited Stock' }
 ];
 
-export const getBadgeLabel = (val) => {
-    if (val === 1 || val === '1' || val === 'Newly Launched') return 'Newly Launched';
-    if (val === 2 || val === '2' || val === 'Trending' || val === 'Popular') return 'Trending';
+export const getBadgeLabel = (val, isProduct = false) => {
+    if (isProduct) {
+        if (val === 1 || val === '1' || val === 'New Launched' || val === 'Newly Launched') return 'New Launched';
+        if (val === 2 || val === '2' || val === 'Popular') return 'Popular';
+        return '';
+    }
+    if (val === 1 || val === '1' || val === 'Newly Launched' || val === 'New Launched') return 'Newly Launched';
+    if (val === 2 || val === '2' || val === 'Trending') return 'Trending';
+    if (val === 'Popular') return 'Popular';
     if (val === 3 || val === '3' || val === 'Best Seller' || val === 'Best Value') return 'Best Seller';
     if (val === 4 || val === '4' || val === 'Limited Stock') return 'Limited Stock';
     return '';
@@ -330,6 +349,40 @@ export const adminProductService = {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedProducts));
         invalidateProductsCache();
         return { success: true, product: cachedProducts[index] };
+    },
+
+    /**
+     * PATCH /api/admin/products/{id}/badge - Update Product Badge (0: None, 1: New Launched, 2: Popular)
+     */
+    async updateProductBadge(id, badgeValue) {
+        const numericBadge = Number(badgeValue) || 0;
+        const cachedProducts = await this.getAllProducts();
+        const index = cachedProducts.findIndex(p => p.id === Number(id));
+        if (index !== -1) {
+            cachedProducts[index].product_badge = numericBadge;
+            cachedProducts[index].badge = numericBadge;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/${id}/badge`, {
+                method: 'PATCH',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ product_badge: numericBadge, badge: numericBadge })
+            });
+
+            if (response.ok) {
+                const resData = await response.json();
+                if (resData.data && index !== -1) {
+                    cachedProducts[index] = { ...cachedProducts[index], ...resData.data };
+                }
+            }
+        } catch (err) {
+            console.warn('API updateProductBadge warning:', err);
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedProducts));
+        invalidateProductsCache();
+        return { success: true, badge: numericBadge };
     },
 
     /**

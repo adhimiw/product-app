@@ -359,15 +359,27 @@ export async function fetchCategoriesApi(forceRefresh = false) {
 export const BADGE_MAP = {
     0: '',
     1: 'Newly Launched',
-    2: 'Trending',
+    2: 'Popular',
     3: 'Best Seller',
     4: 'Limited Stock'
 };
 
-export const getBadgeLabel = (val) => {
-    if (val === 1 || val === '1' || val === 'Newly Launched' || val === 'New Launch') return 'Newly Launched';
+export const getBadgeLabel = (val, isProduct = false) => {
+    if (isProduct) {
+        if (val === 1 || val === '1' || val === 'New Launched' || val === 'Newly Launched') return 'New Launched';
+        if (val === 2 || val === '2' || val === 'Popular') return 'Popular';
+        return '';
+    }
+    // Variant badge mappings matching BADGE_OPTIONS in Admin:
+    // 0: No Badge (None)
+    // 1: Newly Launched
+    // 2: Trending
+    // 3: Best Seller
+    // 4: Limited Stock
+    if (val === 1 || val === '1' || val === 'Newly Launched' || val === 'New Launch' || val === 'New Launched') return 'Newly Launched';
     if (val === 2 || val === '2' || val === 'Trending') return 'Trending';
-    if (val === 3 || val === '3' || val === 'Best Seller' || val === 'Bestseller') return 'Best Seller';
+    if (val === 'Popular') return 'Popular';
+    if (val === 3 || val === '3' || val === 'Best Seller' || val === 'Bestseller' || val === 'Best Value') return 'Best Seller';
     if (val === 4 || val === '4' || val === 'Limited Stock') return 'Limited Stock';
     return '';
 };
@@ -407,8 +419,13 @@ export function normalizeProduct(p) {
 
     const allImages = Array.from(imageSet);
 
-    // Only show badge if set on variant (0/none means no badge)
-    const badgeLabel = getBadgeLabel(primaryPkg.variant_badge);
+    // Determine badge: variant-specific badge takes priority, otherwise product_badge
+    const productBadgeNum = Number(p.product_badge !== undefined && p.product_badge !== null ? p.product_badge : (p.badge !== undefined && !isNaN(Number(p.badge)) ? Number(p.badge) : 0));
+    const productBadgeLabel = getBadgeLabel(productBadgeNum, true);
+    const variantBadgeLabel = (primaryPkg.variant_badge !== undefined && primaryPkg.variant_badge !== null)
+        ? (Number(primaryPkg.variant_badge) > 0 ? getBadgeLabel(primaryPkg.variant_badge) : '')
+        : productBadgeLabel;
+    const badgeLabel = variantBadgeLabel;
 
     const weights = pkgSizes.length > 0
         ? pkgSizes.map(ps => `${ps.size_number}${ps.size_unit || 'g'}`)
@@ -417,7 +434,9 @@ export function normalizeProduct(p) {
     const gramOptions = pkgSizes.length > 0
         ? pkgSizes.map((ps, idx) => {
             const vPrice = ps.variant_price !== undefined && ps.variant_price !== null ? Number(ps.variant_price) : price;
-            const vBadge = getBadgeLabel(ps.variant_badge);
+            const vBadge = (ps.variant_badge !== undefined && ps.variant_badge !== null)
+                ? (Number(ps.variant_badge) > 0 ? getBadgeLabel(ps.variant_badge) : '')
+                : productBadgeLabel;
             return {
                 id: ps.id || ps.db_id,
                 db_id: ps.db_id || ps.id,
@@ -427,12 +446,13 @@ export function normalizeProduct(p) {
                 inrPrice: `₹${vPrice}`,
                 badge: vBadge,
                 variant_badge: ps.variant_badge,
+                product_badge: productBadgeNum,
                 package_id: ps.id || ps.db_id,
                 variant_images: ps.variant_images || ps.images || []
             };
         })
         : [
-            { id: 'pkg-default', db_id: null, size: '300g Package', sizeWeight: '300g', price: price, inrPrice: `₹${price}`, badge: '', variant_badge: 0, variant_images: [] }
+            { id: 'pkg-default', db_id: null, size: '300g Package', sizeWeight: '300g', price: price, inrPrice: `₹${price}`, badge: badgeLabel, variant_badge: 0, product_badge: productBadgeNum, variant_images: [] }
         ];
 
     let benefitsList = [];
@@ -455,8 +475,10 @@ export function normalizeProduct(p) {
         inrPrice: inrPrice,
         image: primaryImg,
         images: allImages.length > 0 ? allImages : [primaryImg],
+        product_badge: productBadgeNum,
         badge: badgeLabel,
-        badgeType: 'green',
+        badgeLabel: badgeLabel,
+        badgeType: productBadgeNum === 2 ? 'orange' : 'green',
         tag: p.category ? p.category.split(' ')[0] : 'Mangalam',
         rating: 4.9,
         reviewCount: 1240,

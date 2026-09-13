@@ -2,7 +2,6 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
-import OrganicBackgroundOverlay from './components/OrganicBackgroundOverlay';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import Toast from './components/Toast';
@@ -45,13 +44,11 @@ const parseRouteFromUrl = () => {
         return { page: 'admin', param: adminTab };
     }
 
-    // Direct shortcut paths for admin pages: /dashboard, /users, /orders, /products, /categories, /queries, /banners, /marquee, /branding, /settings, /whatsapp
+    // Direct shortcut paths for admin pages: /dashboard, /users, /orders, /queries, /banners, /marquee, /branding, /settings, /whatsapp
     const directAdminMap = {
         '/dashboard': 'dashboard',
         '/users': 'users',
         '/orders': 'orders',
-        '/products': 'products',
-        '/categories': 'categories',
         '/queries': 'queries',
         '/inquiries': 'queries',
         '/banners': 'banners',
@@ -586,7 +583,6 @@ export default function App() {
     return (
         <>
             <Toast toast={toast} onClose={() => setToast(null)} />
-            <OrganicBackgroundOverlay />
             <Header
                 page={page}
                 setPage={setPage}

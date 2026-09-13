@@ -24,11 +24,19 @@ export const translations = {
         heroSlide2Desc: "Crafted with sprouted blackgram & traditional Mappillai Samba rice. High in fiber, calcium, and iron for building stamina and strengthening bones.",
         heroSlide2Cta: "Buy Now - From ₹115",
 
-        // Trust Badges
+        // Trust Badges / Authentic Site Pillars
         badgeSprouted: "100% Sprout-Activated",
         badgeNoChemicals: "No Added Sugar / Preservatives",
         badgeFreeShipping: "Free Shipping over ₹999 / $40",
         badgeCertified: "FSSAI & UDYAM Certified",
+        trustBadge1Title: "100% Sprout-Activated",
+        trustBadge1Sub: "Bio-activated grains for superior absorption",
+        trustBadge2Title: "Chemicals & Preservatives",
+        trustBadge2Sub: "Pure kitchen recipes with zero artificial additives",
+        trustBadge3Title: "Traditional Stone-Ground",
+        trustBadge3Sub: "Slow-crafted & cold wood-pressed heritage methods",
+        trustBadge4Title: "FSSAI & UDYAM Certified",
+        trustBadge4Sub: "Sethiyathope Heritage Facility, Tamil Nadu",
 
         // About Section 1
         aboutTag: "AMUTHAM SPROUTED HEALTH MIX – OUR JOURNEY",
@@ -51,6 +59,14 @@ export const translations = {
         sectionSweetenersTitle: "Organic Sweeteners & Cold Pressed Oils",
         sectionSweetenersDesc: "Pure unrefined country sugar (Nattu Sakkarai), wild forest honey, palm jaggery, and virgin wood-pressed oils.",
         sectionSweetenersBtn: "View All Sweeteners & Oils",
+        sectionNewLaunchedTag: "FRESH ARRIVALS",
+        sectionNewLaunchedTitle: "Newly Launched Products",
+        sectionNewLaunchedDesc: "Handcrafted traditional foods freshly launched from our farm kitchen, stone-ground with zero preservatives.",
+        sectionNewLaunchedBtn: "View All New Launches",
+        sectionPopularTag: "CUSTOMER FAVORITES",
+        sectionPopularTitle: "Popular & Best Sellers",
+        sectionPopularDesc: "Our most-loved heritage recipes and daily staples, chosen and trusted by thousands of healthy families.",
+        sectionPopularBtn: "Explore All Popular",
         filterPriceAll: "All Prices",
         filterPriceUnder150: "Under ₹150",
         filterPrice150to300: "₹150 – ₹300",
@@ -161,11 +177,19 @@ export const translations = {
         heroSlide2Desc: "முளைகட்டிய கருப்பு உளுந்து மற்றும் பாரம்பரிய மாப்பிள்ளை சம்பா அரிசி சேர்த்து தயாரிக்கப்பட்டது. தசை வலிமை, எலும்பு உறுதி மற்றும் நரம்பு மண்டலத்திற்கு ஏற்றது.",
         heroSlide2Cta: "வாங்குங்கள் - ₹115 முதல்",
 
-        // Trust Badges
+        // Trust Badges / Authentic Site Pillars
         badgeSprouted: "100% முளைகட்டிய தானியங்கள்",
         badgeNoChemicals: "இரசாயனம் & பிரசர்வேடிவ் அற்றது",
         badgeFreeShipping: "₹999 மேல் இலவச டெலிவரி",
         badgeCertified: "FSSAI & UDYAM சான்றிதழ் பெற்றது",
+        trustBadge1Title: "100% முளைகட்டிய தானியங்கள்",
+        trustBadge1Sub: "எளிதில் செரிமானம் மற்றும் அதிக ஊட்டச்சத்து",
+        trustBadge2Title: "இரசாயனம் & பிரசர்வேடிவ் அற்றது",
+        trustBadge2Sub: "100% தூய இயற்கை சமையலறை முறை",
+        trustBadge3Title: "பாரம்பரிய கல் உரல் தயாரிப்பு",
+        trustBadge3Sub: "மரச்செக்கு & பாரம்பரிய முறையில் தயாரிப்பு",
+        trustBadge4Title: "FSSAI & UDYAM சான்றிதழ்",
+        trustBadge4Sub: "சேத்தியாத்தோப்பு பாரம்பரிய உற்பத்தி வசதி",
 
         // About Section 1
         aboutTag: "அமுதம் முளைகட்டிய சத்து மாவு – எங்கள் பயணம்",
@@ -188,6 +212,14 @@ export const translations = {
         sectionSweetenersTitle: "இயற்கை நாட்டுச் சர்க்கரை & மரச்செக்கு எண்ணெய்கள்",
         sectionSweetenersDesc: "தூய்மையான நாட்டுச் சர்க்கரை, மலைத்தேன், பனை சில்லு கருப்பட்டி மற்றும் மரச்செக்கு சமையல் எண்ணெய்கள்.",
         sectionSweetenersBtn: "அனைத்து இயற்கை இனிப்புகள் & எண்ணெய்களை பார்க்க",
+        sectionNewLaunchedTag: "புதிய வரவுகள்",
+        sectionNewLaunchedTitle: "புதிதாக அறிமுகப்படுத்தப்பட்டவை",
+        sectionNewLaunchedDesc: "எங்கள் பண்ணை சமையலறையிலிருந்து பாரம்பரிய முறைப்படி புதிதாக தயாரிக்கப்பட்ட உணவுகள்.",
+        sectionNewLaunchedBtn: "புதிய தயாரிப்புகளைப் பார்க்க",
+        sectionPopularTag: "வாடிக்கையாளர் விருப்பம்",
+        sectionPopularTitle: "பிரபலமான தயாரிப்புகள்",
+        sectionPopularDesc: "ஆயிரக்கணக்கான குடும்பங்களால் விரும்பப்படும் எங்கள் சிறந்த பாரம்பரிய தயாரிப்புகள்.",
+        sectionPopularBtn: "பிரபலமானவற்றை பார்க்க",
         filterPriceAll: "அனைத்து விலைகளும்",
         filterPriceUnder150: "₹150 க்குள்",
         filterPrice150to300: "₹150 – ₹300",
