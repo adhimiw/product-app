@@ -42,8 +42,7 @@ export const adminWhatsAppService = {
         // Direct OpenWA proxy check (Prioritize local Docker OpenWA via /openwa-api, fallback to Render)
         const gatewayCandidates = [
             '/openwa-api/sessions',
-            'https://mangalam-openwa-gateway-13xy.onrender.com/api/sessions',
-            'https://mangalam-openwa-gateway.onrender.com/api/sessions'
+            'https://mangalam-openwa-gateway-13xy.onrender.com/api/sessions'
         ];
         const openwaKey = 'owa_k1_747bb008102884877e6105f90f3ed73ff2d002874da80296343e730386364341';
 
