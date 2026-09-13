@@ -10,7 +10,7 @@
             padding: 0;
             background-color: #f4f6f0;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #1b3b2b;
+            color: #1e633d;
             line-height: 1.6;
         }
         .email-container {
@@ -23,7 +23,7 @@
             border: 1px solid #e5e9e2;
         }
         .email-header {
-            background-color: #1b3b2b;
+            background-color: #1e633d;
             padding: 32px 24px;
             text-align: center;
         }
@@ -47,7 +47,7 @@
         .greeting {
             font-size: 18px;
             font-weight: 700;
-            color: #1b3b2b;
+            color: #1e633d;
             margin-top: 0;
             margin-bottom: 14px;
         }
@@ -76,7 +76,7 @@
             font-size: 36px;
             font-weight: 800;
             letter-spacing: 8px;
-            color: #1b3b2b;
+            color: #1e633d;
             margin: 0;
             font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
         }
@@ -92,7 +92,7 @@
         }
         .security-notice {
             background-color: #fafbfc;
-            border-left: 4px solid #1b3b2b;
+            border-left: 4px solid #1e633d;
             padding: 14px 16px;
             border-radius: 6px;
             font-size: 13px;

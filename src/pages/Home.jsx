@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import HeroCarousel from '../components/HeroCarousel';
 import ProductCard from '../components/ProductCard';
 import ReviewCardSlider from '../components/ReviewCardSlider';
 import { useLanguage } from '../context/LanguageContext';
 import { useBranding } from '../context/BrandingContext';
 import { fetchCategoriesApi, fetchProductsApi, submitContactQueryApi, subscribeToCacheInvalidation } from '../services/api';
+import { ArrowRight } from 'lucide-react';
 
 export default function Home({
     products: propProducts,
@@ -12,6 +13,9 @@ export default function Home({
     setPage,
     onProductView,
     onAddToCart,
+    cart = [],
+    onUpdateQuantity,
+    onRemoveFromCart,
     onSelectCategory,
     favoriteProductIds = [],
     onToggleFavorite
@@ -64,6 +68,36 @@ export default function Home({
         });
         return () => unsubscribe();
     }, []);
+
+    // Section 1 Products: Millets, Sprouted Health Mixes & Heritage Grains
+    const milletProducts = useMemo(() => {
+        if (!Array.isArray(productList) || productList.length === 0) return [];
+        const filtered = productList.filter(p => 
+            p.category_id === 1 || 
+            p.category_id === 2 ||
+            String(p.category || '').toLowerCase().includes('millet') ||
+            String(p.category || '').toLowerCase().includes('rice') ||
+            String(p.name || '').toLowerCase().includes('sprouted') ||
+            String(p.name || '').toLowerCase().includes('mix')
+        );
+        return filtered.length > 0 ? filtered : productList.slice(0, 6);
+    }, [productList]);
+
+    // Section 2 Products: Organic Sweeteners & Cold Wood Pressed Oils
+    const sweetenerAndOilProducts = useMemo(() => {
+        if (!Array.isArray(productList) || productList.length === 0) return [];
+        const filtered = productList.filter(p => 
+            p.category_id === 3 || 
+            p.category_id === 4 ||
+            String(p.category || '').toLowerCase().includes('oil') ||
+            String(p.category || '').toLowerCase().includes('sweetener') ||
+            String(p.name || '').toLowerCase().includes('sugar') ||
+            String(p.name || '').toLowerCase().includes('honey') ||
+            String(p.name || '').toLowerCase().includes('jaggery') ||
+            String(p.name || '').toLowerCase().includes('oil')
+        );
+        return filtered.length > 0 ? filtered : productList.slice(6);
+    }, [productList]);
 
     // Dynamic Categories State - 100% API Driven with Instant Storage Cache
     const [categoryItems, setCategoryItems] = useState([]);
@@ -287,13 +321,26 @@ export default function Home({
             </section>
             */}
 
-            {/* Section 2: Product Showcase (Official API Product Cards) */}
-            <section className="rituals-section" id="our-products" style={{ padding: '45px 0', background: 'transparent' }}>
+            {/* Section 2: Category Product Showcase 1 - Millets & Sprouted Health Mixes */}
+            <section className="rituals-section category-section-millets" id="our-millets" style={{ padding: '45px 0 25px 0', background: 'transparent' }}>
                 <div className="container">
-                    <div className="section-header" style={{ marginBottom: '28px' }}>
-                        <span className="section-subtitle">{t('productSectionSub')}</span>
-                        <h2 className="section-title" style={{ fontSize: '2.1rem', marginBottom: '10px' }}>{t('productSectionTitle')}</h2>
-                        <p className="section-description" style={{ fontSize: '0.95rem' }}>{t('productSectionDesc')}</p>
+                    <div className="category-section-header">
+                        <div className="category-section-title-wrap">
+                            <h2 className="section-title" style={{ fontSize: '2.1rem', marginBottom: '8px' }}>
+                                {t('sectionMilletsTitle')}
+                            </h2>
+                            <p className="section-description" style={{ fontSize: '0.95rem', margin: 0 }}>
+                                {t('sectionMilletsDesc')}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="category-section-view-btn"
+                            onClick={() => handleCategoryClick('Millets and Grains')}
+                        >
+                            <span>{t('sectionMilletsBtn')}</span>
+                            <ArrowRight size={15} />
+                        </button>
                     </div>
 
                     <div className="shop-grid-4col" style={{ marginTop: '20px' }}>
@@ -301,20 +348,73 @@ export default function Home({
                             <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
                                 Loading products from backend server...
                             </div>
-                        ) : productList.length > 0 ? (
-                            productList.map(product => (
+                        ) : milletProducts.length > 0 ? (
+                            milletProducts.map(product => (
                                 <ProductCard
                                     key={product.id}
                                     {...product}
                                     onProductView={onProductView}
                                     onAddToCart={onAddToCart}
+                                    cart={cart}
+                                    onUpdateQuantity={onUpdateQuantity}
+                                    onRemoveFromCart={onRemoveFromCart}
                                     isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(product.id)}
                                     onToggleFavorite={onToggleFavorite}
                                 />
                             ))
                         ) : (
                             <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
-                                No products available yet.
+                                No products available in this category yet.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Section 3: Category Product Showcase 2 - Organic Sweeteners & Cold Wood Pressed Oils */}
+            <section className="rituals-section category-section-sweeteners-oils" id="our-sweeteners-oils" style={{ padding: '25px 0 55px 0', background: 'transparent' }}>
+                <div className="container">
+                    <div className="category-section-header">
+                        <div className="category-section-title-wrap">
+                            <h2 className="section-title" style={{ fontSize: '2.1rem', marginBottom: '8px' }}>
+                                {t('sectionSweetenersTitle')}
+                            </h2>
+                            <p className="section-description" style={{ fontSize: '0.95rem', margin: 0 }}>
+                                {t('sectionSweetenersDesc')}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            className="category-section-view-btn"
+                            onClick={() => handleCategoryClick('Organic Sweeteners & Natural Foods')}
+                        >
+                            <span>{t('sectionSweetenersBtn')}</span>
+                            <ArrowRight size={15} />
+                        </button>
+                    </div>
+
+                    <div className="shop-grid-4col" style={{ marginTop: '20px' }}>
+                        {loadingProducts ? (
+                            <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
+                                Loading products from backend server...
+                            </div>
+                        ) : sweetenerAndOilProducts.length > 0 ? (
+                            sweetenerAndOilProducts.map(product => (
+                                <ProductCard
+                                    key={product.id}
+                                    {...product}
+                                    onProductView={onProductView}
+                                    onAddToCart={onAddToCart}
+                                    cart={cart}
+                                    onUpdateQuantity={onUpdateQuantity}
+                                    onRemoveFromCart={onRemoveFromCart}
+                                    isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(product.id)}
+                                    onToggleFavorite={onToggleFavorite}
+                                />
+                            ))
+                        ) : (
+                            <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '40px 0', color: '#646a66' }}>
+                                No products available in this category yet.
                             </div>
                         )}
                     </div>

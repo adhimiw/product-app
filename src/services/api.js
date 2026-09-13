@@ -356,12 +356,20 @@ export async function fetchCategoriesApi(forceRefresh = false) {
     return fetchPromise;
 }
 
-const BADGE_MAP = {
+export const BADGE_MAP = {
     0: '',
-    1: 'Standard',
-    2: 'Popular',
+    1: 'Newly Launched',
+    2: 'Trending',
     3: 'Best Seller',
-    4: 'Family Value'
+    4: 'Limited Stock'
+};
+
+export const getBadgeLabel = (val) => {
+    if (val === 1 || val === '1' || val === 'Newly Launched' || val === 'New Launch') return 'Newly Launched';
+    if (val === 2 || val === '2' || val === 'Trending') return 'Trending';
+    if (val === 3 || val === '3' || val === 'Best Seller' || val === 'Bestseller') return 'Best Seller';
+    if (val === 4 || val === '4' || val === 'Limited Stock') return 'Limited Stock';
+    return '';
 };
 
 /**
@@ -399,7 +407,8 @@ export function normalizeProduct(p) {
 
     const allImages = Array.from(imageSet);
 
-    const badgeLabel = BADGE_MAP[primaryPkg.variant_badge] || (p.discount ? p.discount : 'Heritage');
+    // Only show badge if set on variant (0/none means no badge)
+    const badgeLabel = getBadgeLabel(primaryPkg.variant_badge);
 
     const weights = pkgSizes.length > 0
         ? pkgSizes.map(ps => `${ps.size_number}${ps.size_unit || 'g'}`)
@@ -408,7 +417,7 @@ export function normalizeProduct(p) {
     const gramOptions = pkgSizes.length > 0
         ? pkgSizes.map((ps, idx) => {
             const vPrice = ps.variant_price !== undefined && ps.variant_price !== null ? Number(ps.variant_price) : price;
-            const vBadge = BADGE_MAP[ps.variant_badge] || (idx === 0 ? 'Popular' : 'Best Deal');
+            const vBadge = getBadgeLabel(ps.variant_badge);
             return {
                 id: ps.id || ps.db_id,
                 db_id: ps.db_id || ps.id,
@@ -417,12 +426,13 @@ export function normalizeProduct(p) {
                 price: vPrice,
                 inrPrice: `₹${vPrice}`,
                 badge: vBadge,
+                variant_badge: ps.variant_badge,
                 package_id: ps.id || ps.db_id,
                 variant_images: ps.variant_images || ps.images || []
             };
         })
         : [
-            { id: 'pkg-default', db_id: null, size: '300g Package', sizeWeight: '300g', price: price, inrPrice: `₹${price}`, badge: 'Popular', variant_images: [] }
+            { id: 'pkg-default', db_id: null, size: '300g Package', sizeWeight: '300g', price: price, inrPrice: `₹${price}`, badge: '', variant_badge: 0, variant_images: [] }
         ];
 
     let benefitsList = [];
@@ -675,8 +685,16 @@ export async function fetchAddressesApi() {
 
         const data = await response.json();
         if (response.ok && data.success) {
-            saveLocalAddresses(data.data || []);
-            return { success: true, data: data.data || [] };
+            if (Array.isArray(data.data) && data.data.length > 0) {
+                saveLocalAddresses(data.data);
+                return { success: true, data: data.data };
+            }
+            // Fallback to local storage if backend returned empty array
+            const local = getLocalAddresses();
+            if (Array.isArray(local) && local.length > 0) {
+                return { success: true, data: local };
+            }
+            return { success: true, data: [] };
         }
         
         // Fallback to local storage if unauthenticated or error

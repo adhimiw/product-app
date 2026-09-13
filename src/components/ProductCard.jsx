@@ -1,14 +1,25 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { getBadgeLabel } from '../services/api';
+
+const getBadgeClass = (badgeText) => {
+    if (!badgeText) return '';
+    const norm = String(badgeText).toLowerCase().replace(/[\s-_]+/g, '');
+    if (norm.includes('trend')) return 'trending';
+    if (norm.includes('new') || norm.includes('launch')) return 'newlaunch';
+    if (norm.includes('limit') || norm.includes('stock')) return 'limitedstock';
+    return 'bestseller';
+};
 
 /**
  * Two Brothers Style Product Card Component
- * Exactly matches the reference layout:
+ * Layout structure:
  * 1. Top Image container with grain texture backdrop & floating badge pill (Badge text | ♡)
  * 2. Card body with Title (left) & Price (right) in Row 1
  * 3. Subtitle / spec highlights in Row 2
  * 4. Star rating & review count in Row 3
  * 5. Weight selector dropdown pill in Row 4
+ * 6. Quick Action: "ADD TO CART" or Interactive Quantity Controller [ - 1 + ] when in cart
  */
 export default function ProductCard({
     id,
@@ -31,6 +42,9 @@ export default function ProductCard({
     gramOptions = [],
     onProductView,
     onAddToCart,
+    cart = [],
+    onUpdateQuantity,
+    onRemoveFromCart,
     isFavorite = false,
     onToggleFavorite
 }) {
@@ -53,6 +67,8 @@ export default function ProductCard({
 
     let activePrice = basePrice;
     let packageSizeId = null;
+    let currentBadge = '';
+    let variantImage = null;
 
     if (Array.isArray(package_sizes) && package_sizes.length > 0) {
         const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === selectedWeight) || package_sizes[0];
@@ -63,6 +79,15 @@ export default function ProductCard({
             }
             if (found.variant_price !== undefined && found.variant_price !== null) {
                 activePrice = Number(found.variant_price);
+            }
+            if (found.variant_badge !== undefined && found.variant_badge !== null) {
+                currentBadge = getBadgeLabel(found.variant_badge);
+            }
+            const vImgs = Array.isArray(found.variant_images) && found.variant_images.length > 0
+                ? found.variant_images
+                : (Array.isArray(found.images) && found.images.length > 0 ? found.images : []);
+            if (vImgs.length > 0 && vImgs[0]) {
+                variantImage = vImgs[0];
             }
         }
     } else if (Array.isArray(gramOptions) && gramOptions.length > 0) {
@@ -75,10 +100,42 @@ export default function ProductCard({
             if (foundOpt.price) {
                 activePrice = Number(foundOpt.price);
             }
+            const vBadgeVal = foundOpt.variant_badge !== undefined ? foundOpt.variant_badge : foundOpt.badge;
+            currentBadge = getBadgeLabel(vBadgeVal);
+            const vImgs = Array.isArray(foundOpt.variant_images) && foundOpt.variant_images.length > 0 ? foundOpt.variant_images : [];
+            if (vImgs.length > 0 && vImgs[0]) {
+                variantImage = vImgs[0];
+            }
         }
+    } else if (badge) {
+        currentBadge = getBadgeLabel(badge);
     }
 
+    const activeDisplayImage = variantImage || displayImage;
     const displayInrPrice = `₹${activePrice}`;
+
+    // Compute active cart item & in-cart quantity
+    const cleanBaseName = String(name || '').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+    const variantName = selectedWeight ? `${cleanBaseName} (${selectedWeight})` : cleanBaseName;
+
+    const cartItem = Array.isArray(cart) ? cart.find(item => {
+        // Priority 1: Match package_size_id
+        if (packageSizeId && item.package_size_id) {
+            return String(item.package_size_id) === String(packageSizeId);
+        }
+        // Priority 2: Match exact variant name
+        if (item.name === variantName) return true;
+        // Priority 3: Match product ID with size
+        if (String(item.id) === String(id)) {
+            if (item.size && selectedWeight && (item.size.includes(selectedWeight) || selectedWeight.includes(item.size))) {
+                return true;
+            }
+            if (!item.package_size_id && !packageSizeId) return true;
+        }
+        return false;
+    }) : null;
+
+    const inCartQuantity = cartItem ? Number(cartItem.quantity || 0) : 0;
 
     const handleHeartClick = (e) => {
         e.stopPropagation();
@@ -86,6 +143,31 @@ export default function ProductCard({
             onToggleFavorite(id);
         } else {
             setLocalWishlisted(!localWishlisted);
+        }
+    };
+
+    const handleMinusClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (inCartQuantity <= 0) return;
+        const newQty = inCartQuantity - 1;
+        const targetId = cartItem?.cart_item_id || cartItem?.id || id;
+        if (onUpdateQuantity) {
+            onUpdateQuantity(targetId, newQty, packageSizeId);
+        } else if (onRemoveFromCart && newQty <= 0) {
+            onRemoveFromCart(targetId, packageSizeId);
+        }
+    };
+
+    const handlePlusClick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const newQty = inCartQuantity + 1;
+        const targetId = cartItem?.cart_item_id || cartItem?.id || id;
+        if (onUpdateQuantity && cartItem) {
+            onUpdateQuantity(targetId, newQty, packageSizeId);
+        } else if (onAddToCart) {
+            onAddToCart(id, variantName, activePrice, '1 Pack', 1, packageSizeId);
         }
     };
 
@@ -97,10 +179,10 @@ export default function ProductCard({
                 className="tb-card-image-wrap"
                 onClick={() => onProductView && onProductView(id)}
             >
-                {/* Floating Badge Pill in Top Right or Standalone Heart */}
-                {badge ? (
-                    <div className={`tb-badge-pill ${badgeType === 'orange' || badge === 'Trending' ? 'trending' : badge === 'New Launch' ? 'newlaunch' : 'bestseller'}`}>
-                        <span>{badge}</span>
+                {/* Floating Variant Badge Pill in Top Right or Standalone Heart */}
+                {currentBadge ? (
+                    <div className={`tb-badge-pill ${getBadgeClass(currentBadge)}`}>
+                        <span>{currentBadge}</span>
                         <span className="tb-badge-divider">|</span>
                         <button
                             type="button"
@@ -157,7 +239,7 @@ export default function ProductCard({
 
                 {/* Product Packaging Image - Edge to Edge */}
                 <img
-                    src={displayImage}
+                    src={activeDisplayImage}
                     alt={name || 'Product'}
                     className="tb-product-img"
                     loading="lazy"
@@ -250,21 +332,40 @@ export default function ProductCard({
                     </div>
                 )}
 
-                {/* Quick Add to Cart Action */}
-                <button
-                    type="button"
-                    className="tb-add-cart-btn"
-                    onClick={() => {
-                        const cleanBaseName = String(name || '').replace(/\s*\(\d+g[^\)]*\)/i, '').trim();
-                        const variantName = selectedWeight ? `${cleanBaseName} (${selectedWeight})` : cleanBaseName;
-
-                        if (onAddToCart) {
-                            onAddToCart(id, variantName, activePrice, '1 Pack', 1, packageSizeId);
-                        }
-                    }}
-                >
-                    ADD TO CART
-                </button>
+                {/* Row 5: Action Button: ADD TO CART vs Interactive Quantity Selector [ - 1 + ] */}
+                {inCartQuantity > 0 ? (
+                    <div className="tb-card-qty-control" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            className="tb-card-qty-btn tb-card-qty-minus"
+                            onClick={handleMinusClick}
+                            aria-label="Decrease quantity"
+                        >
+                            −
+                        </button>
+                        <span className="tb-card-qty-number">{inCartQuantity}</span>
+                        <button
+                            type="button"
+                            className="tb-card-qty-btn tb-card-qty-plus"
+                            onClick={handlePlusClick}
+                            aria-label="Increase quantity"
+                        >
+                            +
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className="tb-add-cart-btn"
+                        onClick={() => {
+                            if (onAddToCart) {
+                                onAddToCart(id, variantName, activePrice, '1 Pack', 1, packageSizeId);
+                            }
+                        }}
+                    >
+                        ADD TO CART
+                    </button>
+                )}
 
             </div>
         </div>

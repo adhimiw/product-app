@@ -10,9 +10,9 @@ import {
     fetchOrdersApi 
 } from '../services/api';
 
-export default function UserProfile({ user, onLogout, onUpdateUser, showToast, setPage }) {
+export default function UserProfile({ user, onLogout, onUpdateUser, showToast, setPage, initialTab = 'info', cartCount = 0 }) {
     const { t } = useLanguage();
-    const [activeTab, setActiveTab] = useState('info');
+    const [activeTab, setActiveTab] = useState(initialTab || 'info');
 
     // Profile state
     const [fullName, setFullName] = useState(user?.full_name || user?.name || '');
@@ -50,6 +50,12 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
             setWhatsappNumber(user.whatsapp_number || user.contact_number || user.phone || '');
         }
     }, [user]);
+
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
 
     useEffect(() => {
         if (activeTab === 'address' && user) {
@@ -213,12 +219,20 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
             setShowAddressForm(false);
             resetAddressForm();
             loadAddresses();
+            const isFromCartFlow = cartCount > 0 || initialTab === 'address';
             if (showToast) {
                 showToast(
                     editingAddressId ? 'Address Updated!' : 'Address Saved!',
-                    res.message || 'Delivery address saved successfully.',
+                    isFromCartFlow 
+                        ? 'Delivery address saved! Returning to Cart to finish order...' 
+                        : (res.message || 'Delivery address saved successfully.'),
                     'success'
                 );
+            }
+            if (isFromCartFlow) {
+                setTimeout(() => {
+                    if (setPage) setPage('cart');
+                }, 1200);
             }
         } else {
             setAddrFormError(res.message || 'Failed to save address.');
@@ -492,6 +506,20 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
                         {/* Tab 3: Saved Delivery Addresses */}
                         {activeTab === 'address' && (
                             <div className="profile-tab-section">
+                                {(cartCount > 0 || initialTab === 'address') && (
+                                    <div className="profile-cart-return-banner">
+                                        <div className="cart-return-text">
+                                            <span>🛒</span> <strong>Order in Progress:</strong> Save your delivery address below to complete checkout!
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            className="profile-cart-return-btn"
+                                            onClick={() => setPage && setPage('cart')}
+                                        >
+                                            <span>← Return to Cart</span>
+                                        </button>
+                                    </div>
+                                )}
                                 <div className="profile-section-header-flex">
                                     <div>
                                         <h3 className="profile-section-title">Saved Delivery Addresses</h3>

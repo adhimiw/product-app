@@ -1,7 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import OrganicBackgroundOverlay from './components/OrganicBackgroundOverlay';
 import Home from './pages/Home';
@@ -24,6 +23,7 @@ const Science = lazy(() => import('./pages/Science'));
 const About = lazy(() => import('./pages/About'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminRoot = lazy(() => import('./admin/AdminRoot'));
+const Cart = lazy(() => import('./pages/Cart'));
 
 const PageLoader = () => (
     <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -65,6 +65,10 @@ const parseRouteFromUrl = () => {
         return { page: 'admin', param: directAdminMap[pathname] };
     }
 
+    if (pathname.startsWith('/product-details/')) {
+        const param = pathname.replace('/product-details/', '').trim();
+        return { page: 'product', param: param || null };
+    }
     if (pathname.startsWith('/product/')) {
         const param = pathname.replace('/product/', '').trim();
         return { page: 'product', param: param || null };
@@ -78,8 +82,15 @@ const parseRouteFromUrl = () => {
     if (pathname === '/our-story' || pathname === '/about') {
         return { page: 'about', param: null };
     }
-    if (pathname === '/profile') {
-        return { page: 'profile', param: null };
+    if (pathname === '/cart' || pathname === '/checkout') {
+        return { page: 'cart', param: null };
+    }
+    if (pathname === '/profile' || pathname.startsWith('/profile/')) {
+        const sub = pathname.replace(/^\/profile\/?/, '').split('/')[0].trim().toLowerCase();
+        const validProfileTabs = ['info', 'orders', 'address', 'addresses'];
+        let profileTab = validProfileTabs.includes(sub) ? sub : 'info';
+        if (profileTab === 'addresses') profileTab = 'address';
+        return { page: 'profile', param: profileTab };
     }
     return { page: 'home', param: null };
 };
@@ -88,6 +99,7 @@ export default function App() {
     const initialRoute = parseRouteFromUrl();
     const [page, setPageState] = useState(initialRoute.page);
     const [adminSubTab, setAdminSubTab] = useState(initialRoute.page === 'admin' ? initialRoute.param : 'dashboard');
+    const [profileSubTab, setProfileSubTab] = useState(initialRoute.page === 'profile' ? (initialRoute.param || 'info') : 'info');
     const [products, setProducts] = useState([]);
     const [loadingProducts, setLoadingProducts] = useState(true);
     const [activeProductId, setActiveProductId] = useState(initialRoute.page === 'product' ? initialRoute.param : null);
@@ -150,18 +162,25 @@ export default function App() {
             const res = await fetchCartApi();
             if (res.success && res.data && Array.isArray(res.data.items)) {
                 // Map backend cart response items to frontend structure
-                const formatted = res.data.items.map(item => ({
-                    id: item.product_id,
-                    cart_item_id: item.id,
-                    name: item.product ? item.product.name : 'Health Mix',
-                    price: item.unit_price,
-                    regularPrice: item.regular_price,
-                    quantity: item.quantity,
-                    option: 'one-time',
-                    size: item.size_label,
-                    package_size_id: item.package_size_id,
-                    image: item.product?.image
-                }));
+                const formatted = res.data.items.map(item => {
+                    const baseName = item.product ? item.product.name : 'Product';
+                    const sizeLabel = item.size_label || (item.package_size ? `${item.package_size.size_number}${item.package_size.size_unit || 'g'}` : '');
+                    const cleanBase = baseName.replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+                    const fullName = sizeLabel ? `${cleanBase} (${sizeLabel})` : cleanBase;
+                    return {
+                        id: Number(item.product_id),
+                        cart_item_id: item.id,
+                        name: fullName,
+                        base_name: cleanBase,
+                        price: Number(item.unit_price || 0),
+                        regularPrice: Number(item.regular_price || 0),
+                        quantity: Number(item.quantity || 1),
+                        option: 'one-time',
+                        size: sizeLabel,
+                        package_size_id: item.package_size_id ? Number(item.package_size_id) : null,
+                        image: item.product?.image || (Array.isArray(item.product?.images) ? item.product.images[0] : null)
+                    };
+                });
                 setCart(formatted);
             }
         } catch (err) {
@@ -242,6 +261,8 @@ export default function App() {
             setPageState(route.page);
             if (route.page === 'admin') {
                 setAdminSubTab(route.param || 'dashboard');
+            } else if (route.page === 'profile') {
+                setProfileSubTab(route.param || 'info');
             } else if (route.param) {
                 setActiveProductId(route.param);
             }
@@ -257,6 +278,9 @@ export default function App() {
         if (newPage === 'admin') {
             const tab = param || adminSubTab || 'dashboard';
             setAdminSubTab(tab);
+        } else if (newPage === 'profile') {
+            const tab = param || profileSubTab || 'info';
+            setProfileSubTab(tab);
         } else if (param !== null) {
             setActiveProductId(param);
         }
@@ -264,13 +288,17 @@ export default function App() {
 
         let targetUrl = '/';
         if (newPage === 'shop') targetUrl = '/products';
+        else if (newPage === 'cart' || newPage === 'checkout') targetUrl = '/cart';
         else if (newPage === 'product') {
             const prodParam = param || activeProductId || 1;
-            targetUrl = `/product/${prodParam}`;
+            targetUrl = `/product-details/${prodParam}`;
         }
         else if (newPage === 'science') targetUrl = '/why-sprouted';
         else if (newPage === 'about') targetUrl = '/our-story';
-        else if (newPage === 'profile') targetUrl = '/profile';
+        else if (newPage === 'profile') {
+            const tab = param || profileSubTab || 'info';
+            targetUrl = tab === 'info' ? '/profile' : `/profile/${tab}`;
+        }
         else if (newPage === 'admin') {
             const tab = param || adminSubTab || 'dashboard';
             targetUrl = tab === 'dashboard' ? '/admin/dashboard' : `/admin/${tab}`;
@@ -309,82 +337,175 @@ export default function App() {
             resolvedProductId = Number(products[0].id);
         }
 
-        // Optimistic UI update (using clean product ID)
+        const cleanBaseName = String(name || '').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+
+        // Optimistic UI update
         setCart(prevCart => {
-            const existingIndex = prevCart.findIndex(
-                item => (String(item.id) === String(resolvedProductId) || String(item.id) === String(id)) && item.name === name
-            );
+            const existingIndex = prevCart.findIndex(item => {
+                if (packageSizeId && item.package_size_id) {
+                    return String(item.package_size_id) === String(packageSizeId);
+                }
+                if (item.name === name) return true;
+                if (String(item.id) === String(resolvedProductId || id)) {
+                    if (!item.package_size_id && !packageSizeId) return true;
+                }
+                return false;
+            });
 
             if (existingIndex > -1) {
                 const newCart = [...prevCart];
-                newCart[existingIndex].quantity += numQty;
+                newCart[existingIndex] = {
+                    ...newCart[existingIndex],
+                    quantity: newCart[existingIndex].quantity + numQty
+                };
                 return newCart;
             } else {
-                return [...prevCart, { id: resolvedProductId || id, name, price: numericPrice, option, quantity: numQty, package_size_id: packageSizeId }];
+                return [...prevCart, {
+                    id: resolvedProductId || id,
+                    name: name,
+                    base_name: cleanBaseName,
+                    price: numericPrice,
+                    option,
+                    quantity: numQty,
+                    package_size_id: packageSizeId ? Number(packageSizeId) : null
+                }];
             }
         });
 
-        // Show feedback toast with product image preview without opening the cart drawer
+        // Feedback toast
         const foundProd = products.find(p => p.id === resolvedProductId || p.name === name);
         const prodImg = foundProd?.image || (Array.isArray(foundProd?.images) ? foundProd?.images[0] : null);
         showToast('Item has been added to your cart', '', 'success', prodImg);
 
-        // Persist to backend database (works seamlessly for both user & guest)
+        // Persist to backend database
         try {
             if (resolvedProductId) {
                 await addToCartApi(resolvedProductId, numQty, packageSizeId);
-                loadCart();
+                // Background sync
+                const res = await fetchCartApi();
+                if (res.success && res.data && Array.isArray(res.data.items)) {
+                    const formatted = res.data.items.map(item => {
+                        const bName = item.product ? item.product.name : 'Product';
+                        const sLabel = item.size_label || (item.package_size ? `${item.package_size.size_number}${item.package_size.size_unit || 'g'}` : '');
+                        const cBase = bName.replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+                        const fName = sLabel ? `${cBase} (${sLabel})` : cBase;
+                        return {
+                            id: Number(item.product_id),
+                            cart_item_id: item.id,
+                            name: fName,
+                            base_name: cBase,
+                            price: Number(item.unit_price || 0),
+                            regularPrice: Number(item.regular_price || 0),
+                            quantity: Number(item.quantity || 1),
+                            option: 'one-time',
+                            size: sLabel,
+                            package_size_id: item.package_size_id ? Number(item.package_size_id) : null,
+                            image: item.product?.image || (Array.isArray(item.product?.images) ? item.product.images[0] : null)
+                        };
+                    });
+                    setCart(formatted);
+                }
             }
         } catch (err) {
             console.warn('Backend cart sync error:', err);
         }
     };
 
-    const handleUpdateQuantity = async (indexOrId, newQuantity, packageSizeId = null) => {
-        const itemToUpdate = cart[indexOrId] || cart.find(i => i.id === indexOrId || i.cart_item_id === indexOrId);
-
-        if (newQuantity <= 0) {
-            handleRemoveFromCart(indexOrId);
-        } else {
-            setCart(prevCart => {
-                const newCart = [...prevCart];
-                if (typeof indexOrId === 'number' && indexOrId < newCart.length) {
-                    newCart[indexOrId].quantity = newQuantity;
-                }
-                return newCart;
-            });
-
-            if (itemToUpdate) {
-                const targetId = itemToUpdate.cart_item_id || itemToUpdate.id;
-                try {
-                    await updateCartQuantityApi(targetId, newQuantity, packageSizeId || itemToUpdate.package_size_id);
-                } catch (err) {
-                    console.warn('Failed to update cart quantity on server:', err);
-                }
-            }
-        }
-    };
-
-    const handleRemoveFromCart = async (indexOrId) => {
-        const itemToRemove = typeof indexOrId === 'number' && indexOrId < cart.length
-            ? cart[indexOrId]
-            : cart.find(i => i.id === indexOrId || i.cart_item_id === indexOrId);
+    const handleUpdateQuantity = async (identifier, newQuantity, packageSizeId = null) => {
+        const numQty = typeof newQuantity === 'number' ? newQuantity : (parseInt(newQuantity, 10) || 0);
 
         setCart(prevCart => {
-            if (typeof indexOrId === 'number' && indexOrId < prevCart.length) {
-                return prevCart.filter((_, idx) => idx !== indexOrId);
-            }
-            return prevCart.filter(i => i.id !== indexOrId && i.cart_item_id !== indexOrId);
-        });
+            let itemIndex = -1;
 
-        if (itemToRemove) {
-            const targetId = itemToRemove.cart_item_id || itemToRemove.id;
-            try {
-                await removeFromCartApi(targetId);
-            } catch (err) {
-                console.warn('Failed to remove item from server cart:', err);
+            if (typeof identifier === 'object' && identifier !== null && identifier.index !== undefined) {
+                itemIndex = identifier.index;
+            } else {
+                // 1. Match by cart_item_id
+                itemIndex = prevCart.findIndex(i => 
+                    i.cart_item_id && (String(i.cart_item_id) === String(identifier))
+                );
+
+                // 2. Match by package_size_id
+                if (itemIndex === -1 && packageSizeId) {
+                    itemIndex = prevCart.findIndex(i => 
+                        i.package_size_id && String(i.package_size_id) === String(packageSizeId)
+                    );
+                }
+
+                // 3. Match by product ID
+                if (itemIndex === -1) {
+                    itemIndex = prevCart.findIndex(i => {
+                        if (String(i.id) !== String(identifier)) return false;
+                        if (packageSizeId && i.package_size_id) {
+                            return String(i.package_size_id) === String(packageSizeId);
+                        }
+                        return true;
+                    });
+                }
+
+                // 4. Index fallback
+                if (itemIndex === -1 && typeof identifier === 'number' && identifier >= 0 && identifier < prevCart.length) {
+                    itemIndex = identifier;
+                }
             }
-        }
+
+            if (itemIndex === -1) {
+                return prevCart;
+            }
+
+            const currentItem = prevCart[itemIndex];
+            const targetBackendId = currentItem.cart_item_id || currentItem.id;
+            const targetPkgId = packageSizeId || currentItem.package_size_id;
+
+            if (numQty <= 0) {
+                if (targetBackendId) {
+                    removeFromCartApi(targetBackendId).catch(err => console.warn('Remove cart error:', err));
+                }
+                return prevCart.filter((_, idx) => idx !== itemIndex);
+            } else {
+                if (targetBackendId) {
+                    updateCartQuantityApi(targetBackendId, numQty, targetPkgId).catch(err => console.warn('Update cart error:', err));
+                }
+                const updatedCart = [...prevCart];
+                updatedCart[itemIndex] = {
+                    ...updatedCart[itemIndex],
+                    quantity: numQty
+                };
+                return updatedCart;
+            }
+        });
+    };
+
+    const handleRemoveFromCart = async (identifier, packageSizeId = null) => {
+        setCart(prevCart => {
+            let itemIndex = -1;
+            if (typeof identifier === 'object' && identifier !== null && identifier.index !== undefined) {
+                itemIndex = identifier.index;
+            } else {
+                itemIndex = prevCart.findIndex(i => 
+                    i.cart_item_id && (String(i.cart_item_id) === String(identifier))
+                );
+                if (itemIndex === -1 && packageSizeId) {
+                    itemIndex = prevCart.findIndex(i => 
+                        i.package_size_id && String(i.package_size_id) === String(packageSizeId)
+                    );
+                }
+                if (itemIndex === -1) {
+                    itemIndex = prevCart.findIndex(i => String(i.id) === String(identifier));
+                }
+                if (itemIndex === -1 && typeof identifier === 'number' && identifier >= 0 && identifier < prevCart.length) {
+                    itemIndex = identifier;
+                }
+            }
+
+            if (itemIndex === -1) return prevCart;
+            const currentItem = prevCart[itemIndex];
+            const targetBackendId = currentItem.cart_item_id || currentItem.id;
+            if (targetBackendId) {
+                removeFromCartApi(targetBackendId).catch(err => console.warn('Remove cart error:', err));
+            }
+            return prevCart.filter((_, idx) => idx !== itemIndex);
+        });
     };
 
     const handleCheckoutSuccess = async (orderData) => {
@@ -393,6 +514,15 @@ export default function App() {
         try {
             await clearCartApi();
         } catch (err) {}
+    };
+
+    const handleClearCart = async () => {
+        setCart([]);
+        try {
+            await clearCartApi();
+        } catch (err) {
+            console.warn('Clear cart error:', err);
+        }
     };
 
     const handleCheckout = () => {
@@ -464,7 +594,7 @@ export default function App() {
                 cartCount={totalCartCount}
                 favoriteCount={favoriteProductIds.length}
                 onFavoritesOpen={() => setPage('shop')}
-                onCartOpen={() => setIsCartOpen(true)}
+                onCartOpen={() => setPage('cart')}
                 onProductView={handleProductView}
                 user={user}
                 onAuthOpen={() => setIsAuthOpen(true)}
@@ -479,6 +609,9 @@ export default function App() {
                     setPage={setPage}
                     onProductView={handleProductView}
                     onAddToCart={handleAddToCart}
+                    cart={cart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveFromCart={handleRemoveFromCart}
                     onSelectCategory={handleSelectCategory}
                     favoriteProductIds={favoriteProductIds}
                     onToggleFavorite={handleToggleFavorite}
@@ -491,6 +624,9 @@ export default function App() {
                     loadingProducts={loadingProducts}
                     onProductView={handleProductView}
                     onAddToCart={handleAddToCart}
+                    cart={cart}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemoveFromCart={handleRemoveFromCart}
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
                     favoriteProductIds={favoriteProductIds}
@@ -504,9 +640,30 @@ export default function App() {
                         productId={activeProductId}
                         products={products}
                         onAddToCart={handleAddToCart}
+                        onCartOpen={() => setPage('cart')}
+                        cart={cart}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onRemoveFromCart={handleRemoveFromCart}
                         onBack={() => setPage('shop')}
+                        setPage={setPage}
                         isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
                         onToggleFavorite={handleToggleFavorite}
+                    />
+                </Suspense>
+            )}
+
+            {page === 'cart' && (
+                <Suspense fallback={<PageLoader />}>
+                    <Cart
+                        cart={cart}
+                        products={products}
+                        onUpdateQuantity={handleUpdateQuantity}
+                        onRemoveFromCart={handleRemoveFromCart}
+                        onClearCart={handleClearCart}
+                        user={user}
+                        setPage={setPage}
+                        showToast={showToast}
+                        onAuthOpen={() => setIsAuthOpen(true)}
                     />
                 </Suspense>
             )}
@@ -527,6 +684,8 @@ export default function App() {
                 <Suspense fallback={<PageLoader />}>
                     <UserProfile
                         user={user}
+                        initialTab={profileSubTab}
+                        cartCount={cart.length}
                         onLogout={handleLogout}
                         onUpdateUser={(updatedUserData) => {
                             setUser(updatedUserData);
@@ -537,24 +696,6 @@ export default function App() {
                     />
                 </Suspense>
             )}
-
-            <CartDrawer
-                isOpen={isCartOpen}
-                onClose={() => setIsCartOpen(false)}
-                cart={cart}
-                products={products}
-                onUpdateQuantity={handleUpdateQuantity}
-                onRemove={handleRemoveFromCart}
-                onCheckout={handleCheckout}
-                onCheckoutSuccess={handleCheckoutSuccess}
-                showToast={showToast}
-                user={user}
-                onAuthOpen={() => {
-                    setIsCartOpen(false);
-                    setIsAuthOpen(true);
-                }}
-                setPage={setPage}
-            />
 
             <AuthModal
                 isOpen={isAuthOpen}
