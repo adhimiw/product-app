@@ -23,6 +23,7 @@ const About = lazy(() => import('./pages/About'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const AdminRoot = lazy(() => import('./admin/AdminRoot'));
 const Cart = lazy(() => import('./pages/Cart'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 const PageLoader = () => (
     <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -81,6 +82,18 @@ const parseRouteFromUrl = () => {
     }
     if (pathname === '/cart' || pathname === '/checkout') {
         return { page: 'cart', param: null };
+    }
+    if (pathname === '/privacy' || pathname === '/privacy-policy') {
+        return { page: 'privacy', param: null };
+    }
+    if (pathname === '/terms' || pathname === '/terms-and-conditions') {
+        return { page: 'terms', param: null };
+    }
+    if (pathname === '/shipping' || pathname === '/shipping-policy') {
+        return { page: 'shipping', param: null };
+    }
+    if (pathname === '/refund' || pathname === '/return-policy') {
+        return { page: 'refund', param: null };
     }
     if (pathname === '/profile' || pathname.startsWith('/profile/')) {
         const sub = pathname.replace(/^\/profile\/?/, '').split('/')[0].trim().toLowerCase();
@@ -292,6 +305,10 @@ export default function App() {
         }
         else if (newPage === 'science') targetUrl = '/why-sprouted';
         else if (newPage === 'about') targetUrl = '/our-story';
+        else if (newPage === 'privacy') targetUrl = '/privacy-policy';
+        else if (newPage === 'terms') targetUrl = '/terms-and-conditions';
+        else if (newPage === 'shipping') targetUrl = '/shipping-policy';
+        else if (newPage === 'refund') targetUrl = '/return-policy';
         else if (newPage === 'profile') {
             const tab = param || profileSubTab || 'info';
             targetUrl = tab === 'info' ? '/profile' : `/profile/${tab}`;
@@ -691,6 +708,12 @@ export default function App() {
                         showToast={showToast}
                         setPage={setPage}
                     />
+                </Suspense>
+            )}
+
+            {(page === 'privacy' || page === 'terms' || page === 'shipping' || page === 'refund') && (
+                <Suspense fallback={<PageLoader />}>
+                    <LegalPage type={page} setPage={setPage} />
                 </Suspense>
             )}
 

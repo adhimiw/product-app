@@ -63,6 +63,7 @@ export default function Footer({ setPage }) {
                             </p>
                             <div style={{ marginTop: '14px', fontSize: '0.8rem', color: '#646a66', lineHeight: '1.5' }}>
                                 <strong>FSSAI Lic. No:</strong> 12423028000746<br />
+                                <strong>GSTIN:</strong> 33FDAPM8867B1ZI<br />
                                 <strong>UDYAM:</strong> UDYAM-TN-04-0125789
                             </div>
                         </div>
@@ -81,10 +82,10 @@ export default function Footer({ setPage }) {
                         <div className="footer-col">
                             <h4 className="footer-col-title">{t('footerLegal')}</h4>
                             <ul className="footer-links-list">
-                                <li><a href="#about-mangalam" onClick={() => setPage('about')}>Privacy Policy</a></li>
-                                <li><a href="#about-mangalam" onClick={() => setPage('about')}>Shipping & Delivery</a></li>
-                                <li><a href="#about-mangalam" onClick={() => setPage('about')}>Return & Refund</a></li>
-                                <li><a href="#about-mangalam" onClick={() => setPage('about')}>Terms & Conditions</a></li>
+                                <li><button onClick={() => setPage('privacy')}>Privacy Policy</button></li>
+                                <li><button onClick={() => setPage('shipping')}>Shipping & Delivery</button></li>
+                                <li><button onClick={() => setPage('refund')}>Return & Refund</button></li>
+                                <li><button onClick={() => setPage('terms')}>Terms & Conditions</button></li>
                                 <li>
                                     <button 
                                         onClick={() => {

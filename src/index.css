@@ -11416,5 +11416,14 @@ body {
         width: 36px;
         height: 36px;
     }
+
+    .legal-content-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .legal-page-container article {
+        padding: 24px 20px !important;
+    }
 }
 
