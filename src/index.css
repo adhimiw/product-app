@@ -10138,20 +10138,23 @@ body {
     }
 
     .category-ref-card {
-        padding: 16px 10px 14px !important;
-        min-height: 110px !important;
+        padding: 16px 8px 14px !important;
+        min-height: 120px !important;
         border-radius: 12px !important;
     }
 
     .category-ref-icon-wrap {
-        width: 38px !important;
-        height: 38px !important;
+        width: 52px !important;
+        height: 52px !important;
         margin-bottom: 8px !important;
     }
 
     .category-ref-card-title {
-        font-size: 0.78rem !important;
+        font-size: 0.70rem !important;
+        font-weight: 600 !important;
+        line-height: 1.25 !important;
         max-width: 100% !important;
+        letter-spacing: -0.01em !important;
     }
 }
 
@@ -10232,21 +10235,21 @@ body {
 
 .category-ref-cards-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
 }
 
 .category-ref-card {
     background: #f4f5f7;
     border: 1px solid rgba(0, 0, 0, 0.03);
     border-radius: 14px;
-    padding: 22px 14px 18px;
+    padding: 22px 10px 18px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 125px;
+    min-height: 144px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
@@ -10258,8 +10261,8 @@ body {
 }
 
 .category-ref-icon-wrap {
-    width: 46px;
-    height: 46px;
+    width: 70px;
+    height: 70px;
     margin-bottom: 10px;
     display: flex;
     align-items: center;
@@ -10279,12 +10282,13 @@ body {
 
 .category-ref-card-title {
     font-family: var(--font-sans);
-    font-size: 0.92rem;
-    font-weight: 700;
+    font-size: 0.78rem;
+    font-weight: 600;
     color: #1a2e22;
     line-height: 1.25;
     margin: 0;
     max-width: 100%;
+    letter-spacing: -0.01em;
 }
 
 /* ==========================================================================
@@ -11214,6 +11218,203 @@ body {
         align-self: flex-start !important;
         border-radius: 20px !important;
         display: inline-flex !important;
+    }
+}
+
+/* ==========================================================================
+   Product Detail Page - Related Products in Category Slider & Cursor Controls
+   ========================================================================== */
+.pdp-related-section {
+    width: 100%;
+    background: #fdfbf7;
+    border-top: 1px solid rgba(27, 59, 43, 0.08);
+    padding: 60px 0 80px;
+    margin-top: 48px;
+    position: relative;
+}
+
+.pdp-related-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 32px;
+}
+
+.pdp-related-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 650px;
+}
+
+.pdp-related-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(27, 59, 43, 0.08);
+    color: #1b3b2b;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    width: fit-content;
+}
+
+.pdp-related-title {
+    font-family: 'Plus Jakarta Sans', var(--font-sans);
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: #1b3b2b;
+    margin: 0;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+}
+
+.pdp-related-subtitle {
+    font-family: 'Plus Jakarta Sans', var(--font-sans);
+    font-size: 0.92rem;
+    color: #526058;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Slider Cursor Navigation Arrows */
+.pdp-related-nav-arrows {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.pdp-related-arrow-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid #1b3b2b;
+    background: #ffffff;
+    color: #1b3b2b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(27, 59, 43, 0.06);
+    outline: none;
+    user-select: none;
+}
+
+.pdp-related-arrow-btn:hover:not(:disabled):not(.disabled) {
+    background: #1b3b2b;
+    color: #ffffff;
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 6px 18px rgba(27, 59, 43, 0.18);
+}
+
+.pdp-related-arrow-btn:active:not(:disabled):not(.disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.pdp-related-arrow-btn:disabled,
+.pdp-related-arrow-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-color: rgba(27, 59, 43, 0.18);
+    background: #f1f4f2;
+    color: #8c9c93;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Horizontal Slider Wrapper and Track */
+.pdp-related-slider-wrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: 6px 4px 18px;
+    margin: -6px -4px -18px;
+}
+
+.pdp-related-slider-track {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.pdp-related-slider-track::-webkit-scrollbar {
+    display: none;
+}
+
+.pdp-related-slider-item {
+    flex: 0 0 calc(25% - 15px);
+    min-width: 260px;
+    max-width: 320px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+}
+
+.pdp-related-slider-item .product-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tablet & Mobile Breakpoints */
+@media (max-width: 1100px) {
+    .pdp-related-slider-item {
+        flex: 0 0 calc(33.333% - 14px);
+        min-width: 240px;
+    }
+}
+
+@media (max-width: 768px) {
+    .pdp-related-section {
+        padding: 36px 0 56px;
+        margin-top: 32px;
+    }
+
+    .pdp-related-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .pdp-related-header .pdp-related-nav-arrows {
+        align-self: flex-end;
+        margin-top: -36px;
+    }
+
+    .pdp-related-title {
+        font-size: 1.35rem;
+    }
+
+    .pdp-related-subtitle {
+        font-size: 0.84rem;
+    }
+
+    .pdp-related-slider-track {
+        gap: 14px;
+    }
+
+    .pdp-related-slider-item {
+        flex: 0 0 240px;
+        min-width: 220px;
+        max-width: 250px;
+    }
+
+    .pdp-related-arrow-btn {
+        width: 36px;
+        height: 36px;
     }
 }
 

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { fetchProductsApi, subscribeToCacheInvalidation, getBadgeLabel } from '../services/api';
+import ProductCard from '../components/ProductCard';
 import { 
     ArrowLeft, 
     Star, 
@@ -20,7 +21,9 @@ import {
     Share2, 
     Sparkles, 
     PackageCheck,
-    Check
+    Check,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 
 export default function ProductDetail({ 
@@ -28,9 +31,13 @@ export default function ProductDetail({
     products: propProducts, 
     onAddToCart, 
     onCartOpen,
+    cart = [],
+    onUpdateQuantity,
+    onRemoveFromCart,
     onBack,
     setPage,
     isFavorite = false,
+    favoriteProductIds = [],
     onToggleFavorite 
 }) {
     const { t } = useLanguage();
@@ -40,6 +47,29 @@ export default function ProductDetail({
     const [selectedGramIndex, setSelectedGramIndex] = useState(0);
     const [quantity, setQuantity] = useState(1);
     const [copied, setCopied] = useState(false);
+
+    // Slider Cursor Navigation State & Ref for Related Products
+    const sliderRef = useRef(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+
+    const checkScrollButtons = () => {
+        if (sliderRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+            setCanScrollLeft(scrollLeft > 10);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+        }
+    };
+
+    const handleScroll = (direction) => {
+        if (sliderRef.current) {
+            const cardEl = sliderRef.current.querySelector('.pdp-related-slider-item');
+            const cardWidth = cardEl ? cardEl.offsetWidth : 280;
+            const scrollDistance = (cardWidth + 20) * (direction === 'next' ? 1 : -1);
+            sliderRef.current.scrollBy({ left: scrollDistance, behavior: 'smooth' });
+            setTimeout(checkScrollButtons, 350);
+        }
+    };
 
     // Accordion expand/collapse states
     const [openAccordion, setOpenAccordion] = useState({
@@ -84,6 +114,35 @@ export default function ProductDetail({
     }, []);
 
     const product = products.find(p => String(p.id) === String(productId) || p.slug === productId) || products[0];
+
+    // Filter related products in the same category (excluding current product)
+    const sameCategoryProducts = products.filter(p => {
+        if (String(p.id) === String(product?.id) || p.slug === productId) return false;
+        if (product?.category_id && p.category_id) {
+            return Number(p.category_id) === Number(product.category_id);
+        }
+        if (product?.category && p.category) {
+            return String(p.category).trim().toLowerCase() === String(product.category).trim().toLowerCase();
+        }
+        return false;
+    });
+
+    // Supplement with other store products if fewer than 4 items so slider is always rich
+    const otherProducts = products.filter(p => 
+        String(p.id) !== String(product?.id) && 
+        p.slug !== productId &&
+        !sameCategoryProducts.some(sc => String(sc.id) === String(p.id))
+    );
+
+    const displayRelated = [...sameCategoryProducts, ...otherProducts];
+
+    // Re-check scroll buttons when related products or active product changes
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            checkScrollButtons();
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [productId, displayRelated.length]);
 
     // Gram package options (dynamically mapped from backend package_sizes or gramOptions)
     const gramOptions = (product && Array.isArray(product.package_sizes) && product.package_sizes.length > 0)
@@ -633,6 +692,81 @@ export default function ProductDetail({
                 </div>
 
             </div>
+
+            {/* Related Products in Category Slider Section with Cursor Controls */}
+            {displayRelated.length > 0 && (
+                <section className="pdp-related-section">
+                    <div className="container">
+                        <div className="pdp-related-header">
+                            <div className="pdp-related-title-wrap">
+                                <span className="pdp-related-pill">
+                                    <Sparkles size={13} />
+                                    <span>MORE IN THIS CATEGORY</span>
+                                </span>
+                                <h2 className="pdp-related-title">
+                                    Related Products in {product?.category || 'Collection'}
+                                </h2>
+                                <p className="pdp-related-subtitle">
+                                    Pure traditional foods crafted with 100% stone-ground goodness & zero preservatives.
+                                </p>
+                            </div>
+
+                            {/* Slider Cursor Navigation Controls */}
+                            {displayRelated.length > 1 && (
+                                <div className="pdp-related-nav-arrows">
+                                    <button
+                                        type="button"
+                                        className={`pdp-related-arrow-btn ${!canScrollLeft ? 'disabled' : ''}`}
+                                        onClick={() => handleScroll('prev')}
+                                        disabled={!canScrollLeft}
+                                        aria-label="Previous products"
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`pdp-related-arrow-btn ${!canScrollRight ? 'disabled' : ''}`}
+                                        onClick={() => handleScroll('next')}
+                                        disabled={!canScrollRight}
+                                        aria-label="Next products"
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="pdp-related-slider-wrapper">
+                            <div
+                                className="pdp-related-slider-track"
+                                ref={sliderRef}
+                                onScroll={checkScrollButtons}
+                            >
+                                {displayRelated.map((relProd) => (
+                                    <div key={relProd.id} className="pdp-related-slider-item">
+                                        <ProductCard
+                                            {...relProd}
+                                            product_badge={relProd.product_badge}
+                                            onProductView={(viewId) => {
+                                                if (setPage) {
+                                                    setPage('product', viewId);
+                                                }
+                                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                            }}
+                                            onAddToCart={onAddToCart}
+                                            cart={cart}
+                                            onUpdateQuantity={onUpdateQuantity}
+                                            onRemoveFromCart={onRemoveFromCart}
+                                            isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(relProd.id))}
+                                            onToggleFavorite={onToggleFavorite}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
         </main>
     );
 }

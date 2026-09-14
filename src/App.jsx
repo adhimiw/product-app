@@ -643,6 +643,7 @@ export default function App() {
                         onBack={() => setPage('shop')}
                         setPage={setPage}
                         isFavorite={Array.isArray(favoriteProductIds) && favoriteProductIds.includes(Number(activeProductId))}
+                        favoriteProductIds={favoriteProductIds}
                         onToggleFavorite={handleToggleFavorite}
                     />
                 </Suspense>
