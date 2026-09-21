@@ -19,8 +19,8 @@ export const memoryStore = {
 
 // Standardized Storage Keys
 export const CACHE_KEYS = {
-    PRODUCTS_SESSION: 'mangalam_cached_products',
-    PRODUCTS_ADMIN: 'mangalam_admin_products_v6',
+    PRODUCTS_SESSION: 'mangalam_cached_products_v7',
+    PRODUCTS_ADMIN: 'mangalam_admin_products_v7',
     CATEGORIES_SESSION: 'mangalam_cached_categories',
     CATEGORIES_ADMIN: 'mangalam_admin_categories',
     MARQUEE_SESSION: 'mangalam_cached_marquee',

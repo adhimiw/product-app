@@ -157,10 +157,10 @@ export default function CartDrawer({
                             const itemPriceNum = parseFloat(item.price) || 110;
                             const lineTotal = itemPriceNum * (item.quantity || 1);
 
-                            // Extract gram size badge (e.g. 300g vs 500g)
-                            const matchGram = String(item.name || '').match(/\((\d+g[^\)]*)\)/i);
-                            const gramBadge = matchGram ? matchGram[1] : (item.size || (matchedProduct?.weights ? matchedProduct.weights[0] : '300g'));
-                            const cleanTitle = String(item.name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+g[^\)]*\)/i, '');
+                            // Extract package size badge (e.g. 500g or 1 Pack / 6 Pcs)
+                            const matchGram = String(item.name || '').match(/\(([^)]+)\)/i);
+                            const gramBadge = item.size || (matchGram ? matchGram[1] : (matchedProduct?.weights ? matchedProduct.weights[0] : '300g'));
+                            const cleanTitle = String(item.name || 'Amutham Sprouted Health Mix').replace(/\s*\([^)]*\)/i, '').trim();
 
                             return (
                                 <div className="cart-item-card" key={`${item.id}-${index}`}>

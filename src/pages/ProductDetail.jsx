@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { fetchProductsApi, subscribeToCacheInvalidation, getBadgeLabel } from '../services/api';
+import { fetchProductsApi, subscribeToCacheInvalidation, getBadgeLabel, formatVariantSize } from '../services/api';
 import ProductCard from '../components/ProductCard';
 import { 
     ArrowLeft, 
@@ -147,15 +147,13 @@ export default function ProductDetail({
     // Gram package options (dynamically mapped from backend package_sizes or gramOptions)
     const gramOptions = (product && Array.isArray(product.package_sizes) && product.package_sizes.length > 0)
         ? product.package_sizes.map((pkg, idx) => {
-            const sizeNum = pkg.size_number || 300;
-            const sizeUnit = pkg.size_unit || 'g';
-            const sizeWeight = `${sizeNum}${sizeUnit}`;
+            const sizeWeight = formatVariantSize(pkg.size_number, pkg.size_unit, pkg.pieces_count);
             const price = Number(pkg.variant_price || product.actual_price || product.price || 110);
             const badge = getBadgeLabel(pkg.variant_badge);
 
             return {
                 id: pkg.id || `pkg-${idx}`,
-                size: `${sizeWeight} Package`,
+                size: sizeWeight,
                 sizeWeight,
                 price,
                 inrPrice: `₹${price}`,
@@ -169,7 +167,7 @@ export default function ProductDetail({
             : [
                 {
                     id: 'pkg-default',
-                    size: '300g Package',
+                    size: '300g',
                     sizeWeight: '300g',
                     price: Number(product?.actual_price || product?.price || 110),
                     inrPrice: `₹${Number(product?.actual_price || product?.price || 110)}`,
@@ -275,7 +273,7 @@ export default function ProductDetail({
 
     const handleAddToCartClick = () => {
         if (!product || !onAddToCart) return;
-        const cleanName = (product.name || 'Amutham Sprouted Health Mix').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+        const cleanName = (product.name || 'Amutham Sprouted Health Mix').replace(/\s*\([^)]*\)/i, '').trim();
         const sizeWeight = activeGramOption.sizeWeight || (activeGramOption.size ? String(activeGramOption.size).replace(/\s*Package/i, '').trim() : '300g');
         const variantName = `${cleanName} (${sizeWeight})`;
 
@@ -284,7 +282,7 @@ export default function ProductDetail({
         if (pId !== undefined && pId !== null && !isNaN(Number(pId))) {
             packageSizeId = Number(pId);
         } else if (Array.isArray(product.package_sizes) && product.package_sizes.length > 0) {
-            const matchedPkg = product.package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === sizeWeight) || product.package_sizes[0];
+            const matchedPkg = product.package_sizes.find(ps => formatVariantSize(ps.size_number, ps.size_unit) === sizeWeight) || product.package_sizes[0];
             const matchId = matchedPkg?.id ?? matchedPkg?.db_id;
             if (matchId !== undefined && matchId !== null && !isNaN(Number(matchId))) {
                 packageSizeId = Number(matchId);

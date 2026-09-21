@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { getBadgeLabel } from '../services/api';
+import { getBadgeLabel, formatVariantSize } from '../services/api';
 
 const getBadgeClass = (badgeText) => {
     if (!badgeText) return '';
@@ -52,7 +52,7 @@ export default function ProductCard({
     const { t } = useLanguage();
 
     const availableWeights = (Array.isArray(package_sizes) && package_sizes.length > 0)
-        ? package_sizes.map(ps => `${ps.size_number}${ps.size_unit || 'g'}`)
+        ? package_sizes.map(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count))
         : (Array.isArray(gramOptions) && gramOptions.length > 0
             ? gramOptions.map(g => g.sizeWeight || g.size)
             : (Array.isArray(weights) && weights.length > 0 ? weights : []));
@@ -72,7 +72,7 @@ export default function ProductCard({
     let variantImage = null;
 
     if (Array.isArray(package_sizes) && package_sizes.length > 0) {
-        const found = package_sizes.find(ps => `${ps.size_number}${ps.size_unit || 'g'}` === selectedWeight) || package_sizes[0];
+        const found = package_sizes.find(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count) === selectedWeight) || package_sizes[0];
         if (found) {
             const pId = found.id ?? found.db_id ?? found.package_id;
             if (pId !== undefined && pId !== null) {
@@ -147,7 +147,7 @@ export default function ProductCard({
     const displayInrPrice = `₹${activePrice}`;
 
     // Compute active cart item & in-cart quantity
-    const cleanBaseName = String(name || '').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+    const cleanBaseName = String(name || '').replace(/\s*\([^)]*\)/i, '').trim();
     const variantName = selectedWeight ? `${cleanBaseName} (${selectedWeight})` : cleanBaseName;
 
     const cartItem = Array.isArray(cart) ? cart.find(item => {

@@ -385,6 +385,51 @@ export const getBadgeLabel = (val, isProduct = false) => {
 };
 
 /**
+ * Format variant size and unit into clean readable text
+ * e.g. (500, 'g') -> '500g', (1, 'pack') -> '1 Pack', (6, 'pcs') -> '6 Pcs', (1, 'bar') -> '1 Bar'
+ */
+export function formatVariantSize(sizeNumber, sizeUnit, piecesCount = null) {
+    if (sizeNumber === undefined || sizeNumber === null || sizeNumber === '') return '';
+    const num = Number(sizeNumber);
+    const displayNum = isNaN(num) ? sizeNumber : num;
+    const unit = String(sizeUnit || 'g').trim().toLowerCase();
+
+    let baseSize = '';
+    if (unit === 'g' || unit === 'gram' || unit === 'grams') baseSize = `${displayNum}g`;
+    else if (unit === 'kg' || unit === 'kilo' || unit === 'kilos' || unit === 'kilogram') baseSize = `${displayNum}kg`;
+    else if (unit === 'ml' || unit === 'milliliter' || unit === 'milliliters') baseSize = `${displayNum}ml`;
+    else if (unit === 'l' || unit === 'liter' || unit === 'liters') baseSize = `${displayNum}L`;
+    else if (unit === 'pcs' || unit === 'pc' || unit === 'piece' || unit === 'pieces') {
+        baseSize = `${displayNum} ${displayNum === 1 ? 'Pc' : 'Pcs'}`;
+    }
+    else if (unit === 'pack' || unit === 'packs') {
+        baseSize = `${displayNum} ${displayNum === 1 ? 'Pack' : 'Packs'}`;
+    }
+    else if (unit === 'set' || unit === 'sets') {
+        baseSize = `${displayNum} ${displayNum === 1 ? 'Set' : 'Sets'}`;
+    }
+    else if (unit === 'box' || unit === 'boxes') {
+        baseSize = `${displayNum} ${displayNum === 1 ? 'Box' : 'Boxes'}`;
+    }
+    else if (unit === 'bar' || unit === 'bars') {
+        baseSize = `${displayNum} ${displayNum === 1 ? 'Bar' : 'Bars'}`;
+    }
+    else if (unit === 'unit' || unit === 'units') {
+        baseSize = `${displayNum} ${displayNum === 1 ? 'Unit' : 'Units'}`;
+    }
+    else {
+        baseSize = `${displayNum}${sizeUnit || ''}`;
+    }
+
+    if (piecesCount !== null && piecesCount !== undefined && piecesCount !== '' && !isNaN(Number(piecesCount)) && Number(piecesCount) > 0) {
+        const pcsNum = Number(piecesCount);
+        return `${baseSize} / ${pcsNum} ${pcsNum === 1 ? 'Pc' : 'Pcs'}`;
+    }
+
+    return baseSize;
+}
+
+/**
  * Normalize product API item into standard frontend product structure
  */
 export function normalizeProduct(p) {
@@ -393,6 +438,7 @@ export function normalizeProduct(p) {
         ...ps,
         id: typeof ps.id === 'number' ? ps.id : (ps.db_id ? Number(ps.db_id) : (ps.package_id ? Number(ps.package_id) : (typeof ps.id === 'string' && !isNaN(Number(ps.id)) ? Number(ps.id) : ps.id))),
         db_id: ps.db_id ? Number(ps.db_id) : (typeof ps.id === 'number' ? ps.id : (typeof ps.id === 'string' && !isNaN(Number(ps.id)) ? Number(ps.id) : ps.id)),
+        pieces_count: ps.pieces_count !== undefined && ps.pieces_count !== null && ps.pieces_count !== '' ? Number(ps.pieces_count) : null,
         variant_price: ps.variant_price !== undefined && ps.variant_price !== null ? Number(ps.variant_price) : (p.actual_price ? Number(p.actual_price) : 110)
     }));
     const primaryPkg = pkgSizes[0] || {};
@@ -428,7 +474,7 @@ export function normalizeProduct(p) {
     const badgeLabel = variantBadgeLabel;
 
     const weights = pkgSizes.length > 0
-        ? pkgSizes.map(ps => `${ps.size_number}${ps.size_unit || 'g'}`)
+        ? pkgSizes.map(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count))
         : ['300g', '500g'];
 
     const gramOptions = pkgSizes.length > 0
@@ -437,11 +483,13 @@ export function normalizeProduct(p) {
             const vBadge = (ps.variant_badge !== undefined && ps.variant_badge !== null)
                 ? (Number(ps.variant_badge) > 0 ? getBadgeLabel(ps.variant_badge) : '')
                 : productBadgeLabel;
+            const sizeWeight = formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count);
             return {
                 id: ps.id || ps.db_id,
                 db_id: ps.db_id || ps.id,
-                size: `${ps.size_number}${ps.size_unit || 'g'} Package`,
-                sizeWeight: `${ps.size_number}${ps.size_unit || 'g'}`,
+                size: sizeWeight,
+                sizeWeight: sizeWeight,
+                pieces_count: ps.pieces_count,
                 price: vPrice,
                 inrPrice: `₹${vPrice}`,
                 badge: vBadge,
@@ -452,7 +500,7 @@ export function normalizeProduct(p) {
             };
         })
         : [
-            { id: 'pkg-default', db_id: null, size: '300g Package', sizeWeight: '300g', price: price, inrPrice: `₹${price}`, badge: badgeLabel, variant_badge: 0, product_badge: productBadgeNum, variant_images: [] }
+            { id: 'pkg-default', db_id: null, size: '300g', sizeWeight: '300g', pieces_count: null, price: price, inrPrice: `₹${price}`, badge: badgeLabel, variant_badge: 0, product_badge: productBadgeNum, variant_images: [] }
         ];
 
     let benefitsList = [];

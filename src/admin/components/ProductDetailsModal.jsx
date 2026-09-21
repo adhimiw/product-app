@@ -19,6 +19,7 @@ import {
     Info
 } from 'lucide-react';
 import { getBadgeLabel } from '../services/adminProductService';
+import { formatVariantSize } from '../../services/api';
 
 export default function ProductDetailsModal({ product, onClose, onEdit }) {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -362,7 +363,7 @@ export default function ProductDetailsModal({ product, onClose, onEdit }) {
                                             return (
                                                 <tr key={idx}>
                                                     <td style={{ fontWeight: 700, padding: '10px 14px', color: 'var(--admin-text-main)' }}>
-                                                        {ps.size_number} {ps.size_unit}
+                                                        {formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count)}
                                                     </td>
                                                     <td style={{ fontWeight: 800, color: 'var(--admin-primary)', padding: '10px 14px', fontSize: '0.9rem' }}>
                                                         ₹{ps.variant_price}

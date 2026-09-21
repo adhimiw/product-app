@@ -15,6 +15,7 @@ class ProductPackageSize extends Model
         'size_key',
         'size_number',
         'size_unit',
+        'pieces_count',
         'variant_price',
         'variant_badge',
         'discount_type',
@@ -27,6 +28,7 @@ class ProductPackageSize extends Model
     {
         return [
             'size_number'    => 'float',
+            'pieces_count'   => 'integer',
             'variant_price'  => 'float',
             'variant_badge'  => 'integer',
             'discount_type'   => 'integer',

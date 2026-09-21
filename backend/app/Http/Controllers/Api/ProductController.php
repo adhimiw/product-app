@@ -18,7 +18,7 @@ class ProductController extends Controller
         try {
             $query = Product::with([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes:id,product_id,size_key,size_number,size_unit,pieces_count,variant_price,variant_badge,discount_type,discount_value,stock,images'
             ])->where('status', 1);
 
             if ($request->filled('category_id')) {
@@ -57,7 +57,7 @@ class ProductController extends Controller
         try {
             $query = Product::with([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes:id,product_id,size_key,size_number,size_unit,pieces_count,variant_price,variant_badge,discount_type,discount_value,stock,images'
             ])->where('status', 1);
 
             if (is_numeric($id)) {

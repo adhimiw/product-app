@@ -98,7 +98,28 @@ class CartFavoriteService
             if ($packageSize && $packageSize->variant_price !== null && $packageSize->variant_price !== '') {
                 $unitPrice = (float) $packageSize->variant_price;
                 $regularPrice = (float) ($packageSize->variant_price ?: ($product->actual_price ?: $unitPrice));
-                $sizeLabel = $packageSize->size_number . $packageSize->size_unit;
+                
+                $num = (float) $packageSize->size_number;
+                $displayNum = ($num == (int)$num) ? (int)$num : $num;
+                $u = strtolower(trim($packageSize->size_unit ?: 'g'));
+
+                if ($u === 'g' || $u === 'gram' || $u === 'grams') $baseSize = "{$displayNum}g";
+                elseif ($u === 'kg' || $u === 'kilo' || $u === 'kilos') $baseSize = "{$displayNum}kg";
+                elseif ($u === 'ml' || $u === 'milliliter') $baseSize = "{$displayNum}ml";
+                elseif ($u === 'l' || $u === 'liter') $baseSize = "{$displayNum}L";
+                elseif (in_array($u, ['pcs', 'pc', 'piece'])) $baseSize = "{$displayNum} " . ($displayNum == 1 ? 'Pc' : 'Pcs');
+                elseif (in_array($u, ['pack', 'packs'])) $baseSize = "{$displayNum} " . ($displayNum == 1 ? 'Pack' : 'Packs');
+                elseif (in_array($u, ['set', 'sets'])) $baseSize = "{$displayNum} " . ($displayNum == 1 ? 'Set' : 'Sets');
+                elseif (in_array($u, ['box', 'boxes'])) $baseSize = "{$displayNum} " . ($displayNum == 1 ? 'Box' : 'Boxes');
+                elseif (in_array($u, ['bar', 'bars'])) $baseSize = "{$displayNum} " . ($displayNum == 1 ? 'Bar' : 'Bars');
+                else $baseSize = "{$displayNum}{$packageSize->size_unit}";
+
+                if ($packageSize->pieces_count !== null && (int)$packageSize->pieces_count > 0) {
+                    $pcs = (int) $packageSize->pieces_count;
+                    $sizeLabel = "{$baseSize} / {$pcs} " . ($pcs == 1 ? 'Pc' : 'Pcs');
+                } else {
+                    $sizeLabel = $baseSize;
+                }
             } else {
                 $unitPrice = (float) ($product->actual_price ?: 0);
                 $regularPrice = (float) ($product->regular_price ?: $unitPrice);

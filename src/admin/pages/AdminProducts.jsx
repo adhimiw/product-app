@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { adminProductService, BADGE_OPTIONS, getBadgeLabel, PRODUCT_BADGE_OPTIONS } from '../services/adminProductService';
-import { fetchCategoriesApi } from '../../services/api';
+import { fetchCategoriesApi, formatVariantSize } from '../../services/api';
 import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
 import EmptyState from '../components/EmptyState';
@@ -299,6 +299,7 @@ export default function AdminProducts() {
                     id: 'pkg-' + Date.now(),
                     size_number: 300,
                     size_unit: 'g',
+                    pieces_count: '',
                     variant_price: '',
                     variant_badge: 0,
                     discount_value: '0',
@@ -329,6 +330,7 @@ export default function AdminProducts() {
                     : (p.variant_image ? [p.variant_image] : []);
                 return {
                     ...p,
+                    pieces_count: p.pieces_count !== undefined && p.pieces_count !== null ? String(p.pieces_count) : '',
                     variant_badge: p.variant_badge !== undefined ? Number(p.variant_badge) : 0,
                     discount_value: p.discount_value !== undefined ? String(p.discount_value) : (product.discount_value ? String(product.discount_value) : ''),
                     discount_type: p.discount_type !== undefined ? Number(p.discount_type) : (product.discount_type ? Number(product.discount_type) : 1),
@@ -343,6 +345,7 @@ export default function AdminProducts() {
                     id: 'pkg-1',
                     size_number: 300,
                     size_unit: 'g',
+                    pieces_count: '',
                     variant_price: product.actual_price || '110',
                     variant_badge: 0,
                     discount_value: product.discount_value ? String(product.discount_value) : '20',
@@ -414,6 +417,7 @@ export default function AdminProducts() {
             id: 'pkg-' + Date.now(),
             size_number: 500,
             size_unit: 'g',
+            pieces_count: '',
             variant_price: '',
             variant_badge: 0,
             discount_value: '',
@@ -1145,7 +1149,7 @@ export default function AdminProducts() {
                                                     >
                                                         <div className="admin-variant-header">
                                                             <span className="admin-variant-title">
-                                                                Package Variant #{index + 1} ({pkg.size_number || 0}{pkg.size_unit})
+                                                                Package Variant #{index + 1} ({formatVariantSize(pkg.size_number || 0, pkg.size_unit, pkg.pieces_count)})
                                                             </span>
                                                             {formData.package_sizes.length > 1 && (
                                                                 <button
@@ -1167,14 +1171,14 @@ export default function AdminProducts() {
                                                                 <input
                                                                     type="number"
                                                                     className="admin-input"
-                                                                    placeholder="e.g. 300"
+                                                                    placeholder="e.g. 1"
                                                                     value={pkg.size_number}
                                                                     onChange={(e) => handlePackageChange(pkg.id, 'size_number', e.target.value)}
                                                                 />
                                                             </div>
 
                                                             <div>
-                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Unit (Gram/Kilo)</label>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Unit / Packaging</label>
                                                                 <select
                                                                     className="admin-input"
                                                                     value={pkg.size_unit}
@@ -1184,7 +1188,25 @@ export default function AdminProducts() {
                                                                     <option value="kg">kg (Kilo)</option>
                                                                     <option value="ml">ml (Milliliter)</option>
                                                                     <option value="l">l (Liter)</option>
+                                                                    <option value="pcs">pcs (Pieces / Count)</option>
+                                                                    <option value="pack">pack (Pack / Bundle)</option>
+                                                                    <option value="set">set (Set)</option>
+                                                                    <option value="box">box (Box)</option>
+                                                                    <option value="bar">bar (Bar / Soap)</option>
+                                                                    <option value="unit">unit (Unit)</option>
                                                                 </select>
+                                                            </div>
+
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Pieces Inside (Optional)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    className="admin-input"
+                                                                    placeholder="e.g. 6 (Pcs inside pack)"
+                                                                    value={pkg.pieces_count !== undefined && pkg.pieces_count !== null ? pkg.pieces_count : ''}
+                                                                    onChange={(e) => handlePackageChange(pkg.id, 'pieces_count', e.target.value)}
+                                                                />
                                                             </div>
 
                                                             <div>

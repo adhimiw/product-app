@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('size_key')->nullable();
             $table->decimal('size_number', 12, 2)->default(0);
             $table->string('size_unit', 20)->default('g');
+            $table->integer('pieces_count')->nullable()->after('size_unit');
             $table->decimal('variant_price', 12, 2)->default(0.00);
             $table->integer('variant_badge')->default(0);
             $table->integer('discount_type')->default(1);

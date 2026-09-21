@@ -11,7 +11,7 @@ import { invalidateProductsCache } from '../../utils/cacheManager';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/admin/products';
 const FALLBACK_API_URL = (import.meta.env.VITE_API_BASE_URL || '/api') + '/products';
-const STORAGE_KEY = 'mangalam_admin_products_v6';
+const STORAGE_KEY = 'mangalam_admin_products_v7';
 
 export const PRODUCT_BADGE_OPTIONS = [
     { value: 0, label: 'None' },
@@ -189,6 +189,9 @@ export const adminProductService = {
                 if (pkg.id) formData.append(`package_sizes[${idx}][id]`, pkg.id);
                 formData.append(`package_sizes[${idx}][size_number]`, pkg.size_number || '');
                 formData.append(`package_sizes[${idx}][size_unit]`, pkg.size_unit || 'g');
+                if (pkg.pieces_count !== undefined && pkg.pieces_count !== null && pkg.pieces_count !== '') {
+                    formData.append(`package_sizes[${idx}][pieces_count]`, pkg.pieces_count);
+                }
                 formData.append(`package_sizes[${idx}][variant_price]`, pkg.variant_price || '');
                 formData.append(`package_sizes[${idx}][variant_badge]`, pkg.variant_badge || 0);
                 
