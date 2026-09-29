@@ -1241,7 +1241,7 @@ body {
 
 .hero-main-wrapper {
     padding-top: var(--header-height);
-    padding-bottom: 32px;
+    padding-bottom: 24px;
     width: 100%;
 }
 
@@ -1255,69 +1255,135 @@ body {
 }
 
 /* ==========================================================================
-   FULL-WIDTH EDGE-TO-EDGE HERO BANNER (TWO BROTHERS STYLE)
+   BOOKMYSHOW APP STYLE HERO BANNER CAROUSEL
    ========================================================================== */
 
-.hero-edge-to-edge-banner {
-    position: relative;
+.hero-bms-card-container {
     width: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    line-height: 0;
-    border-radius: 0;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 24px;
 }
 
-.hero-edge-to-edge-banner img,
-.hero-banner-img {
+.hero-bms-card {
+    position: relative;
+    width: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(7, 56, 32, 0.12);
+    cursor: pointer;
+    background: #073820;
+    touch-action: pan-y;
+    user-select: none;
+    line-height: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.hero-bms-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(7, 56, 32, 0.18);
+}
+
+.hero-bms-img {
     width: 100%;
     height: auto;
     display: block;
     object-fit: cover;
+    object-position: center;
+    border-radius: 20px;
+    max-height: 440px;
 }
 
+.hero-carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
+
+.hero-carousel-arrow-prev {
+    left: 16px;
+}
+
+.hero-carousel-arrow-next {
+    right: 16px;
+}
+
+.hero-carousel-arrow:hover {
+    background: rgba(0, 0, 0, 0.65);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.hero-carousel-dots {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 5px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+}
+
+/* MOBILE BOOKMYSHOW APP FLOW */
 @media (max-width: 768px) {
-    /* Mobile Hero Banner - Good, prominent height */
-    .hero-edge-to-edge-banner {
-        height: clamp(230px, 62vw, 270px) !important;
-        min-height: clamp(230px, 62vw, 270px) !important;
+    .hero-main-wrapper {
+        padding-top: 84px !important; /* Seamless flow directly below fixed mobile header top bar */
+        padding-bottom: 12px !important;
     }
 
-    .hero-edge-to-edge-banner.skeleton-shimmer {
-        min-height: clamp(230px, 62vw, 270px) !important;
-        height: clamp(230px, 62vw, 270px) !important;
+    .hero-bms-card-container {
+        padding: 0 12px !important;
+        margin-top: 13px !important;
     }
 
-    .hero-banner-inner {
-        height: 100% !important;
+    .hero-bms-card {
+        border-radius: 14px !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09) !important;
+    }
+
+    .hero-bms-card:hover {
+        transform: none !important;
+    }
+
+    .hero-bms-img {
+        border-radius: 14px !important;
         width: 100% !important;
-    }
-
-    .hero-edge-to-edge-banner img,
-    .hero-banner-img {
-        height: clamp(230px, 62vw, 270px) !important;
-        width: 100% !important;
+        height: auto !important;
+        min-height: 185px !important;
         object-fit: cover !important;
         object-position: center center !important;
+        display: block !important;
     }
 
+    /* Hide arrow controls on touch screens so touch swipe is clean like BookMyShow */
     .hero-carousel-arrow {
-        width: 32px !important;
-        height: 32px !important;
-    }
-
-    .hero-carousel-arrow-prev {
-        left: 10px !important;
-    }
-
-    .hero-carousel-arrow-next {
-        right: 10px !important;
+        display: none !important;
     }
 
     .hero-carousel-dots {
-        bottom: 10px !important;
-        padding: 4px 10px !important;
-        gap: 6px !important;
+        bottom: 8px !important;
+        padding: 3px 8px !important;
+        gap: 5px !important;
+    }
+
+    .hero-feature-badges-container {
+        margin-top: 14px !important;
     }
 }
 
@@ -9362,7 +9428,7 @@ body {
 /* Standard Mobile Viewports (<768px) */
 @media (max-width: 768px) {
     :root {
-        --header-height: 110px;
+        --header-height: 84px;
     }
 
     /* Top Announcement Bar */
