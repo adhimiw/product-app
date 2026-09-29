@@ -122,6 +122,16 @@ class OrderController extends Controller
             $order->save();
             $order->load(['user', 'items', 'address']);
 
+            // Send automated WhatsApp notification for status change
+            if ($newStatus) {
+                try {
+                    $waService = app(\App\Services\WhatsAppGatewayService::class);
+                    $waService->sendOrderStatusUpdatedNotification($order, $newStatus);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("WhatsApp order status notification error: " . $e->getMessage());
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Order status updated successfully',

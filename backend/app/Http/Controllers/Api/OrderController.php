@@ -160,7 +160,15 @@ class OrderController extends Controller
             $order->items()->create($itemData);
         }
 
-        $order->load(['items', 'address']);
+        $order->load(['items', 'address', 'user']);
+
+        // Trigger Automated WhatsApp Notifications (Customer Receipt + Admin Alert)
+        try {
+            $waService = app(\App\Services\WhatsAppGatewayService::class);
+            $waService->sendOrderPlacedNotifications($order);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("WhatsApp order notification error: " . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
