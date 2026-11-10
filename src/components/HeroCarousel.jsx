@@ -131,11 +131,11 @@ export default function HeroCarousel({ setPage }) {
 
     return (
         <section className="hero-main-wrapper">
-            <div className="hero-bms-card-container">
+            
                 {/* BookMyShow Style Hero Banner Card */}
                 {loading && banners.length === 0 ? (
                     <div 
-                        className="hero-bms-card skeleton-shimmer"
+                        className="hero-edge-to-edge-banner skeleton-shimmer"
                         style={{
                             background: '#e2e8f0',
                             minHeight: '200px',
@@ -146,7 +146,7 @@ export default function HeroCarousel({ setPage }) {
                     />
                 ) : banners.length === 0 ? (
                     /* EMPTY STATE IF NO BANNER ADDED YET */
-                    <div className="hero-bms-card" style={{ padding: '32px 20px', borderRadius: '16px', background: 'linear-gradient(135deg, #073820 0%, #0d4a2b 50%, #062b18 100%)' }}>
+                    <div className="hero-edge-to-edge-banner" style={{ padding: '32px 20px', borderRadius: '16px', background: 'linear-gradient(135deg, #073820 0%, #0d4a2b 50%, #062b18 100%)' }}>
                         <div style={{ maxWidth: '580px', color: '#ffffff', margin: '0 auto', textAlign: 'center' }}>
                             <div style={{
                                 width: '48px',
@@ -181,7 +181,7 @@ export default function HeroCarousel({ setPage }) {
                 ) : (
                     /* BOOKMYSHOW STYLE SLIDER CARD */
                     <div
-                        className="hero-bms-card"
+                        className="hero-edge-to-edge-banner"
                         onClick={() => handleCtaClick(activeSlide?.button_link)}
                         onMouseEnter={() => setIsPaused(true)}
                         onMouseLeave={() => setIsPaused(false)}
@@ -194,7 +194,7 @@ export default function HeroCarousel({ setPage }) {
                             <img
                                 src={activeSlide?.image_url || '/assets/images/300g_amutham/amutham-01.jpg'}
                                 alt={activeSlide?.title || 'Storefront Banner'}
-                                className="hero-bms-img"
+                                className="hero-banner-img"
                                 onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.src = '/assets/images/300g_amutham/amutham-01.jpg';
@@ -266,7 +266,6 @@ export default function HeroCarousel({ setPage }) {
                         )}
                     </div>
                 )}
-            </div>
 
             {/* 4 Authentic Mangalam Site Pillars / Trust Badges */}
             <div className="container hero-feature-badges-container" style={{ marginTop: '28px' }}>
@@ -319,3 +318,5 @@ export default function HeroCarousel({ setPage }) {
         </section>
     );
 }
+
+

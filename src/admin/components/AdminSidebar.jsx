@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useBranding } from '../../context/BrandingContext';
 import { 
     LayoutDashboard, 
@@ -10,10 +10,12 @@ import {
     MessageSquare, 
     ChevronLeft, 
     LogOut,
-    ExternalLink,
     Megaphone,
     Inbox,
-    Sliders
+    Sliders,
+    LayoutGrid,
+    Sparkles,
+    Cpu
 } from 'lucide-react';
 
 export default function AdminSidebar({
@@ -21,7 +23,6 @@ export default function AdminSidebar({
     setActiveTab,
     user,
     onLogout,
-    onGoToStore,
     isOpen,
     isCollapsed,
     onToggleCollapse
@@ -34,57 +35,81 @@ export default function AdminSidebar({
         branding = null;
     }
 
-    const navItems = [
+    const navSections = [
         {
-            id: 'dashboard',
-            label: 'Dashboard',
-            icon: <LayoutDashboard size={17} />
+            title: 'MASTER',
+            icon: <LayoutGrid size={12} style={{ color: 'var(--admin-primary)', flexShrink: 0 }} />,
+            items: [
+                {
+                    id: 'dashboard',
+                    label: 'Dashboard',
+                    icon: <LayoutDashboard size={15} />
+                },
+                {
+                    id: 'categories',
+                    label: 'Categories',
+                    icon: <FolderTree size={15} />
+                },
+                {
+                    id: 'products',
+                    label: 'Products',
+                    icon: <Package size={15} />
+                },
+                {
+                    id: 'orders',
+                    label: 'Orders',
+                    icon: <ShoppingCart size={15} />
+                }
+            ]
         },
         {
-            id: 'categories',
-            label: 'Categories',
-            icon: <FolderTree size={17} />
+            title: 'CRM & CUSTOMERS',
+            icon: <Users size={12} style={{ color: '#0EA5E9', flexShrink: 0 }} />,
+            items: [
+                {
+                    id: 'users',
+                    label: 'Users',
+                    icon: <Users size={15} />
+                },
+                {
+                    id: 'queries',
+                    label: 'Customer Queries',
+                    icon: <Inbox size={15} />
+                }
+            ]
         },
         {
-            id: 'products',
-            label: 'Products',
-            icon: <Package size={17} />
+            title: 'CONTENT & MARKETING',
+            icon: <Sparkles size={12} style={{ color: '#F59E0B', flexShrink: 0 }} />,
+            items: [
+                {
+                    id: 'banners',
+                    label: 'Hero Banners',
+                    icon: <Sliders size={15} />
+                },
+                {
+                    id: 'marquee',
+                    label: 'Marquee Banner',
+                    icon: <Megaphone size={15} />
+                },
+                {
+                    id: 'settings',
+                    label: 'Logo & Branding',
+                    icon: <Palette size={15} />
+                }
+            ]
         },
         {
-            id: 'orders',
-            label: 'Orders',
-            icon: <ShoppingCart size={17} />
-        },
-        {
-            id: 'users',
-            label: 'Users',
-            icon: <Users size={17} />
-        },
-        {
-            id: 'queries',
-            label: 'Customer Queries',
-            icon: <Inbox size={17} />
-        },
-        {
-            id: 'banners',
-            label: 'Hero Banners',
-            icon: <Sliders size={17} />
-        },
-        {
-            id: 'marquee',
-            label: 'Marquee Banner',
-            icon: <Megaphone size={17} />
-        },
-        {
-            id: 'settings',
-            label: 'Logo & Branding',
-            icon: <Palette size={17} />
-        },
-        {
-            id: 'whatsapp',
-            label: 'WhatsApp Gateway',
-            icon: <MessageSquare size={17} />,
-            badge: 'Live'
+            title: 'SYSTEM & INTEGRATIONS',
+            icon: <Cpu size={12} style={{ color: '#8B5CF6', flexShrink: 0 }} />,
+            items: [
+                {
+                    id: 'whatsapp',
+                    label: 'WhatsApp Gateway',
+                    icon: <MessageSquare size={15} />,
+                    badge: 'Live'
+                }
+            ]
         }
     ];
 
@@ -122,7 +147,7 @@ export default function AdminSidebar({
                     title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
                     <ChevronLeft 
-                        size={15} 
+                        size={14} 
                         style={{ 
                             transform: isCollapsed ? 'rotate(180deg)' : 'none', 
                             transition: 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)' 
@@ -133,29 +158,40 @@ export default function AdminSidebar({
 
             {/* Navigation Menu */}
             <nav className="admin-sidebar-nav">
-                <div className="admin-nav-section-label">
-                    {isCollapsed ? '•' : 'MAIN MENU'}
-                </div>
-                <div className="admin-nav-group">
-                    {navItems.map((item) => {
-                        const isActive = activeTab === item.id || (item.id === 'settings' && activeTab === 'branding');
-                        return (
-                            <button
-                                key={item.id}
-                                type="button"
-                                className={`admin-nav-item ${isActive ? 'active' : ''}`}
-                                onClick={() => setActiveTab(item.id)}
-                                title={item.label}
-                            >
-                                <span className="admin-nav-icon">{item.icon}</span>
-                                <span className="admin-nav-label">{item.label}</span>
-                                {item.badge && !isCollapsed && (
-                                    <span className="admin-nav-badge">{item.badge}</span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
+                {navSections.map((section, idx) => (
+                    <div key={idx} className="admin-nav-section">
+                        {!isCollapsed ? (
+                            <div className="admin-nav-section-label">
+                                {section.icon}
+                                <span>{section.title}</span>
+                            </div>
+                        ) : (
+                            <div className="admin-nav-section-label collapsed-dot" title={section.title}>
+                                •
+                            </div>
+                        )}
+                        <div className="admin-nav-group">
+                            {section.items.map((item) => {
+                                const isActive = activeTab === item.id || (item.id === 'settings' && activeTab === 'branding');
+                                return (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        className={`admin-nav-item ${isActive ? 'active' : ''}`}
+                                        onClick={() => setActiveTab(item.id)}
+                                        title={item.label}
+                                    >
+                                        <span className="admin-nav-icon">{item.icon}</span>
+                                        <span className="admin-nav-label">{item.label}</span>
+                                        {item.badge && !isCollapsed && (
+                                            <span className="admin-nav-badge">{item.badge}</span>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
             </nav>
 
             {/* Footer / User Profile */}
@@ -202,7 +238,7 @@ export default function AdminSidebar({
                         title="Logout from Admin Portal"
                         aria-label="Logout"
                     >
-                        <LogOut size={15} />
+                        <LogOut size={14} />
                     </button>
                 </div>
             </div>

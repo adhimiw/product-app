@@ -33,19 +33,7 @@ export default function Cart({
     const [savedAddresses, setSavedAddresses] = useState([]);
     const [loadingAddresses, setLoadingAddresses] = useState(Boolean(user));
     const [selectedAddressId, setSelectedAddressId] = useState(null);
-    const [isManualAddress, setIsManualAddress] = useState(false);
-
-    // Delivery Information form fields
-    const [formData, setFormData] = useState({
-        fullName: user?.full_name || user?.name || '',
-        phone: user?.contact_number || user?.phone || user?.whatsapp_number || '',
-        email: user?.email || '',
-        address: '',
-        city: 'Coimbatore',
-        state: 'Tamil Nadu',
-        pincode: '',
-        deliveryInstructions: ''
-    });
+    const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [orderSuccessData, setOrderSuccessData] = useState(null);
@@ -61,22 +49,9 @@ export default function Cart({
 
     const handleSelectSavedAddress = (addr) => {
         setSelectedAddressId(addr.id);
-        setIsManualAddress(false);
-        const street1 = addr.address_line1 || addr.address_line_1 || addr.address || '';
-        const street2 = addr.address_line2 || addr.address_line_2 || '';
-        const fullStreet = street2 ? `${street1}, ${street2}` : street1;
-        setFormData(prev => ({
-            ...prev,
-            fullName: addr.full_name || addr.name || prev.fullName || '',
-            phone: addr.phone_number || addr.phone || prev.phone || '',
-            address: fullStreet,
-            city: addr.city || prev.city || 'Coimbatore',
-            state: addr.state || prev.state || 'Tamil Nadu',
-            pincode: addr.pincode || prev.pincode || ''
-        }));
     };
 
-    // Auto-fill address if user has saved addresses
+    // Load saved addresses if user is logged in
     useEffect(() => {
         let isMounted = true;
         if (user) {
@@ -90,27 +65,8 @@ export default function Cart({
                     if (addrList.length > 0) {
                         const def = addrList.find(a => a.is_default) || addrList[0];
                         setSelectedAddressId(def.id);
-                        const street1 = def.address_line1 || def.address_line_1 || def.address || '';
-                        const street2 = def.address_line2 || def.address_line_2 || '';
-                        const fullStreet = street2 ? `${street1}, ${street2}` : street1;
-                        setFormData(prev => ({
-                            ...prev,
-                            fullName: def.full_name || def.name || prev.fullName || '',
-                            phone: def.phone_number || def.phone || prev.phone || '',
-                            address: fullStreet || prev.address || '',
-                            city: def.city || prev.city || 'Coimbatore',
-                            state: def.state || prev.state || 'Tamil Nadu',
-                            pincode: def.pincode || prev.pincode || ''
-                        }));
                     } else {
-                        // User has no saved address!
-                        if (showToast) {
-                            showToast(
-                                'No Address Saved',
-                                'Please add your delivery address in Profile Settings to complete your order.',
-                                'info'
-                            );
-                        }
+                        setSelectedAddressId(null);
                     }
                 } catch (e) {
                     console.error('Failed to load user address:', e);
@@ -122,6 +78,7 @@ export default function Cart({
         } else {
             setLoadingAddresses(false);
             setSavedAddresses([]);
+            setSelectedAddressId(null);
         }
         return () => { isMounted = false; };
     }, [user]);
@@ -140,24 +97,30 @@ export default function Cart({
     const calculatedSavings = regularTotal > subtotal ? (regularTotal - subtotal) : (subtotal > 0 ? Math.round(subtotal * 0.15) : 0);
     const totalAmount = subtotal + deliveryFee;
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
     const handlePlaceOrder = async (e) => {
         if (e && e.preventDefault) e.preventDefault();
+
+        // Restriction 1: ONLY logged-in users can place an order
+        if (!user) {
+            if (showToast) {
+                showToast('Sign In Required', 'Please sign in to your account to place an order.', 'warning');
+            }
+            if (onAuthOpen) onAuthOpen('login');
+            return;
+        }
+
+        // Restriction 2: Cart cannot be empty
         if (cart.length === 0) {
             if (showToast) showToast('Your cart is empty', 'Please add products to your cart before placing an order.', 'warning');
             return;
         }
 
-        // If user is logged in, has NO saved address and didn't enter manual address: Redirect to profile
-        if (user && savedAddresses.length === 0 && !isManualAddress) {
+        // Restriction 3: Delivery address must exist in profile
+        if (!savedAddresses || savedAddresses.length === 0 || !selectedAddressId) {
             if (showToast) {
                 showToast(
                     'Delivery Address Required',
-                    'Redirecting to Profile Settings to add your delivery address...',
+                    'Please add your delivery address in Profile Settings to complete your order.',
                     'warning'
                 );
             }
@@ -165,23 +128,20 @@ export default function Cart({
             return;
         }
 
-        if (!formData.fullName.trim() || !formData.phone.trim() || !formData.address.trim()) {
-            if (user && savedAddresses.length === 0) {
-                if (showToast) showToast('Delivery Address Required', 'Please add your delivery address in Profile Settings.', 'warning');
-                if (setPage) setPage('profile', 'address');
-            } else {
-                if (showToast) {
-                    showToast('Delivery Details Required', 'Please fill in your Full Name, Phone Number, and Delivery Address.', 'warning');
-                } else {
-                    alert('Please fill in your Full Name, Phone Number, and Delivery Address.');
-                }
-            }
+        const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId) || savedAddresses[0];
+        if (!selectedAddr) {
+            if (showToast) showToast('Select Address', 'Please select a delivery address.', 'warning');
             return;
         }
 
         setIsSubmitting(true);
 
+        const street1 = selectedAddr.address_line1 || selectedAddr.address_line_1 || selectedAddr.address || '';
+        const street2 = selectedAddr.address_line2 || selectedAddr.address_line_2 || '';
+        const fullStreet = street2 ? `${street1}, ${street2}` : street1;
+
         const orderPayload = {
+            address_id: selectedAddr.id,
             items: cart.map(item => {
                 const rawId = item.product_id || item.id;
                 const productId = typeof rawId === 'number' ? rawId : (parseInt(rawId, 10) || null);
@@ -199,14 +159,14 @@ export default function Cart({
             total_amount: totalAmount,
             payment_method: 'COD',
             shipping_address: {
-                name: formData.fullName,
-                phone: formData.phone,
-                email: formData.email,
-                address: formData.address,
-                city: formData.city,
-                state: formData.state,
-                pincode: formData.pincode,
-                instructions: formData.deliveryInstructions
+                name: selectedAddr.full_name || selectedAddr.name || user.full_name || user.name || '',
+                phone: selectedAddr.phone_number || selectedAddr.phone || user.contact_number || user.phone || '',
+                email: user.email || '',
+                address: fullStreet,
+                city: selectedAddr.city || '',
+                state: selectedAddr.state || '',
+                pincode: selectedAddr.pincode || '',
+                instructions: (deliveryInstructions || '').trim()
             }
         };
 
@@ -214,7 +174,12 @@ export default function Cart({
             const res = await createOrderApi(orderPayload);
             if (res.success) {
                 const orderData = res.data || {};
-                setOrderSuccessData(orderData);
+                setOrderSuccessData({
+                    ...orderData,
+                    selectedAddress: selectedAddr,
+                    deliveryAddressText: fullStreet,
+                    deliveryContact: selectedAddr.phone_number || selectedAddr.phone || user.contact_number || user.phone || ''
+                });
                 if (onClearCart) onClearCart();
                 else clearCartApi();
                 if (showToast) {
@@ -287,11 +252,11 @@ export default function Cart({
                             </div>
                             <div className="summary-row">
                                 <span>Delivery Address:</span>
-                                <span>{formData.address}, {formData.city}, {formData.pincode}</span>
+                                <span>{orderSuccessData.deliveryAddressText || 'Saved Profile Address'}, {orderSuccessData.selectedAddress?.city || ''} {orderSuccessData.selectedAddress?.pincode ? '- ' + orderSuccessData.selectedAddress.pincode : ''}</span>
                             </div>
                             <div className="summary-row">
                                 <span>Contact Number:</span>
-                                <span>{formData.phone}</span>
+                                <span>{orderSuccessData.deliveryContact || user?.contact_number || user?.phone || 'On file'}</span>
                             </div>
                             <div className="summary-row">
                                 <span>Estimated Dispatch:</span>
@@ -514,11 +479,11 @@ export default function Cart({
                                     </p>
                                 </div>
                             ) : user && savedAddresses.length > 0 ? (
-                                /* Case 2: User has Saved Address(es) */
+                                /* Case 2: Logged-in User has Saved Address(es) */
                                 <div>
                                     <div className="cart-saved-addresses-grid">
                                         {savedAddresses.map((addr) => {
-                                            const isSelected = selectedAddressId === addr.id && !isManualAddress;
+                                            const isSelected = selectedAddressId === addr.id;
                                             const street1 = addr.address_line1 || addr.address_line_1 || addr.address || '';
                                             const street2 = addr.address_line2 || addr.address_line_2 || '';
                                             const fullStreet = street2 ? `${street1}, ${street2}` : street1;
@@ -561,8 +526,8 @@ export default function Cart({
                                                         ) : null}
                                                     </div>
 
-                                                    <h4 className="cart-addr-name">{addr.full_name || addr.name || user.name || 'Recipient'}</h4>
-                                                    <p className="cart-addr-phone">📞 {addr.phone_number || addr.phone || user.contact_number || user.phone}</p>
+                                                    <h4 className="cart-addr-name">{addr.full_name || addr.name || user?.full_name || user?.name || 'Recipient'}</h4>
+                                                    <p className="cart-addr-phone">📞 {addr.phone_number || addr.phone || user?.contact_number || user?.phone}</p>
                                                     <p className="cart-addr-text">
                                                         {fullStreet}
                                                         <br />
@@ -587,103 +552,7 @@ export default function Cart({
                                         >
                                             + Add or Edit Address in Profile
                                         </button>
-
-                                        <button 
-                                            type="button" 
-                                            className="cart-toggle-manual-btn"
-                                            onClick={() => setIsManualAddress(!isManualAddress)}
-                                        >
-                                            {isManualAddress ? '← Use Saved Profile Address' : '+ Ship to a different address'}
-                                        </button>
                                     </div>
-
-                                    {/* Manual Address Form toggle (if user wants different destination for this order) */}
-                                    {isManualAddress && (
-                                        <div className="cart-manual-form-wrapper">
-                                            <div className="cart-manual-form-header">
-                                                <h4>Deliver to an Alternate Address</h4>
-                                                <p>Enter shipping details for this single order without modifying your profile</p>
-                                            </div>
-                                            <div className="delivery-form-grid">
-                                                <div className="form-row-2col">
-                                                    <div className="form-group">
-                                                        <label htmlFor="fullName">Full Name *</label>
-                                                        <input 
-                                                            type="text" 
-                                                            id="fullName" 
-                                                            name="fullName"
-                                                            value={formData.fullName}
-                                                            onChange={handleInputChange}
-                                                            placeholder="Recipient Name"
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label htmlFor="phone">Phone Number *</label>
-                                                        <input 
-                                                            type="tel" 
-                                                            id="phone" 
-                                                            name="phone"
-                                                            value={formData.phone}
-                                                            onChange={handleInputChange}
-                                                            placeholder="+91 98765 43210"
-                                                            required
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="form-group">
-                                                    <label htmlFor="address">Delivery Street Address *</label>
-                                                    <input 
-                                                        type="text" 
-                                                        id="address" 
-                                                        name="address"
-                                                        value={formData.address}
-                                                        onChange={handleInputChange}
-                                                        placeholder="House/Door/Flat No., Street, Area"
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="form-row-3col">
-                                                    <div className="form-group">
-                                                        <label htmlFor="city">City *</label>
-                                                        <input 
-                                                            type="text" 
-                                                            id="city" 
-                                                            name="city"
-                                                            value={formData.city}
-                                                            onChange={handleInputChange}
-                                                            placeholder="City"
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label htmlFor="state">State *</label>
-                                                        <input 
-                                                            type="text" 
-                                                            id="state" 
-                                                            name="state"
-                                                            value={formData.state}
-                                                            onChange={handleInputChange}
-                                                            placeholder="State"
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label htmlFor="pincode">Pincode *</label>
-                                                        <input 
-                                                            type="text" 
-                                                            id="pincode" 
-                                                            name="pincode"
-                                                            value={formData.pincode}
-                                                            onChange={handleInputChange}
-                                                            placeholder="641001"
-                                                            required
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* Optional Delivery Instructions */}
                                     <div className="form-group" style={{ marginTop: '16px' }}>
@@ -692,8 +561,8 @@ export default function Cart({
                                             type="text" 
                                             id="deliveryInstructions" 
                                             name="deliveryInstructions"
-                                            value={formData.deliveryInstructions}
-                                            onChange={handleInputChange}
+                                            value={deliveryInstructions}
+                                            onChange={(e) => setDeliveryInstructions(e.target.value)}
                                             placeholder="e.g. Leave at door, ring bell, call upon arrival, etc."
                                         />
                                     </div>
@@ -702,7 +571,7 @@ export default function Cart({
                                 /* Case 3: Logged-in User has NO Saved Address */
                                 <div className="cart-no-address-state">
                                     <div className="cart-no-addr-icon">📍</div>
-                                    <h3 className="cart-no-addr-title">No Saved Delivery Address Found</h3>
+                                    <h3 className="cart-no-addr-title">No Saved Delivery Address</h3>
                                     <p className="cart-no-addr-desc">
                                         You haven't added a delivery address to your account yet. Please add your address in Profile Settings to complete checkout.
                                     </p>
@@ -711,121 +580,29 @@ export default function Cart({
                                         className="btn-primary-cart cart-go-profile-btn"
                                         onClick={() => setPage ? setPage('profile', 'address') : window.location.assign('/profile/address')}
                                     >
-                                        <span>Go to Profile Settings & Add Address</span>
+                                        <span>+ Add Delivery Address in Profile</span>
                                         <ArrowRight size={16} />
                                     </button>
                                 </div>
                             ) : (
-                                /* Case 4: Guest User */
-                                <div>
-                                    <div className="cart-guest-signin-prompt">
-                                        <span className="guest-prompt-text">
-                                            Have an account? Sign in to use your saved addresses.
-                                        </span>
-                                        <button 
-                                            type="button" 
-                                            className="cart-guest-signin-btn"
-                                            onClick={() => onAuthOpen && onAuthOpen('login')}
-                                        >
-                                            Sign In
-                                        </button>
+                                /* Case 4: Guest User - Sign in required to place order */
+                                <div className="cart-guest-login-card">
+                                    <div className="cart-guest-login-icon-badge">
+                                        <Lock size={28} />
                                     </div>
-
-                                    <form className="delivery-form-grid" onSubmit={handlePlaceOrder}>
-                                        <div className="form-row-2col">
-                                            <div className="form-group">
-                                                <label htmlFor="fullName">Full Name *</label>
-                                                <input 
-                                                    type="text" 
-                                                    id="fullName" 
-                                                    name="fullName"
-                                                    value={formData.fullName}
-                                                    onChange={handleInputChange}
-                                                    placeholder="e.g. Rahul Sharma"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label htmlFor="phone">Phone Number *</label>
-                                                <input 
-                                                    type="tel" 
-                                                    id="phone" 
-                                                    name="phone"
-                                                    value={formData.phone}
-                                                    onChange={handleInputChange}
-                                                    placeholder="+91 98765 43210"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label htmlFor="address">Delivery Street Address *</label>
-                                            <input 
-                                                type="text" 
-                                                id="address" 
-                                                name="address"
-                                                value={formData.address}
-                                                onChange={handleInputChange}
-                                                placeholder="123 Green Valley, HSR Layout, Door / Flat No."
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="form-row-3col">
-                                            <div className="form-group">
-                                                <label htmlFor="city">City *</label>
-                                                <input 
-                                                    type="text" 
-                                                    id="city" 
-                                                    name="city"
-                                                    value={formData.city}
-                                                    onChange={handleInputChange}
-                                                    placeholder="City"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label htmlFor="state">State *</label>
-                                                <input 
-                                                    type="text" 
-                                                    id="state" 
-                                                    name="state"
-                                                    value={formData.state}
-                                                    onChange={handleInputChange}
-                                                    placeholder="State"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label htmlFor="pincode">Pincode *</label>
-                                                <input 
-                                                    type="text" 
-                                                    id="pincode" 
-                                                    name="pincode"
-                                                    value={formData.pincode}
-                                                    onChange={handleInputChange}
-                                                    placeholder="641001"
-                                                    required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label htmlFor="deliveryInstructions">Delivery Instructions (Optional)</label>
-                                            <input 
-                                                type="text" 
-                                                id="deliveryInstructions" 
-                                                name="deliveryInstructions"
-                                                value={formData.deliveryInstructions}
-                                                onChange={handleInputChange}
-                                                placeholder="e.g. Leave at door, ring bell, call upon arrival, etc."
-                                            />
-                                        </div>
-                                    </form>
+                                    <h3 className="cart-guest-login-title">Sign In to Place Order</h3>
+                                    <p className="cart-guest-login-desc">
+                                        You must be logged in to your account with a saved delivery address to place an order. Addresses are added and managed securely in your Profile.
+                                    </p>
+                                    <button 
+                                        type="button" 
+                                        className="btn-primary-cart cart-guest-login-cta"
+                                        onClick={() => onAuthOpen && onAuthOpen('login')}
+                                    >
+                                        <Lock size={16} />
+                                        <span>Sign In / Register</span>
+                                        <ArrowRight size={16} />
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -915,21 +692,49 @@ export default function Cart({
                             </div>
 
                             {/* Place Order CTA Button */}
-                            <button
-                                type="button"
-                                className="btn-place-order"
-                                onClick={handlePlaceOrder}
-                                disabled={isSubmitting || cart.length === 0}
-                            >
-                                {isSubmitting ? (
-                                    <span>Placing Order...</span>
-                                ) : (
-                                    <>
-                                        <span>Place Order</span>
-                                        <ArrowRight size={18} />
-                                    </>
-                                )}
-                            </button>
+                            {!user ? (
+                                <button
+                                    type="button"
+                                    className="btn-place-order"
+                                    onClick={() => {
+                                        if (showToast) showToast('Sign In Required', 'Please sign in to your account to place an order.', 'warning');
+                                        if (onAuthOpen) onAuthOpen('login');
+                                    }}
+                                    disabled={cart.length === 0}
+                                >
+                                    <Lock size={18} />
+                                    <span>Sign In to Place Order</span>
+                                </button>
+                            ) : savedAddresses.length === 0 ? (
+                                <button
+                                    type="button"
+                                    className="btn-place-order"
+                                    onClick={() => {
+                                        if (showToast) showToast('Delivery Address Required', 'Please add your delivery address in Profile Settings.', 'warning');
+                                        if (setPage) setPage('profile', 'address');
+                                    }}
+                                    disabled={cart.length === 0}
+                                >
+                                    <span>Add Address in Profile to Order</span>
+                                    <ArrowRight size={18} />
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="btn-place-order"
+                                    onClick={handlePlaceOrder}
+                                    disabled={isSubmitting || cart.length === 0 || !selectedAddressId}
+                                >
+                                    {isSubmitting ? (
+                                        <span>Placing Order...</span>
+                                    ) : (
+                                        <>
+                                            <span>Place Order</span>
+                                            <ArrowRight size={18} />
+                                        </>
+                                    )}
+                                </button>
+                            )}
 
                             <p className="cart-terms-note">
                                 <Lock size={12} />

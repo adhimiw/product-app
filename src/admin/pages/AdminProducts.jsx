@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { adminProductService, BADGE_OPTIONS, getBadgeLabel, PRODUCT_BADGE_OPTIONS } from '../services/adminProductService';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { adminProductService, BADGE_OPTIONS, getBadgeLabel, PRODUCT_BADGE_OPTIONS, PACKAGE_SIZE_OPTIONS, VARIANT_STATUS_OPTIONS } from '../services/adminProductService';
 import { fetchCategoriesApi, formatVariantSize } from '../../services/api';
 import PageHeader from '../components/PageHeader';
 import TableSkeleton from '../components/TableSkeleton';
@@ -153,7 +153,7 @@ function RichTextEditor({ value, onChange, placeholder, minHeight = '140px' }) {
     );
 }
 
-export default function AdminProducts() {
+export default function AdminProducts({ onNavigateToAdd, onNavigateToEdit }) {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -275,6 +275,10 @@ export default function AdminProducts() {
     }, [products, searchTerm, selectedCategoryFilter, selectedStatusFilter]);
 
     const handleOpenAddModal = () => {
+        if (onNavigateToAdd) {
+            onNavigateToAdd();
+            return;
+        }
         setEditingProduct(null);
         setModalActiveTab('basic');
         setTagInput('');
@@ -319,6 +323,10 @@ export default function AdminProducts() {
     };
 
     const handleOpenEditModal = (product) => {
+        if (onNavigateToEdit) {
+            onNavigateToEdit(product);
+            return;
+        }
         setEditingProduct(product);
         setModalActiveTab('basic');
         setTagInput('');
@@ -1132,7 +1140,7 @@ export default function AdminProducts() {
                                                 onClick={handleAddPackageSize}
                                                 style={{ fontSize: '0.8rem', padding: '6px 12px' }}
                                             >
-                                                + Add Size Variant
+                                                <Plus size={14} /><span>Add Variant</span>
                                             </button>
                                         </div>
 
@@ -1149,7 +1157,7 @@ export default function AdminProducts() {
                                                     >
                                                         <div className="admin-variant-header">
                                                             <span className="admin-variant-title">
-                                                                Package Variant #{index + 1} ({formatVariantSize(pkg.size_number || 0, pkg.size_unit, pkg.pieces_count)})
+                                                                Package Variant #{index + 1} ({formatVariantSize(pkg.size_number || 0, pkg.size_unit, pkg.pieces_count, pkg.package_size)})
                                                             </span>
                                                             {formData.package_sizes.length > 1 && (
                                                                 <button
@@ -1166,6 +1174,19 @@ export default function AdminProducts() {
 
                                                         {/* Row 1: Size Number, Unit, Variant Price, Badge Tag Dropdown */}
                                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+                                                            <div>
+                                                                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Package Size (Optional)</label>
+                                                                <select
+                                                                    className="admin-input"
+                                                                    value={pkg.package_size || ''}
+                                                                    onChange={(e) => handlePackageChange(pkg.id, 'package_size', e.target.value)}
+                                                                >
+                                                                    {PACKAGE_SIZE_OPTIONS.map(opt => (
+                                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+
                                                             <div>
                                                                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>Size Number</label>
                                                                 <input

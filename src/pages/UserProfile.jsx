@@ -70,6 +70,9 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
         const res = await fetchAddressesApi();
         if (res.success && res.data) {
             setAddresses(res.data);
+            if (res.data.length === 0 && (cartCount > 0 || initialTab === 'address')) {
+                setShowAddressForm(true);
+            }
         }
         setLoadingAddresses(false);
     };

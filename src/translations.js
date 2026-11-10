@@ -86,6 +86,10 @@ export const translations = {
         inStockOnly: "In Stock",
         onDiscountOnly: "Special Offers",
         priceRange: "Price Range",
+        filtersWord: "Filters",
+        sortWord: "Sort",
+        applyFilters: "Apply Filters",
+        categoriesWord: "Categories",
 
         // Filter Chips
         filterAll: "All Products",
@@ -239,6 +243,10 @@ export const translations = {
         inStockOnly: "இருப்பில் உள்ளவை",
         onDiscountOnly: "சிறப்பு தள்ளுபடிகள்",
         priceRange: "விலை வரம்பு",
+        filtersWord: "வடிகட்டிகள்",
+        sortWord: "வரிசை",
+        applyFilters: "பயன்படுத்துக",
+        categoriesWord: "பிரிவுகள்",
 
         // Filter Chips
         filterAll: "அனைத்து தயாரிப்புகள்",

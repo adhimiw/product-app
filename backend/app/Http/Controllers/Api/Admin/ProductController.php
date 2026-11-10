@@ -31,7 +31,7 @@ class ProductController extends Controller
         try {
             $query = Product::with([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,pieces_count,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes'
             ]);
 
             if ($request->has('status') && $request->status !== null && $request->status !== '') {
@@ -116,7 +116,7 @@ class ProductController extends Controller
             // Eager load relationships after transaction completes
             $product->load([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes'
             ]);
 
             return response()->json([
@@ -144,7 +144,7 @@ class ProductController extends Controller
         try {
             $product = Product::with([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes'
             ])->find($id);
 
             if (!$product) {
@@ -241,7 +241,7 @@ class ProductController extends Controller
             // Eager load fresh relations
             $product->load([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes'
             ]);
 
             return response()->json([
@@ -282,7 +282,7 @@ class ProductController extends Controller
 
             $product->load([
                 'category:id,name,slug',
-                'packageSizes:id,product_id,size_key,size_number,size_unit,variant_price,variant_badge,discount_type,discount_value,stock,images'
+                'packageSizes'
             ]);
 
             return response()->json([
@@ -451,6 +451,8 @@ class ProductController extends Controller
                 'size_number'    => (float) ($pkgData['size_number'] ?? 0),
                 'size_unit'      => !empty($pkgData['size_unit']) ? $pkgData['size_unit'] : 'g',
                 'pieces_count'   => isset($pkgData['pieces_count']) && $pkgData['pieces_count'] !== '' && $pkgData['pieces_count'] !== null ? (int) $pkgData['pieces_count'] : null,
+                'package_size'   => !empty($pkgData['package_size']) ? $pkgData['package_size'] : null,
+                'status'         => isset($pkgData['status']) && $pkgData['status'] !== '' ? (int) $pkgData['status'] : 1,
                 'variant_price'  => (float) ($pkgData['variant_price'] ?? 0),
                 'variant_badge'  => (int) ($pkgData['variant_badge'] ?? 0),
                 'discount_type'  => (int) ($pkgData['discount_type'] ?? 1),

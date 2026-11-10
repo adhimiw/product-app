@@ -26,6 +26,24 @@ export const getProductBadgeInfo = (val) => {
     return { label: 'None', className: 'badge-none' };
 };
 
+
+export const PACKAGE_SIZE_OPTIONS = [
+    { value: '', label: 'None (Optional)' },
+    { value: 'XXS', label: 'XXS: Double Extra Small' },
+    { value: 'XS', label: 'XS: Extra Small' },
+    { value: 'S', label: 'S: Small' },
+    { value: 'M', label: 'M: Medium' },
+    { value: 'L', label: 'L: Large' },
+    { value: 'XL', label: 'XL: Extra Large' },
+    { value: 'XXL', label: 'XXL (or 2XL): Double Extra Large' },
+    { value: 'XXXL', label: 'XXXL (or 3XL and up): Triple Extra Large and higher extended' }
+];
+
+export const VARIANT_STATUS_OPTIONS = [
+    { value: 1, label: 'Active / Enabled' },
+    { value: 0, label: 'Disabled (Will be updated)' }
+];
+
 export const BADGE_OPTIONS = [
     { value: 0, label: 'No Badge (None)' },
     { value: 1, label: 'Newly Launched' },
@@ -189,6 +207,8 @@ export const adminProductService = {
                 if (pkg.id) formData.append(`package_sizes[${idx}][id]`, pkg.id);
                 formData.append(`package_sizes[${idx}][size_number]`, pkg.size_number || '');
                 formData.append(`package_sizes[${idx}][size_unit]`, pkg.size_unit || 'g');
+                formData.append(`package_sizes[${idx}][package_size]`, pkg.package_size || '');
+                formData.append(`package_sizes[${idx}][status]`, pkg.status !== undefined && pkg.status !== null ? pkg.status : 1);
                 if (pkg.pieces_count !== undefined && pkg.pieces_count !== null && pkg.pieces_count !== '') {
                     formData.append(`package_sizes[${idx}][pieces_count]`, pkg.pieces_count);
                 }
@@ -397,3 +417,5 @@ export const adminProductService = {
         return [];
     }
 };
+
+export { formatVariantSize } from '../../services/api';

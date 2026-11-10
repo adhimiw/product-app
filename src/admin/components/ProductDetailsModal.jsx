@@ -355,6 +355,7 @@ export default function ProductDetailsModal({ product, onClose, onEdit }) {
                                             <th style={{ padding: '8px 14px' }}>Discount</th>
                                             <th style={{ padding: '8px 14px' }}>Stock Units</th>
                                             <th style={{ padding: '8px 14px' }}>Variant Badge</th>
+                                            <th style={{ padding: '8px 14px' }}>Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -363,7 +364,7 @@ export default function ProductDetailsModal({ product, onClose, onEdit }) {
                                             return (
                                                 <tr key={idx}>
                                                     <td style={{ fontWeight: 700, padding: '10px 14px', color: 'var(--admin-text-main)' }}>
-                                                        {formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count)}
+                                                        {formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count, ps.package_size)}
                                                     </td>
                                                     <td style={{ fontWeight: 800, color: 'var(--admin-primary)', padding: '10px 14px', fontSize: '0.9rem' }}>
                                                         ₹{ps.variant_price}

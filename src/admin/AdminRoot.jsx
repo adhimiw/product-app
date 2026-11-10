@@ -5,6 +5,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminOrders from './pages/AdminOrders';
 import AdminCategories from './pages/AdminCategories';
 import AdminProducts from './pages/AdminProducts';
+import AdminProductForm from './pages/AdminProductForm';
 import AdminUsers from './pages/AdminUsers';
 import AdminQueries from './pages/AdminQueries';
 import AdminBanners from './pages/AdminBanners';
@@ -27,6 +28,9 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
         const session = adminAuthService.getCurrentSession();
         return Boolean(session && session.user);
     });
+
+    const [editingProductId, setEditingProductId] = useState(null);
+
     const [activeTab, setActiveTab] = useState(() => {
         const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
         let sub = pathname.replace(/^\/admin\/?/, '').split('/')[0].trim().toLowerCase();
@@ -37,11 +41,12 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
         if (sub === 'inquiries' || sub === 'contact') sub = 'queries';
         if (sub === 'banner' || sub === 'hero-banners') sub = 'banners';
         if (sub === 'my-profile' || sub === 'account') sub = 'profile';
-        const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'queries', 'banners', 'marquee', 'settings', 'whatsapp', 'profile'];
+        if (sub === 'create-product' || sub === 'add-product') sub = 'products-add';
+        const valid = ['dashboard', 'categories', 'products', 'products-add', 'products-edit', 'orders', 'users', 'queries', 'banners', 'marquee', 'settings', 'whatsapp', 'profile'];
         if (valid.includes(sub)) return sub;
         return initialTab || 'dashboard';
     });
-    const [key, setKey] = useState(0); // Force re-render on data reset
+    const [key, setKey] = useState(0);
 
     useEffect(() => {
         const session = adminAuthService.getCurrentSession();
@@ -54,7 +59,6 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
         }
     }, []);
 
-    // Sync with external route changes
     useEffect(() => {
         if (initialTab && initialTab !== activeTab) {
             const normalized = initialTab === 'branding' ? 'settings' : (initialTab === 'banner' ? 'banners' : initialTab);
@@ -62,7 +66,6 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
         }
     }, [initialTab]);
 
-    // Handle browser back/forward buttons inside admin
     useEffect(() => {
         const handleAdminPopState = () => {
             const pathname = window.location.pathname;
@@ -73,7 +76,7 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
             if (sub === 'branding') sub = 'settings';
             if (sub === 'inquiries' || sub === 'contact') sub = 'queries';
             if (sub === 'banner' || sub === 'hero-banners') sub = 'banners';
-            const valid = ['dashboard', 'categories', 'products', 'orders', 'users', 'queries', 'banners', 'marquee', 'settings', 'whatsapp'];
+            const valid = ['dashboard', 'categories', 'products', 'products-add', 'products-edit', 'orders', 'users', 'queries', 'banners', 'marquee', 'settings', 'whatsapp'];
             const targetTab = valid.includes(sub) ? sub : 'dashboard';
             setActiveTab(targetTab);
         };
@@ -84,7 +87,8 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
 
     const handleTabChange = (newTab) => {
         setActiveTab(newTab);
-        const targetUrl = newTab === 'dashboard' ? '/admin/dashboard' : `/admin/${newTab}`;
+        const navPath = newTab === 'products-add' ? 'products/create' : (newTab === 'products-edit' ? 'products/edit' : newTab);
+        const targetUrl = newTab === 'dashboard' ? '/admin/dashboard' : `/admin/${navPath}`;
         if (window.location.pathname !== targetUrl) {
             window.history.pushState({ page: 'admin', param: newTab }, '', targetUrl);
         }
@@ -113,10 +117,12 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
         );
     }
 
+    const layoutActiveTab = (activeTab === 'products-add' || activeTab === 'products-edit') ? 'products' : activeTab;
+
     return (
         <div className="admin-root" key={key}>
             <AdminLayout
-                activeTab={activeTab}
+                activeTab={layoutActiveTab}
                 setActiveTab={handleTabChange}
                 user={user}
                 onLogout={handleLogout}
@@ -133,7 +139,28 @@ export default function AdminRoot({ onGoToStore, initialTab = 'dashboard' }) {
                     <AdminCategories />
                 )}
                 {activeTab === 'products' && (
-                    <AdminProducts />
+                    <AdminProducts
+                        onNavigateToAdd={() => handleTabChange('products-add')}
+                        onNavigateToEdit={(product) => {
+                            setEditingProductId(product.id);
+                            handleTabChange('products-edit');
+                        }}
+                    />
+                )}
+                {activeTab === 'products-add' && (
+                    <AdminProductForm
+                        mode="add"
+                        onCancel={() => handleTabChange('products')}
+                        onSuccess={() => handleTabChange('products')}
+                    />
+                )}
+                {activeTab === 'products-edit' && (
+                    <AdminProductForm
+                        mode="edit"
+                        productId={editingProductId}
+                        onCancel={() => handleTabChange('products')}
+                        onSuccess={() => handleTabChange('products')}
+                    />
                 )}
                 {activeTab === 'orders' && (
                     <AdminOrders />

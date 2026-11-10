@@ -40,7 +40,10 @@ export default function Shop({
     const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price_asc', 'price_desc', 'rating', 'name_asc', 'name_desc'
     const [inStockOnly, setInStockOnly] = useState(false);
     const [onDiscountOnly, setOnDiscountOnly] = useState(false);
-    const [showPriceSlider, setShowPriceSlider] = useState(false);
+
+    // Sidebar Drawers State
+    const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+    const [isSortDrawerOpen, setIsSortDrawerOpen] = useState(false);
 
     useEffect(() => {
         if (propProducts && propProducts.length > 0) {
@@ -224,8 +227,55 @@ export default function Shop({
             });
     }, [productList, activeCategory, searchQuery, isPriceFiltered, currentMin, currentMax, inStockOnly, onDiscountOnly, sortBy]);
 
-    // Check if any filter is actively applied
-    const hasActiveFilters = (activeCategory && activeCategory !== 'All Products' && activeCategory !== 'All') || searchQuery !== '' || isPriceFiltered || inStockOnly || onDiscountOnly || sortBy !== 'featured';
+    // Body scroll lock & Escape key listener for Drawers
+    useEffect(() => {
+        if (isFilterDrawerOpen || isSortDrawerOpen) {
+            document.body.classList.add('shop-drawer-open');
+        } else {
+            document.body.classList.remove('shop-drawer-open');
+        }
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                setIsFilterDrawerOpen(false);
+                setIsSortDrawerOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.body.classList.remove('shop-drawer-open');
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isFilterDrawerOpen, isSortDrawerOpen]);
+
+    // Sort options array
+    const sortOptions = useMemo(() => [
+        { id: 'featured', label: t('sortFeatured') || 'Featured & Popular', desc: 'Handpicked favorites & newest arrivals' },
+        { id: 'price_asc', label: t('sortPriceLowHigh') || 'Price: Low to High', desc: 'Budget-friendly to premium' },
+        { id: 'price_desc', label: t('sortPriceHighLow') || 'Price: High to Low', desc: 'Premium to budget-friendly' },
+        { id: 'rating', label: t('sortRating') || 'Highest Rated', desc: 'Customer favorites & top reviews' },
+        { id: 'name_asc', label: t('sortNameAZ') || 'Name: A to Z', desc: 'Alphabetical order A to Z' },
+        { id: 'name_desc', label: t('sortNameZA') || 'Name: Z to A', desc: 'Alphabetical order Z to A' },
+    ], [t]);
+
+    const currentSortLabel = useMemo(() => {
+        const found = sortOptions.find(o => o.id === sortBy);
+        return found ? found.label : (t('sortFeatured') || 'Featured & Popular');
+    }, [sortOptions, sortBy, t]);
+
+    // Active filter count
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (activeCategory && activeCategory !== 'All Products' && activeCategory !== 'All') count++;
+        if (searchQuery.trim()) count++;
+        if (isPriceFiltered) count++;
+        if (inStockOnly) count++;
+        if (onDiscountOnly) count++;
+        return count;
+    }, [activeCategory, searchQuery, isPriceFiltered, inStockOnly, onDiscountOnly]);
+
+    // Check if any filter or non-default sort is applied
+    const hasActiveFilters = activeFilterCount > 0 || sortBy !== 'featured';
 
     const handleClearAllFilters = () => {
         handleCategoryClick('All Products');
@@ -255,242 +305,99 @@ export default function Shop({
                     </p>
                 </div>
 
-                {/* Category Navigation Pills Carousel */}
-                <div className="shop-category-carousel-wrap">
-                    <div className="shop-categories-pill-track">
-                        {categories.map(cat => {
-                            const isCurrent = activeCategory === cat.name || (isAllProducts && cat.name === 'All Products');
-                            const count = categoryCounts[cat.name] ?? 0;
-                            return (
-                                <button
-                                    key={cat.id || cat.name}
-                                    className={`shop-category-pill-btn ${isCurrent ? 'active' : ''}`}
-                                    onClick={() => handleCategoryClick(cat.name)}
-                                >
-                                    <span className="pill-name">{cat.name}</span>
-                                    <span className="pill-count">{count}</span>
+
+                {/* Modern Side-Action Bar (Two Brothers Organic Style) */}
+                <div className="shop-action-bar">
+                    {/* Left: Filter Sidebar Drawer Trigger */}
+                    <button
+                        type="button"
+                        className={`shop-action-bar-btn filter-btn ${activeFilterCount > 0 ? 'active' : ''}`}
+                        onClick={() => setIsFilterDrawerOpen(true)}
+                        aria-label="Open Filter Sidebar"
+                    >
+                        <SlidersHorizontal size={17} className="action-btn-icon" />
+                        <span className="action-btn-label">{t('filtersWord') || 'Filters'}</span>
+                        {activeFilterCount > 0 && (
+                            <span className="shop-action-badge">{activeFilterCount}</span>
+                        )}
+                    </button>
+
+                    {/* Center: Total Matching Products Counter */}
+                    <div className="shop-action-bar-count">
+                        <span className="count-number">{filteredProducts.length}</span> {t('productsWord') || 'products'}
+                    </div>
+
+                    {/* Right: Sort Sidebar Drawer Trigger */}
+                    <button
+                        type="button"
+                        className={`shop-action-bar-btn sort-btn ${sortBy !== 'featured' ? 'active' : ''}`}
+                        onClick={() => setIsSortDrawerOpen(true)}
+                        aria-label="Open Sort Sidebar"
+                    >
+                        <ArrowUpDown size={17} className="action-btn-icon" />
+                        <span className="action-btn-label">{t('sortWord') || 'Sort'}</span>
+                        {sortBy !== 'featured' && <span className="shop-action-dot" />}
+                    </button>
+                </div>
+
+                {/* Active Filter Quick Chips Bar */}
+                {hasActiveFilters && (
+                    <div className="shop-active-filter-tags">
+                        {activeCategory !== 'All Products' && activeCategory !== 'All' && (
+                            <span className="active-tag-chip">
+                                {activeCategory}
+                                <button type="button" onClick={() => handleCategoryClick('All Products')} title="Remove category filter">
+                                    <X size={12} />
                                 </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Modern Filter Toolbar */}
-                <div className="shop-toolbar-card">
-                    {/* Top Row: Luxury Search Box */}
-                    <div className="shop-search-box">
-                        <Search size={18} className="search-icon" />
-                        <input
-                            type="text"
-                            className="shop-search-input"
-                            placeholder={t('searchPlaceholderShop')}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        {searchQuery && (
-                            <button
-                                className="search-clear-btn"
-                                onClick={() => setSearchQuery('')}
-                                title="Clear search"
-                                type="button"
-                            >
-                                <X size={14} />
-                            </button>
+                            </span>
                         )}
-                    </div>
+                        {searchQuery.trim() && (
+                            <span className="active-tag-chip">
+                                "{searchQuery}"
+                                <button type="button" onClick={() => setSearchQuery('')} title="Clear search">
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+                        {isPriceFiltered && (
+                            <span className="active-tag-chip price-filter-tag">
+                                ₹{currentMin} — ₹{currentMax}
+                                <button type="button" onClick={() => setPriceRange(null)} title="Clear price filter">
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+                        {inStockOnly && (
+                            <span className="active-tag-chip">
+                                {t('inStockOnly') || 'In Stock'}
+                                <button type="button" onClick={() => setInStockOnly(false)} title="Clear in stock filter">
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+                        {onDiscountOnly && (
+                            <span className="active-tag-chip">
+                                {t('onDiscountOnly') || 'Special Offers'}
+                                <button type="button" onClick={() => setOnDiscountOnly(false)} title="Clear offers filter">
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
+                        {sortBy !== 'featured' && (
+                            <span className="active-tag-chip sort-tag">
+                                Sort: {currentSortLabel}
+                                <button type="button" onClick={() => setSortBy('featured')} title="Reset sort to default">
+                                    <X size={12} />
+                                </button>
+                            </span>
+                        )}
 
-                    {/* Controls Row: Sort, Price Range, In Stock, Offers */}
-                    <div className="shop-toolbar-controls-row">
-                        {/* Sort Dropdown */}
-                        <div className="shop-select-wrap">
-                            <ArrowUpDown size={15} className="select-icon" />
-                            <select
-                                className="shop-select-input"
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                aria-label="Sort products"
-                            >
-                                <option value="featured">{t('sortFeatured')}</option>
-                                <option value="price_asc">{t('sortPriceLowHigh')}</option>
-                                <option value="price_desc">{t('sortPriceHighLow')}</option>
-                                <option value="rating">{t('sortRating')}</option>
-                                <option value="name_asc">{t('sortNameAZ')}</option>
-                                <option value="name_desc">{t('sortNameZA')}</option>
-                            </select>
-                            <ChevronDown size={14} className="select-arrow" />
-                        </div>
-
-                        {/* Price Range Button */}
-                        <button
-                            type="button"
-                            className={`shop-filter-toggle-btn ${isPriceFiltered || showPriceSlider ? 'active' : ''}`}
-                            onClick={() => setShowPriceSlider(!showPriceSlider)}
-                            title="Filter by Price Range"
-                        >
-                            <SlidersHorizontal size={15} />
-                            <span>{t('priceRange')}</span>
-                            {isPriceFiltered ? (
-                                <span className="price-active-pill">₹{currentMin}–₹{currentMax}</span>
-                            ) : (
-                                <span className="price-range-hint">₹{minPrice}–₹{maxProductPrice}</span>
-                            )}
+                        <button type="button" className="reset-all-filters-btn" onClick={handleClearAllFilters}>
+                            <RotateCcw size={12} />
+                            <span>{t('clearFilters') || 'Reset All'}</span>
                         </button>
-
-                        {/* In-Stock & Special Offers Quick Toggles */}
-                        <div className="shop-quick-toggles">
-                            <button
-                                type="button"
-                                className={`shop-toggle-pill ${inStockOnly ? 'active' : ''}`}
-                                onClick={() => setInStockOnly(!inStockOnly)}
-                            >
-                                <span className={`toggle-dot ${inStockOnly ? 'checked' : ''}`} />
-                                <span>{t('inStockOnly')}</span>
-                            </button>
-                            <button
-                                type="button"
-                                className={`shop-toggle-pill ${onDiscountOnly ? 'active' : ''}`}
-                                onClick={() => setOnDiscountOnly(!onDiscountOnly)}
-                            >
-                                <Tag size={13} />
-                                <span>{t('onDiscountOnly')}</span>
-                            </button>
-                        </div>
                     </div>
-
-                    {/* Expandable Price Range Slider Drawer */}
-                    {showPriceSlider && (
-                        <div className="shop-price-slider-panel">
-                            <div className="price-panel-header">
-                                <div className="price-panel-title">
-                                    <span className="price-badge-icon">₹</span>
-                                    <div>
-                                        <h4 className="price-panel-heading">{t('priceRange')}</h4>
-                                        <p className="price-panel-sub">Slide to set your custom budget</p>
-                                    </div>
-                                </div>
-                                <div className="price-panel-actions">
-                                    <div className="price-current-display">
-                                        <strong>₹{currentMin}</strong>
-                                        <span className="price-sep">—</span>
-                                        <strong>₹{currentMax}</strong>
-                                    </div>
-                                    {isPriceFiltered && (
-                                        <button
-                                            type="button"
-                                            className="price-panel-reset-btn"
-                                            onClick={() => setPriceRange(null)}
-                                            title="Reset price range"
-                                        >
-                                            <RotateCcw size={12} />
-                                            <span>Reset</span>
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="shop-price-sliders-grid">
-                                <div className="price-slider-field">
-                                    <div className="slider-label-bar">
-                                        <span className="slider-col-title">Min Price</span>
-                                        <span className="slider-col-val">₹{currentMin}</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min={minPrice}
-                                        max={maxProductPrice}
-                                        step={10}
-                                        value={currentMin}
-                                        onChange={(e) => {
-                                            const val = Number(e.target.value);
-                                            const safeMin = Math.min(val, currentMax);
-                                            setPriceRange([safeMin, currentMax]);
-                                        }}
-                                        className="shop-range-slider"
-                                    />
-                                </div>
-
-                                <div className="price-slider-field">
-                                    <div className="slider-label-bar">
-                                        <span className="slider-col-title">Max Price</span>
-                                        <span className="slider-col-val">₹{currentMax}</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min={minPrice}
-                                        max={maxProductPrice}
-                                        step={10}
-                                        value={currentMax}
-                                        onChange={(e) => {
-                                            const val = Number(e.target.value);
-                                            const safeMax = Math.max(val, currentMin);
-                                            setPriceRange([currentMin, safeMax]);
-                                        }}
-                                        className="shop-range-slider"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="price-panel-footer">
-                                <span className="price-limits-note">
-                                    Catalog Range: ₹{minPrice} to ₹{maxProductPrice}
-                                </span>
-                                <span className="price-match-count">
-                                    <strong>{filteredProducts.length}</strong> {t('productsWord')} match
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Active Filter Summary Bar */}
-                <div className="shop-filter-summary-bar">
-                    <div className="shop-item-counter">
-                        {t('showingCount')} <strong>{filteredProducts.length}</strong> {t('productsWord')}
-                        {filteredProducts.length !== productList.length && (
-                            <span className="total-pool-count"> (from {productList.length} total)</span>
-                        )}
-                    </div>
-
-                    {hasActiveFilters && (
-                        <div className="shop-active-filter-tags">
-                            {activeCategory !== 'All Products' && (
-                                <span className="active-tag-chip">
-                                    {activeCategory}
-                                    <button type="button" onClick={() => handleCategoryClick('All Products')}><X size={12} /></button>
-                                </span>
-                            )}
-                            {searchQuery && (
-                                <span className="active-tag-chip">
-                                    "{searchQuery}"
-                                    <button type="button" onClick={() => setSearchQuery('')}><X size={12} /></button>
-                                </span>
-                            )}
-                            {isPriceFiltered && (
-                                <span className="active-tag-chip price-filter-tag">
-                                    ₹{currentMin} — ₹{currentMax}
-                                    <button type="button" onClick={() => setPriceRange(null)} title="Clear price filter"><X size={12} /></button>
-                                </span>
-                            )}
-                            {inStockOnly && (
-                                <span className="active-tag-chip">
-                                    In Stock
-                                    <button type="button" onClick={() => setInStockOnly(false)}><X size={12} /></button>
-                                </span>
-                            )}
-                            {onDiscountOnly && (
-                                <span className="active-tag-chip">
-                                    On Offer
-                                    <button type="button" onClick={() => setOnDiscountOnly(false)}><X size={12} /></button>
-                                </span>
-                            )}
-
-                            <button type="button" className="reset-all-filters-btn" onClick={handleClearAllFilters}>
-                                <RotateCcw size={13} />
-                                <span>{t('clearFilters')}</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* Products Grid or Empty State */}
                 {loading ? (
@@ -534,6 +441,293 @@ export default function Shop({
                 )}
 
             </div>
+
+            {/* Drawer Backdrop Overlay */}
+            {(isFilterDrawerOpen || isSortDrawerOpen) && (
+                <div 
+                    className="shop-drawer-backdrop visible"
+                    onClick={() => {
+                        setIsFilterDrawerOpen(false);
+                        setIsSortDrawerOpen(false);
+                    }}
+                    aria-hidden="true"
+                />
+            )}
+
+            {/* Left Sidebar Drawer: Filters */}
+            <aside 
+                className={`shop-drawer left-drawer ${isFilterDrawerOpen ? 'open' : ''}`}
+                aria-label="Filter Products"
+            >
+                {/* Header */}
+                <div className="shop-drawer-header">
+                    <div className="drawer-header-title">
+                        <SlidersHorizontal size={19} className="drawer-header-icon" />
+                        <h3>{t('filtersWord') || 'Filters'}</h3>
+                        {activeFilterCount > 0 && (
+                            <span className="drawer-header-badge">{activeFilterCount}</span>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        className="drawer-close-btn"
+                        onClick={() => setIsFilterDrawerOpen(false)}
+                        aria-label="Close filters"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="shop-drawer-body">
+                    {/* 1. Search Box */}
+                    <div className="drawer-section">
+                        <label className="drawer-section-label">Search Products</label>
+                        <div className="drawer-search-box">
+                            <Search size={16} className="search-icon" />
+                            <input
+                                type="text"
+                                className="drawer-search-input"
+                                placeholder={t('searchPlaceholderShop')}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    className="search-clear-btn"
+                                    onClick={() => setSearchQuery('')}
+                                    title="Clear search"
+                                >
+                                    <X size={13} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 2. Categories Selection */}
+                    <div className="drawer-section">
+                        <div className="drawer-section-header">
+                            <label className="drawer-section-label">{t('categoriesWord') || 'Categories'}</label>
+                            <span className="drawer-section-count">{categories.length}</span>
+                        </div>
+                        <div className="drawer-categories-list">
+                            {categories.map(cat => {
+                                const isCurrent = activeCategory === cat.name || (isAllProducts && cat.name === 'All Products');
+                                const count = categoryCounts[cat.name] ?? 0;
+                                return (
+                                    <button
+                                        key={cat.id || cat.name}
+                                        type="button"
+                                        className={`drawer-category-item ${isCurrent ? 'selected' : ''}`}
+                                        onClick={() => handleCategoryClick(cat.name)}
+                                    >
+                                        <span className="drawer-radio-circle">
+                                            {isCurrent && <Check size={12} strokeWidth={3} />}
+                                        </span>
+                                        <span className="drawer-cat-name">{cat.name}</span>
+                                        <span className="drawer-cat-count">{count}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* 3. Price Range Slider & Presets */}
+                    <div className="drawer-section">
+                        <div className="drawer-section-header">
+                            <label className="drawer-section-label">{t('priceRange') || 'Price Range'}</label>
+                            <div className="drawer-price-live">
+                                <strong>₹{currentMin}</strong>
+                                <span className="price-sep">—</span>
+                                <strong>₹{currentMax}</strong>
+                            </div>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="drawer-price-presets">
+                            <button
+                                type="button"
+                                className={`price-preset-chip ${!isPriceFiltered ? 'active' : ''}`}
+                                onClick={() => setPriceRange(null)}
+                            >
+                                {t('filterPriceAll') || 'All Prices'}
+                            </button>
+                            <button
+                                type="button"
+                                className={`price-preset-chip ${priceRange && priceRange[0] === minPrice && priceRange[1] === 150 ? 'active' : ''}`}
+                                onClick={() => setPriceRange([minPrice, 150])}
+                            >
+                                {t('filterPriceUnder150') || 'Under ₹150'}
+                            </button>
+                            <button
+                                type="button"
+                                className={`price-preset-chip ${priceRange && priceRange[0] === 150 && priceRange[1] === 300 ? 'active' : ''}`}
+                                onClick={() => setPriceRange([150, 300])}
+                            >
+                                {t('filterPrice150to300') || '₹150 – ₹300'}
+                            </button>
+                            <button
+                                type="button"
+                                className={`price-preset-chip ${priceRange && priceRange[0] === 300 && priceRange[1] === 500 ? 'active' : ''}`}
+                                onClick={() => setPriceRange([300, 500])}
+                            >
+                                {t('filterPrice300to500') || '₹300 – ₹500'}
+                            </button>
+                            <button
+                                type="button"
+                                className={`price-preset-chip ${priceRange && priceRange[0] === 500 ? 'active' : ''}`}
+                                onClick={() => setPriceRange([500, maxProductPrice])}
+                            >
+                                {t('filterPriceAbove500') || 'Above ₹500'}
+                            </button>
+                        </div>
+
+                        {/* Dual Range Sliders */}
+                        <div className="drawer-sliders-container">
+                            <div className="drawer-slider-row">
+                                <span className="slider-axis-label">Min: ₹{currentMin}</span>
+                                <input
+                                    type="range"
+                                    min={minPrice}
+                                    max={maxProductPrice}
+                                    step={10}
+                                    value={currentMin}
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        const safeMin = Math.min(val, currentMax);
+                                        setPriceRange([safeMin, currentMax]);
+                                    }}
+                                    className="drawer-range-slider"
+                                />
+                            </div>
+                            <div className="drawer-slider-row">
+                                <span className="slider-axis-label">Max: ₹{currentMax}</span>
+                                <input
+                                    type="range"
+                                    min={minPrice}
+                                    max={maxProductPrice}
+                                    step={10}
+                                    value={currentMax}
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        const safeMax = Math.max(val, currentMin);
+                                        setPriceRange([currentMin, safeMax]);
+                                    }}
+                                    className="drawer-range-slider"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. Availability & Special Deals */}
+                    <div className="drawer-section">
+                        <label className="drawer-section-label">Availability & Offers</label>
+                        <div className="drawer-toggles-list">
+                            <label className="drawer-toggle-row">
+                                <input
+                                    type="checkbox"
+                                    checked={inStockOnly}
+                                    onChange={(e) => setInStockOnly(e.target.checked)}
+                                />
+                                <div className="toggle-info">
+                                    <span className="toggle-title">{t('inStockOnly') || 'In Stock Only'}</span>
+                                    <span className="toggle-desc">Show only ready to ship products</span>
+                                </div>
+                            </label>
+                            <label className="drawer-toggle-row">
+                                <input
+                                    type="checkbox"
+                                    checked={onDiscountOnly}
+                                    onChange={(e) => setOnDiscountOnly(e.target.checked)}
+                                />
+                                <div className="toggle-info">
+                                    <span className="toggle-title">{t('onDiscountOnly') || 'Special Offers'}</span>
+                                    <span className="toggle-desc">Exclusive discounts and festive offers</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="shop-drawer-footer">
+                    <button
+                        type="button"
+                        className="drawer-footer-reset-btn"
+                        onClick={handleClearAllFilters}
+                        disabled={!hasActiveFilters}
+                    >
+                        <RotateCcw size={14} />
+                        <span>{t('clearFilters') || 'Reset'}</span>
+                    </button>
+                    <button
+                        type="button"
+                        className="drawer-footer-apply-btn"
+                        onClick={() => setIsFilterDrawerOpen(false)}
+                    >
+                        <span>{t('applyFilters') || 'Show'} ({filteredProducts.length})</span>
+                    </button>
+                </div>
+            </aside>
+
+            {/* Right Sidebar Drawer: Sort */}
+            <aside 
+                className={`shop-drawer right-drawer ${isSortDrawerOpen ? 'open' : ''}`}
+                aria-label="Sort Options"
+            >
+                {/* Header */}
+                <div className="shop-drawer-header">
+                    <div className="drawer-header-title">
+                        <ArrowUpDown size={19} className="drawer-header-icon" />
+                        <h3>{t('sortBy') || 'Sort By'}</h3>
+                    </div>
+                    <button
+                        type="button"
+                        className="drawer-close-btn"
+                        onClick={() => setIsSortDrawerOpen(false)}
+                        aria-label="Close sort"
+                    >
+                        <X size={18} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="shop-drawer-body">
+                    <div className="drawer-sort-options-list">
+                        {sortOptions.map(opt => {
+                            const isSelected = sortBy === opt.id;
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    className={`drawer-sort-option-btn ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => setSortBy(opt.id)}
+                                >
+                                    <span className="drawer-radio-circle">
+                                        {isSelected && <Check size={12} strokeWidth={3} />}
+                                    </span>
+                                    <div className="drawer-sort-text">
+                                        <span className="sort-option-label">{opt.label}</span>
+                                        <span className="sort-option-desc">{opt.desc}</span>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="shop-drawer-footer">
+                    <button
+                        type="button"
+                        className="drawer-footer-apply-btn full-width"
+                        onClick={() => setIsSortDrawerOpen(false)}
+                    >
+                        <span>Done</span>
+                    </button>
+                </div>
+            </aside>
         </main>
     );
 }

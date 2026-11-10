@@ -52,7 +52,7 @@ export default function ProductCard({
     const { t } = useLanguage();
 
     const availableWeights = (Array.isArray(package_sizes) && package_sizes.length > 0)
-        ? package_sizes.map(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count))
+        ? package_sizes.map(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count, ps.package_size))
         : (Array.isArray(gramOptions) && gramOptions.length > 0
             ? gramOptions.map(g => g.sizeWeight || g.size)
             : (Array.isArray(weights) && weights.length > 0 ? weights : []));
@@ -68,12 +68,14 @@ export default function ProductCard({
 
     let activePrice = basePrice;
     let packageSizeId = null;
+    let isSelectedVariantDisabled = false;
     let currentBadge = '';
     let variantImage = null;
 
     if (Array.isArray(package_sizes) && package_sizes.length > 0) {
-        const found = package_sizes.find(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count) === selectedWeight) || package_sizes[0];
+        const found = package_sizes.find(ps => formatVariantSize(ps.size_number, ps.size_unit, ps.pieces_count, ps.package_size) === selectedWeight) || package_sizes[0];
         if (found) {
+            isSelectedVariantDisabled = (found.status === 0 || found.status === '0' || found.is_disabled);
             const pId = found.id ?? found.db_id ?? found.package_id;
             if (pId !== undefined && pId !== null) {
                 packageSizeId = !isNaN(Number(pId)) ? Number(pId) : pId;
@@ -109,6 +111,7 @@ export default function ProductCard({
     } else if (Array.isArray(gramOptions) && gramOptions.length > 0) {
         const foundOpt = gramOptions.find(opt => opt.size && opt.size.startsWith(selectedWeight)) || gramOptions[0];
         if (foundOpt) {
+            isSelectedVariantDisabled = (foundOpt.status === 0 || foundOpt.status === '0' || foundOpt.is_disabled);
             const pId = foundOpt.id ?? foundOpt.db_id ?? foundOpt.package_id;
             if (pId !== undefined && pId !== null) {
                 packageSizeId = !isNaN(Number(pId)) ? Number(pId) : pId;
@@ -365,7 +368,17 @@ export default function ProductCard({
                 )}
 
                 {/* Row 5: Action Button: ADD TO CART vs Interactive Quantity Selector [ - 1 + ] */}
-                {inCartQuantity > 0 ? (
+                {isSelectedVariantDisabled ? (
+                    <button
+                        type="button"
+                        className="tb-add-cart-btn disabled"
+                        disabled
+                        title="Will be updated"
+                        style={{ background: '#9ca3af', borderColor: '#9ca3af', cursor: 'not-allowed' }}
+                    >
+                        WILL BE UPDATED
+                    </button>
+                ) : inCartQuantity > 0 ? (
                     <div className="tb-card-qty-control" onClick={(e) => e.stopPropagation()}>
                         <button
                             type="button"

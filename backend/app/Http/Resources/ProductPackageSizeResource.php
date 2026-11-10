@@ -33,6 +33,8 @@ class ProductPackageSizeResource extends JsonResource
             'size_number'    => $this->size_number,
             'size_unit'      => $this->size_unit,
             'pieces_count'   => $this->pieces_count !== null ? (int) $this->pieces_count : null,
+            'package_size'   => $this->package_size ?? null,
+            'status'         => isset($this->status) ? (int) $this->status : 1,
             'variant_price'  => (float) $this->variant_price,
             'variant_badge'  => $this->variant_badge,
             'discount_type'  => $this->discount_type,

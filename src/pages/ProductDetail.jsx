@@ -147,7 +147,7 @@ export default function ProductDetail({
     // Gram package options (dynamically mapped from backend package_sizes or gramOptions)
     const gramOptions = (product && Array.isArray(product.package_sizes) && product.package_sizes.length > 0)
         ? product.package_sizes.map((pkg, idx) => {
-            const sizeWeight = formatVariantSize(pkg.size_number, pkg.size_unit, pkg.pieces_count);
+            const sizeWeight = formatVariantSize(pkg.size_number, pkg.size_unit, pkg.pieces_count, pkg.package_size);
             const price = Number(pkg.variant_price || product.actual_price || product.price || 110);
             const badge = getBadgeLabel(pkg.variant_badge);
 
@@ -527,7 +527,20 @@ export default function ProductDetail({
                         )}
 
                         {/* Action Buttons: Quantity + Add to Bag + Buy Now + Wishlist */}
-                        <div className="pdp-actions-bar">
+                        {activeGramOption?.is_disabled || activeGramOption?.status === 0 ? (
+                          <div className="pdp-actions-bar" style={{ width: '100%' }}>
+                              <button
+                                  type="button"
+                                  className="btn btn-secondary disabled"
+                                  disabled
+                                  title="Will be updated"
+                                  style={{ width: '100%', background: '#9ca3af', borderColor: '#9ca3af', color: '#ffffff', padding: '16px 20px', borderRadius: '12px', fontWeight: 800, fontSize: '0.95rem', cursor: 'not-allowed' }}
+                              >
+                                  Will be updated
+                              </button>
+                          </div>
+                      ) : (
+                          <div className="pdp-actions-bar">
                             <div className="pdp-qty-stepper">
                                 <button 
                                     type="button" 
@@ -576,6 +589,7 @@ export default function ProductDetail({
                                 <Heart size={20} className={isFavorite ? 'heart-icon-filled' : 'heart-icon-empty'} />
                             </button>
                         </div>
+                      )}
 
                         {/* Quality Assurance & Trust Perks */}
                         <div className="pdp-trust-grid">
