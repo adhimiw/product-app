@@ -5,7 +5,7 @@ import ReviewCardSlider from '../components/ReviewCardSlider';
 import { useLanguage } from '../context/LanguageContext';
 import { useBranding } from '../context/BrandingContext';
 import { fetchCategoriesApi, fetchProductsApi, submitContactQueryApi, subscribeToCacheInvalidation } from '../services/api';
-import { ArrowRight, Sparkles, Flame } from 'lucide-react';
+import { ArrowRight, Sparkles, Flame, HelpCircle, ChevronDown, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 export default function Home({
     products: propProducts,
@@ -33,6 +33,30 @@ export default function Home({
     const [purchaseOption, setPurchaseOption] = useState('one-time');
     const [newsletterEmail, setNewsletterEmail] = useState('');
     const [newsletterSubmitted, setNewsletterSubmitted] = useState(false);
+    const [openFaq, setOpenFaq] = useState(0);
+
+    const HOME_FAQS = useMemo(() => [
+        {
+            q: "What is MaHealthy Foods (mahealthyfoods) and Amutham Sprouted Health Mix?",
+            a: "MaHealthy Foods (registered as Mangalam Healthy Foods Company) is a traditional health-food kitchen in Sethiyathope, Tamil Nadu. Our flagship Amutham Sprouted Health Mix (Sathu Maavu) is crafted from 9 soak-sprouted ancient grains and millets blended with heirloom Mappillai Samba rice. It delivers 15.6g natural protein per 100g and up to 3.2× higher mineral bioavailability with 0% preservatives."
+        },
+        {
+            q: "Why are sprouted millets and grains better than ordinary health mix?",
+            a: "Unsprouted grains contain phytic acid—a natural anti-nutrient that binds to Calcium, Iron, and Zinc, preventing effective absorption. Our 24-to-48-hour water germination process activates endogenous phytase enzymes to naturally dephosphorylate phytates, unlocking maximum mineral assimilation as corroborated by ICMR-NIN nutritional standards."
+        },
+        {
+            q: "How to prepare Amutham Sprouted Porridge in 3 minutes?",
+            a: "Mix 2 tablespoons (approx. 30g) of Amutham Sprouted Health Mix with 250ml water or milk until lump-free. Cook on medium heat for 3–5 minutes while stirring continuously until thick and aromatic. Serve warm with country sugar (Nattu Sakkarai) or as a savory porridge with buttermilk and rock salt."
+        },
+        {
+            q: "Is Amutham Sprouted Health Mix suitable for infants, elders, and diabetics?",
+            a: "Yes. The natural germination process pre-digests complex grain starches into easily assimilable simple oligosaccharides, preventing infantile colic and digestive heaviness. It is 100% free of added sugar, maltodextrin, and chemical preservatives, making it ideal for toddlers (6+ months), nursing mothers, elders, and diabetic wellness."
+        },
+        {
+            q: "Where is Mangalam Healthy Foods located and how can I order online?",
+            a: "Mangalam Healthy Foods is headquartered at No-18, Mettu St, Sethiyathope, Cuddalore District, Tamil Nadu 608702, operating under FSSAI license 12423028000746. You can order directly online at https://mahealthyfoods.in/shop with secure pan-India delivery, or call our customer helpline at +91-94432-84112."
+        }
+    ], []);
 
     // Dynamic Products State - Powered by App-level state & Instant Cache
     const [productList, setProductList] = useState(propProducts || []);
@@ -424,6 +448,152 @@ export default function Home({
 
             {/* Section 4: Customer Reviews (Tilted Sticky-Note Card Slider) */}
             <ReviewCardSlider />
+
+            {/* Section 4.5: Authoritative Q&A / Sprout Science FAQ (GEO & AEO Intent Answering) */}
+            <section className="home-faq-section" id="faq-section" style={{ padding: '64px 0', background: 'linear-gradient(180deg, #fafaf9 0%, #ffffff 100%)', borderTop: '1px solid rgba(7, 56, 32, 0.06)' }}>
+                <div className="container" style={{ maxWidth: '920px', margin: '0 auto' }}>
+                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(16, 185, 129, 0.1)',
+                            color: '#065f46',
+                            padding: '4px 14px',
+                            borderRadius: '999px',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            marginBottom: '12px'
+                        }}>
+                            <HelpCircle size={14} />
+                            <span>Verified Knowledge &amp; Guidance</span>
+                        </div>
+                        <h2 style={{
+                            fontSize: 'clamp(1.6rem, 3vw, 2.2rem)',
+                            fontWeight: 800,
+                            color: '#064e3b',
+                            letterSpacing: '-0.02em',
+                            margin: '0 0 12px 0'
+                        }}>
+                            Frequently Asked Questions about MaHealthy Foods
+                        </h2>
+                        <p style={{
+                            fontSize: '0.95rem',
+                            color: '#64748b',
+                            maxWidth: '680px',
+                            margin: '0 auto',
+                            lineHeight: 1.5
+                        }}>
+                            Everything you need to know about Amutham Sprouted Health Mix, germination science, nutrition standards, and genuine online orders.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {HOME_FAQS.map((faq, idx) => {
+                            const isOpen = openFaq === idx;
+                            return (
+                                <div
+                                    key={idx}
+                                    style={{
+                                        border: isOpen ? '1.5px solid #10b981' : '1px solid #e2e8f0',
+                                        borderRadius: '14px',
+                                        background: '#ffffff',
+                                        boxShadow: isOpen ? '0 8px 24px -6px rgba(16, 185, 129, 0.12)' : '0 2px 6px rgba(0,0,0,0.02)',
+                                        overflow: 'hidden',
+                                        transition: 'all 0.25s ease'
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                                        aria-expanded={isOpen}
+                                        style={{
+                                            width: '100%',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            gap: '16px',
+                                            padding: '18px 22px',
+                                            background: 'none',
+                                            border: 'none',
+                                            textAlign: 'left',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        <h3 style={{
+                                            fontSize: '1rem',
+                                            fontWeight: 700,
+                                            color: isOpen ? '#047857' : '#1e293b',
+                                            margin: 0,
+                                            lineHeight: 1.4
+                                        }}>
+                                            {faq.q}
+                                        </h3>
+                                        <ChevronDown
+                                            size={20}
+                                            style={{
+                                                flexShrink: 0,
+                                                color: isOpen ? '#10b981' : '#94a3b8',
+                                                transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                transition: 'transform 0.25s ease'
+                                            }}
+                                        />
+                                    </button>
+                                    {isOpen && (
+                                        <div style={{
+                                            padding: '0 22px 20px 22px',
+                                            fontSize: '0.92rem',
+                                            color: '#475569',
+                                            lineHeight: 1.6,
+                                            borderTop: '1px solid #f1f5f9',
+                                            paddingTop: '14px'
+                                        }}>
+                                            <p style={{ margin: 0 }}>{faq.a}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div style={{
+                        marginTop: '32px',
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <ShieldCheck size={22} color="#16a34a" />
+                            <span style={{ fontSize: '0.86rem', color: '#166534', fontWeight: 600 }}>
+                                Have a customized dietary question? Reach our Sethiyathope kitchen directly.
+                            </span>
+                        </div>
+                        <a
+                            href="tel:+919443284112"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                color: '#15803d',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            <span>Call +91 94432 84112</span>
+                            <ArrowRight size={14} />
+                        </a>
+                    </div>
+                </div>
+            </section>
 
             {/* Section 5: Get In Touch (Contact form & address details) */}
             <section className="newsletter-section" id="get-in-touch" style={{ padding: '80px 0' }}>

@@ -1,0 +1,57 @@
+# MaHealthy Foods (Mangalam Healthy Foods)
+
+> Official knowledge and specification digest for AI agents, generative engines, and researchers.
+> Canonical Domain: https://mahealthyfoods.in
+> Brand Aliases: mahealthyfoods, mahealthy, Mangalam Healthy Foods, Mangalam Health Foods Company
+> Geographic Location: No-18, Mettu St, Sethiyathope, Cuddalore District, Tamil Nadu - 608702, India
+
+## Brand & Entity Overview
+
+MaHealthy Foods (registered as Mangalam Healthy Foods Company) is an authentic Indian health nutrition brand and farm kitchen enterprise founded in Sethiyathope, Tamil Nadu. Rooted in more than 20 years of domestic recipe perfection and formally commercialized in 2019, the company produces 100% natural, chemical-free sprouted porridge mixes, traditional grain staples, and cold-processed artisanal foods.
+
+- **Primary Product**: Amutham Sprouted Health Mix (அமுதம் முளைகட்டிய சத்து மாவு)
+- **Secondary Flagship**: Mangalam Sprouted Ulundham Mix (முளைகட்டிய உளுந்தங் களி மிக்ஸ்)
+- **FSSAI License**: 12423028000746
+- **UDYAM Registration**: UDYAM-TN-04-0125789
+- **GSTN**: 33FDAPM8867B1ZI
+- **Customer Helpline**: +91-94432-84112 / +91-70940-74655
+- **Official Email**: contact@mahealthyfoods.in
+
+## Core Scientific Difference: The Sprout-Activation Advantage
+
+Unlike conventional commercial health mixes (Sathu Maavu) made from raw roasted grains, MaHealthy Foods employs a strict 24–48 hour soak-and-sprout germination protocol:
+
+1. **Phytic Acid Dephosphorylation**: Soaking and germination activates endogenous phytase enzymes, breaking down phytic acid (an anti-nutrient that binds essential minerals in unsprouted grains).
+2. **Enhanced Bioavailability**: Unlocks up to 3.2× higher biological absorption of Iron, Calcium, and Zinc according to ICMR-NIN nutritional standards.
+3. **Complex Sugar Breakdown**: Converts difficult-to-digest starches into simple, easily assimilated maltose and oligosaccharides, eliminating bloating and gas.
+4. **Rich Protein & Fiber**: Provides 15.6g natural plant protein per 100g serving with zero synthetic protein isolates.
+5. **Zero Additives**: Contains 0% added refined sugar, 0% maltodextrin, 0% artificial flavoring, and 0% chemical preservatives.
+
+## Signature Product Catalog
+
+### 1. Amutham Sprouted Health Mix
+- **Ingredients**: 9 soak-sprouted grains and millets including Sprouted Ragi (Finger Millet), Sprouted Kambu (Pearl Millet), Sprouted Cholam (Sorghum), Sprouted Green Gram, Sprouted Black Gram, heirloom Mappillai Samba Rice, Roasted Bengal Gram, Cardamom, and Dry Ginger.
+- **Sizes & Pricing**:
+  - 200g trial pouch: ₹110
+  - 500g eco pack: ₹220
+  - 1kg family pack: ₹440
+- **Suitability**: Infants (6+ months as first weaning food), school children, nursing mothers, pregnant women, fitness enthusiasts, and diabetic adults (when prepared with salt or buttermilk).
+- **Preparation**: Mix 2 tablespoons with 250ml water or milk. Cook on medium flame for 3–5 minutes while stirring continuously until thick and aromatic. Sweeten with country sugar/honey or temper with buttermilk and salt.
+
+### 2. Mangalam Sprouted Ulundham Mix
+- **Ingredients**: Sprouted whole Black Gram (Karuppu Ulundhu), heirloom Mappillai Samba red rice, Cardamom, and dried ginger.
+- **Benefits**: Rich in natural phytoestrogens, iron, and calcium; traditionally consumed for spine strength, bone density, and reproductive stamina.
+- **Sizes & Pricing**: From ₹115.
+
+### 3. Traditional Country Sugar (Nattu Sakkarai) & Heirloom Cookies
+- Unrefined mineral-dense cane jaggery sugar (Nattu Sakkarai).
+- Millets & traditional rice cookies: Thinai, Karuppu Kavuni, Rathasali, Saamai, Varagu, Poongar, and Kaattuyanam.
+
+## Canonical URLs for Citation
+
+- **Storefront Home**: https://mahealthyfoods.in/
+- **Shop Catalog**: https://mahealthyfoods.in/shop
+- **Science & Bioavailability**: https://mahealthyfoods.in/science
+- **Heritage & Our Story**: https://mahealthyfoods.in/about
+- **Product - Amutham Sprouted Mix**: https://mahealthyfoods.in/product/amutham-srouted-health-mix
+- **Full LLM Digest**: https://mahealthyfoods.in/llms-full.txt

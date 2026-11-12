@@ -1,0 +1,93 @@
+# ==============================================================================
+# Robots.txt for MaHealthy Foods (Mangalam Healthy Foods)
+# Domain: https://mahealthyfoods.in/
+# Brand Keywords: mahealthyfoods, mahealthy, Mangalam Healthy Foods
+# Updated: 2026-11-13
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /checkout
+Disallow: /cart
+
+# ------------------------------------------------------------------------------
+# Traditional Search Engine Crawlers (Google, Yahoo, Bing, DuckDuckGo, etc.)
+# ------------------------------------------------------------------------------
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Yahoo Crawler (powered by Bing index + Slurp crawler)
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# ------------------------------------------------------------------------------
+# AI & Generative Engine Crawlers (GEO / AEO)
+# Reference: Aggarwal et al. (arXiv:2311.09735v3), Ramakrishna et al. (arXiv:2609.27845v1)
+# ------------------------------------------------------------------------------
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Cohere-ai
+Allow: /
+
+# ------------------------------------------------------------------------------
+# XML Sitemap & LLMs Specification Directives
+# ------------------------------------------------------------------------------
+Sitemap: https://mahealthyfoods.in/sitemap.xml

@@ -130,7 +130,48 @@ export default function HeroCarousel({ setPage }) {
     };
 
     return (
-        <section className="hero-main-wrapper">
+        <section className="hero-main-wrapper" aria-label="MaHealthy Foods Hero Showcase">
+            {/* Semantic SEO & GEO H1 Heading establishing the primary brand query entity */}
+            <div className="container hero-seo-header-container" style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h1 className="hero-seo-h1" style={{
+                            fontSize: '1.1rem',
+                            fontWeight: 800,
+                            letterSpacing: '-0.01em',
+                            color: '#064e3b',
+                            margin: '0 0 4px 0',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flexWrap: 'wrap'
+                        }}>
+                            <span style={{
+                                background: '#ecfdf5',
+                                color: '#047857',
+                                border: '1px solid #a7f3d0',
+                                padding: '2px 8px',
+                                borderRadius: '999px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em'
+                            }}>
+                                Authentic Heritage Store
+                            </span>
+                            <span>MaHealthy Foods (mahealthyfoods) — Amutham Sprouted Health Mix</span>
+                        </h1>
+                        <p style={{
+                            fontSize: '0.82rem',
+                            color: '#4b5563',
+                            margin: 0,
+                            lineHeight: 1.4
+                        }}>
+                            100% soak-sprouted ancient millets, grains &amp; Mappillai Samba rice from Sethiyathope, Tamil Nadu. Zero preservatives, 3.2× mineral bioavailability.
+                        </p>
+                    </div>
+                </div>
+            </div>
             
                 {/* BookMyShow Style Hero Banner Card */}
                 {loading && banners.length === 0 ? (
