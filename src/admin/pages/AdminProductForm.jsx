@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft,
     Save,
@@ -241,13 +241,6 @@ export default function AdminProductForm({ mode = 'add', productId = null, onCan
         ingredients: ''
     });
 
-    useEffect(() => {
-        loadCategories();
-        if (isEditMode) {
-            loadProductData();
-        }
-    }, [mode, productId]);
-
     const loadCategories = async () => {
         const res = await fetchCategoriesApi();
         if (res.success && res.data && res.data.length > 0) {
@@ -357,6 +350,13 @@ export default function AdminProductForm({ mode = 'add', productId = null, onCan
             setLoadingProduct(false);
         }
     };
+
+    useEffect(() => {
+        loadCategories();
+        if (isEditMode) {
+            loadProductData();
+        }
+    }, [mode, productId]);
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;

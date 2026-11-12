@@ -58,10 +58,6 @@ export default function AdminMarquee() {
     // Quick emoji suggestions
     const emojiSuggestions = ['🚚', '🎉', '🌱', '⭐', '🔥', '✨', '🌿', '🌾', '❤️', '🏷️'];
 
-    useEffect(() => {
-        fetchMarquees();
-    }, [search, statusFilter]);
-
     const fetchMarquees = async () => {
         setLoading(true);
         const res = await adminMarqueeService.getMarquees(search, statusFilter);
@@ -74,6 +70,10 @@ export default function AdminMarquee() {
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        fetchMarquees();
+    }, [search, statusFilter]);
 
     const handleOpenAddModal = () => {
         setEditingItem(null);

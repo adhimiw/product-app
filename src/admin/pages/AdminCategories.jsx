@@ -40,10 +40,6 @@ export default function AdminCategories() {
     const [deleteModalCat, setDeleteModalCat] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    useEffect(() => {
-        fetchCategories();
-    }, [search]);
-
     const fetchCategories = async () => {
         setLoading(true);
         const res = await adminCategoryService.getCategories(search);
@@ -55,6 +51,10 @@ export default function AdminCategories() {
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        fetchCategories();
+    }, [search]);
 
     // Filtered Categories
     const filteredCategories = useMemo(() => {

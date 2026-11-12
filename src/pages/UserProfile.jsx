@@ -10,7 +10,7 @@ import {
     fetchOrdersApi 
 } from '../services/api';
 
-export default function UserProfile({ user, onLogout, onUpdateUser, showToast, setPage, initialTab = 'info', cartCount = 0 }) {
+export default function UserProfile({ user, onLogout, onUpdateUser, showToast, setPage, initialTab = 'info', cartCount = 0, onAuthOpen }) {
     const { t } = useLanguage();
     const [activeTab, setActiveTab] = useState(initialTab || 'info');
 
@@ -57,14 +57,6 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
         }
     }, [initialTab]);
 
-    useEffect(() => {
-        if (activeTab === 'address' && user) {
-            loadAddresses();
-        } else if (activeTab === 'orders' && user) {
-            loadOrders();
-        }
-    }, [activeTab, user]);
-
     const loadAddresses = async () => {
         setLoadingAddresses(true);
         const res = await fetchAddressesApi();
@@ -86,13 +78,45 @@ export default function UserProfile({ user, onLogout, onUpdateUser, showToast, s
         setLoadingOrders(false);
     };
 
+    useEffect(() => {
+        if (activeTab === 'address' && user) {
+            loadAddresses();
+        } else if (activeTab === 'orders' && user) {
+            loadOrders();
+        }
+    }, [activeTab, user]);
+
     if (!user) {
         return (
-            <div className="container" style={{ padding: '120px 20px', textAlign: 'center' }}>
-                <h2>Please sign in to view your profile dashboard.</h2>
-                <button className="auth-submit-btn" onClick={() => setPage('home')} style={{ maxWidth: '200px', margin: '20px auto' }}>
-                    Go to Home
-                </button>
+            <div className="container" style={{ padding: '80px 20px', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ maxWidth: '540px', width: '100%', background: '#fff', border: '1px solid #e7ded0', borderRadius: '16px', padding: '40px 28px', textAlign: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }}>
+                    <div style={{ width: '64px', height: '64px', background: '#eef5f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '30px' }}>
+                        🌾
+                    </div>
+                    <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1b3b2b', marginBottom: '10px' }}>
+                        {activeTab === 'orders' ? 'Track Your Mangalam Order' : 'Sign In to Your Account'}
+                    </h2>
+                    <p style={{ color: '#555', fontSize: '15px', lineHeight: '1.6', marginBottom: '28px' }}>
+                        {activeTab === 'orders' 
+                            ? 'Please sign in to view your order history, live status tracking, delivery dispatch updates, and receipts.'
+                            : 'Sign in to access your saved addresses, track recent orders, and manage your account details.'}
+                    </p>
+                    <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button 
+                            className="auth-submit-btn" 
+                            onClick={() => onAuthOpen ? onAuthOpen() : setPage('home')} 
+                            style={{ minWidth: '180px', padding: '14px 28px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}
+                        >
+                            Sign In / Log In
+                        </button>
+                        <button 
+                            onClick={() => setPage('home')} 
+                            style={{ minWidth: '140px', padding: '14px 24px', background: '#f5f3ef', border: '1px solid #d4c7b3', borderRadius: '8px', color: '#4a4238', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}
+                        >
+                            Back to Store
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }

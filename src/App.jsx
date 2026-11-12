@@ -95,14 +95,21 @@ const parseRouteFromUrl = () => {
     if (pathname === '/refund' || pathname === '/return-policy') {
         return { page: 'refund', param: null };
     }
+    const search = typeof window !== 'undefined' ? window.location.search : '';
+    const searchParams = new URLSearchParams(search);
+    const hasLoginTrigger = searchParams.get('login') === 'true' || searchParams.get('auth') === 'true';
+
+    if (pathname === '/login' || pathname === '/signin') {
+        return { page: 'home', param: null, openLogin: true };
+    }
     if (pathname === '/profile' || pathname.startsWith('/profile/')) {
         const sub = pathname.replace(/^\/profile\/?/, '').split('/')[0].trim().toLowerCase();
         const validProfileTabs = ['info', 'orders', 'address', 'addresses'];
         let profileTab = validProfileTabs.includes(sub) ? sub : 'info';
         if (profileTab === 'addresses') profileTab = 'address';
-        return { page: 'profile', param: profileTab };
+        return { page: 'profile', param: profileTab, openLogin: hasLoginTrigger };
     }
-    return { page: 'home', param: null };
+    return { page: 'home', param: null, openLogin: hasLoginTrigger };
 };
 
 export default function App() {
@@ -124,7 +131,7 @@ export default function App() {
     });
     const [favoriteProductIds, setFavoriteProductIds] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [isAuthOpen, setIsAuthOpen] = useState(Boolean(initialRoute.openLogin));
     const [toast, setToast] = useState(null);
     const [user, setUser] = useState(() => {
         try {
@@ -140,23 +147,6 @@ export default function App() {
             localStorage.setItem('mangalam_cart', JSON.stringify(cart));
         } catch (e) {}
     }, [cart]);
-
-    // Only load storefront products, cart, and favorites once on initial mount
-    useEffect(() => {
-        if (page !== 'admin') {
-            loadProducts();
-            loadCart();
-            loadFavorites();
-        }
-    }, []); // Run once on startup instead of every page switch
-
-    // Subscribe to product cache invalidation across all tabs & admin operations
-    useEffect(() => {
-        const unsubscribe = subscribeToCacheInvalidation('products', () => {
-            loadProducts(true);
-        });
-        return () => unsubscribe();
-    }, []);
 
     const loadProducts = async (forceRefresh = false) => {
         setLoadingProducts(true);
@@ -175,7 +165,7 @@ export default function App() {
                 const formatted = res.data.items.map(item => {
                     const baseName = item.product ? item.product.name : 'Product';
                     const sizeLabel = item.size_label || (item.package_size ? `${item.package_size.size_number}${item.package_size.size_unit || 'g'}` : '');
-                    const cleanBase = baseName.replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+                    const cleanBase = baseName.replace(/\s*\(\d+[a-zA-Z]+[^)]*\)/i, '').trim();
                     const fullName = sizeLabel ? `${cleanBase} (${sizeLabel})` : cleanBase;
                     return {
                         id: Number(item.product_id),
@@ -209,6 +199,23 @@ export default function App() {
             console.error('Failed to load favorites:', err);
         }
     };
+
+    // Only load storefront products, cart, and favorites once on initial mount
+    useEffect(() => {
+        if (page !== 'admin') {
+            loadProducts();
+            loadCart();
+            loadFavorites();
+        }
+    }, []); // Run once on startup instead of every page switch
+
+    // Subscribe to product cache invalidation across all tabs & admin operations
+    useEffect(() => {
+        const unsubscribe = subscribeToCacheInvalidation('products', () => {
+            loadProducts(true);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const showToast = (titleOrMessage, message = '', type = 'success', image = null) => {
         let finalTitle = '';
@@ -351,7 +358,7 @@ export default function App() {
             resolvedProductId = Number(products[0].id);
         }
 
-        const cleanBaseName = String(name || '').replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+        const cleanBaseName = String(name || '').replace(/\s*\(\d+[a-zA-Z]+[^)]*\)/i, '').trim();
 
         // Optimistic UI update
         setCart(prevCart => {
@@ -401,7 +408,7 @@ export default function App() {
                     const formatted = res.data.items.map(item => {
                         const bName = item.product ? item.product.name : 'Product';
                         const sLabel = item.size_label || (item.package_size ? `${item.package_size.size_number}${item.package_size.size_unit || 'g'}` : '');
-                        const cBase = bName.replace(/\s*\(\d+[a-zA-Z]+[^\)]*\)/i, '').trim();
+                        const cBase = bName.replace(/\s*\(\d+[a-zA-Z]+[^)]*\)/i, '').trim();
                         const fName = sLabel ? `${cBase} (${sLabel})` : cBase;
                         return {
                             id: Number(item.product_id),
@@ -707,6 +714,7 @@ export default function App() {
                         }}
                         showToast={showToast}
                         setPage={setPage}
+                        onAuthOpen={() => setIsAuthOpen(true)}
                     />
                 </Suspense>
             )}

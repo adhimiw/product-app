@@ -100,22 +100,6 @@ export default function AdminWhatsApp() {
         setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
     };
 
-    // Initial Load
-    useEffect(() => {
-        loadStatus();
-        loadLogs();
-    }, []);
-
-    // Filter or Search Change
-    useEffect(() => {
-        loadLogs(searchQuery, filterTab, false);
-    }, [filterTab]);
-
-    const handleSearchSubmit = (e) => {
-        e.preventDefault();
-        loadLogs(searchQuery, filterTab, false);
-    };
-
     const loadStatus = async () => {
         setStatusLoading(true);
         try {
@@ -149,6 +133,22 @@ export default function AdminWhatsApp() {
             setLogsLoading(false);
             setLogsRefreshing(false);
         }
+    };
+
+    // Initial Load
+    useEffect(() => {
+        loadStatus();
+        loadLogs();
+    }, []);
+
+    // Filter or Search Change
+    useEffect(() => {
+        loadLogs(searchQuery, filterTab, false);
+    }, [filterTab]);
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        loadLogs(searchQuery, filterTab, false);
     };
 
     // QR Code Auto-Refresh & Phone Scan Detector

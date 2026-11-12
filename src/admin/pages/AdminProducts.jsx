@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { adminProductService, BADGE_OPTIONS, getBadgeLabel, PRODUCT_BADGE_OPTIONS, PACKAGE_SIZE_OPTIONS, VARIANT_STATUS_OPTIONS } from '../services/adminProductService';
 import { fetchCategoriesApi, formatVariantSize } from '../../services/api';
 import PageHeader from '../components/PageHeader';
@@ -6,7 +6,7 @@ import TableSkeleton from '../components/TableSkeleton';
 import EmptyState from '../components/EmptyState';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import ProductDetailsModal from '../components/ProductDetailsModal';
-import { Eye, Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Eye, Pencil, Trash2, Bold, Italic, Underline, Strikethrough, Heading3, Type, List, ListOrdered, Eraser, X, ArrowLeft, ArrowRight, CheckCircle2, Plus } from 'lucide-react';
 
 function RichTextEditor({ value, onChange, placeholder, minHeight = '140px' }) {
     const editorRef = useRef(null);
@@ -212,11 +212,6 @@ export default function AdminProducts({ onNavigateToAdd, onNavigateToEdit }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notification, setNotification] = useState(null);
 
-    useEffect(() => {
-        loadProducts();
-        loadCategories();
-    }, []);
-
     const loadProducts = async () => {
         setLoading(true);
         try {
@@ -249,6 +244,11 @@ export default function AdminProducts({ onNavigateToAdd, onNavigateToEdit }) {
             ]);
         }
     };
+
+    useEffect(() => {
+        loadProducts();
+        loadCategories();
+    }, []);
 
     const showToast = (message, type = 'success') => {
         setNotification({ message, type });

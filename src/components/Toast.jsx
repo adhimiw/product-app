@@ -3,6 +3,13 @@ import React, { useEffect, useState } from 'react';
 export default function Toast({ toast, onClose }) {
     const [isExiting, setIsExiting] = useState(false);
 
+    const handleDismiss = () => {
+        setIsExiting(true);
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 300);
+    };
+
     useEffect(() => {
         if (!toast) return;
         setIsExiting(false);
@@ -13,15 +20,6 @@ export default function Toast({ toast, onClose }) {
 
         return () => clearTimeout(autoCloseTimer);
     }, [toast]);
-
-    if (!toast) return null;
-
-    const handleDismiss = () => {
-        setIsExiting(true);
-        setTimeout(() => {
-            if (onClose) onClose();
-        }, 300);
-    };
 
     return (
         <div 

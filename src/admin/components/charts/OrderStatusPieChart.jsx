@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { adminAnalyticsService } from '../../services/adminAnalyticsService';
 
 export default function OrderStatusPieChart() {
@@ -25,34 +25,34 @@ export default function OrderStatusPieChart() {
     const radius = 62;
     const strokeWidth = 22;
 
-    // Calculate arc angles
-    let cumulativeAngle = -90; // start at top
+    const slices = useMemo(() => {
+        let cumulativeAngle = -90; // start at top
+        return statusData.map(item => {
+            const angle = (item.count / (totalOrders || 1)) * 360;
+            const startAngle = cumulativeAngle;
+            const endAngle = cumulativeAngle + angle;
+            cumulativeAngle = endAngle;
 
-    const slices = statusData.map(item => {
-        const angle = (item.count / (totalOrders || 1)) * 360;
-        const startAngle = cumulativeAngle;
-        const endAngle = cumulativeAngle + angle;
-        cumulativeAngle = endAngle;
+            // Path calculation for arc stroke
+            const startRad = (startAngle * Math.PI) / 180;
+            const endRad = (endAngle * Math.PI) / 180;
 
-        // Path calculation for arc stroke
-        const startRad = (startAngle * Math.PI) / 180;
-        const endRad = (endAngle * Math.PI) / 180;
+            const x1 = center + radius * Math.cos(startRad);
+            const y1 = center + radius * Math.sin(startRad);
+            const x2 = center + radius * Math.cos(endRad);
+            const y2 = center + radius * Math.sin(endRad);
 
-        const x1 = center + radius * Math.cos(startRad);
-        const y1 = center + radius * Math.sin(startRad);
-        const x2 = center + radius * Math.cos(endRad);
-        const y2 = center + radius * Math.sin(endRad);
+            const largeArc = angle > 180 ? 1 : 0;
+            const pathData = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
 
-        const largeArc = angle > 180 ? 1 : 0;
-        const pathData = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
-
-        return {
-            ...item,
-            pathData,
-            startAngle,
-            endAngle
-        };
-    });
+            return {
+                ...item,
+                pathData,
+                startAngle,
+                endAngle
+            };
+        });
+    }, [statusData, totalOrders]);
 
     return (
         <div className="admin-card admin-chart-card">

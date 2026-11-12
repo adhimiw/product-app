@@ -20,12 +20,6 @@ export default function CartDrawer({
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && user) {
-            loadUserAddress();
-        }
-    }, [isOpen, user]);
-
     const loadUserAddress = async () => {
         const res = await fetchAddressesApi();
         if (res.success && res.data && res.data.length > 0) {
@@ -35,6 +29,12 @@ export default function CartDrawer({
             setSelectedAddress(null);
         }
     };
+
+    useEffect(() => {
+        if (isOpen && user) {
+            loadUserAddress();
+        }
+    }, [isOpen, user]);
 
     const subtotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * item.quantity, 0);
     const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
