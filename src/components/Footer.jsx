@@ -59,13 +59,9 @@ export default function Footer({ setPage }) {
                                 <img src={footerLogo} alt={`${branding?.site_title || 'Mangalam Healthy Foods'} Logo`} style={{ height: '48px', mixBlendMode: 'multiply' }} onError={(e) => { e.target.src = '/mangalam_logo.png'; }} />
                             </button>
                             <p className="footer-desc" style={{ marginTop: '16px', fontSize: '0.88rem', color: '#646a66', lineHeight: '1.5' }}>
-                                <strong>MaHealthy Foods (mahealthyfoods)</strong> — Handcrafted Amutham Sprouted Health Mix (Sathu Maavu) with ancient grains, millets &amp; traditional wisdom.
-                            </p>
-                            <p style={{ marginTop: '6px', fontSize: '0.82rem', color: '#646a66', lineHeight: '1.4' }}>
                                 {t('footerSlogan')}
                             </p>
                             <div style={{ marginTop: '14px', fontSize: '0.8rem', color: '#646a66', lineHeight: '1.5' }}>
-                                <strong>Origin:</strong> Sethiyathope, Cuddalore, TN<br />
                                 <strong>FSSAI Lic. No:</strong> 12423028000746<br />
                                 <strong>GSTIN:</strong> 33FDAPM8867B1ZI<br />
                                 <strong>UDYAM:</strong> UDYAM-TN-04-0125789
@@ -90,8 +86,6 @@ export default function Footer({ setPage }) {
                                 <li><button onClick={() => setPage('shipping')}>Shipping & Delivery</button></li>
                                 <li><button onClick={() => setPage('refund')}>Return & Refund</button></li>
                                 <li><button onClick={() => setPage('terms')}>Terms & Conditions</button></li>
-                                <li><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>XML Sitemap</a></li>
-                                <li><a href="/llms.txt" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>AI / LLMs.txt Digest</a></li>
                                 <li>
                                     <button 
                                         onClick={() => {
