@@ -606,7 +606,7 @@ export default function App() {
 
     return (
         <>
-            <Toast toast={toast} onClose={() => setToast(null)} />
+            {toast && <Toast toast={toast} onClose={() => setToast(null)} />}
             <Header
                 page={page}
                 setPage={setPage}

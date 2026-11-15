@@ -21,6 +21,8 @@ export default function Toast({ toast, onClose }) {
         return () => clearTimeout(autoCloseTimer);
     }, [toast]);
 
+    if (!toast) return null;
+
     return (
         <div 
             className={`tb-slide-toaster ${isExiting ? 'exit' : 'enter'}`}
@@ -29,7 +31,7 @@ export default function Toast({ toast, onClose }) {
             {/* Clean Notification Text Only */}
             <div className="tb-toaster-body">
                 <p className="tb-toaster-text">
-                    {toast.message || toast.title}
+                    {toast?.message || toast?.title || ''}
                 </p>
             </div>
 
